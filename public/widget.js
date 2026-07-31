@@ -36,17 +36,31 @@
   if (window.__spirchatLoaded) return;
   window.__spirchatLoaded = true;
 
+  // Language: explicit data-spirchat-lang wins, else fall back to the visitor's
+  // browser language ("ar" → Arabic/RTL, anything else → English).
+  var lang = current.getAttribute("data-spirchat-lang");
+  if (!lang) {
+    lang = (navigator.language || "en").toLowerCase().indexOf("ar") === 0 ? "ar" : "en";
+  }
+
   var GRADIENT = "linear-gradient(135deg, #7C3AED, #06B6D4)";
+  var rtl = lang === "ar";
+  var side = rtl ? "left" : "right";
   var open = false;
 
   var iframe = document.createElement("iframe");
-  iframe.src = origin + "/widget/" + encodeURIComponent(channelId);
+  iframe.src =
+    origin +
+    "/widget/" +
+    encodeURIComponent(channelId) +
+    "?lang=" +
+    encodeURIComponent(lang);
   iframe.title = "SpirChat";
   iframe.setAttribute("allow", "clipboard-write");
   iframe.style.cssText = [
     "position:fixed",
     "bottom:96px",
-    "right:20px",
+    side + ":20px",
     "width:380px",
     "height:600px",
     "max-width:calc(100vw - 40px)",
@@ -64,7 +78,7 @@
   button.style.cssText = [
     "position:fixed",
     "bottom:20px",
-    "right:20px",
+    side + ":20px",
     "width:60px",
     "height:60px",
     "border:none",

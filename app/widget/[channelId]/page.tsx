@@ -7,9 +7,12 @@ export const dynamic = "force-dynamic";
 
 export default async function WidgetPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ channelId: string }>;
+  searchParams: Promise<{ lang?: string }>;
 }) {
   const { channelId } = await params;
-  return <WidgetChat channelId={channelId} />;
+  const { lang } = await searchParams;
+  return <WidgetChat channelId={channelId} lang={lang === "ar" ? "ar" : "en"} />;
 }

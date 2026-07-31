@@ -5,6 +5,8 @@ import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useI18n } from "@/components/i18n-provider";
+import { LanguageSwitcher } from "@/components/language-switcher";
 
 export default function RegisterPage() {
   const [name, setName] = useState("");
@@ -14,6 +16,7 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const supabase = createClient();
+  const { t } = useI18n();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -51,18 +54,21 @@ export default function RegisterPage() {
   return (
     <div className="flex min-h-screen items-center justify-center px-4">
       <div className="w-full max-w-sm space-y-6">
+        <div className="flex justify-center">
+          <LanguageSwitcher />
+        </div>
         <div className="text-center">
           <Image src="/logo.svg" alt="SpirChat" width={48} height={48} className="mx-auto mb-3" />
-          <h1 className="text-2xl font-bold">Create your account</h1>
+          <h1 className="text-2xl font-bold">{t.auth.registerTitle}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Get started with SpirChat
+            {t.auth.registerSubtitle}
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label htmlFor="name" className="block text-sm font-medium mb-1.5">
-              Name
+              {t.auth.name}
             </label>
             <input
               id="name"
@@ -71,7 +77,7 @@ export default function RegisterPage() {
               onChange={(e) => setName(e.target.value)}
               required
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-              placeholder="Your name"
+              placeholder={t.auth.namePlaceholder}
             />
           </div>
 
@@ -80,7 +86,7 @@ export default function RegisterPage() {
               htmlFor="email"
               className="block text-sm font-medium mb-1.5"
             >
-              Email
+              {t.auth.email}
             </label>
             <input
               id="email"
@@ -98,7 +104,7 @@ export default function RegisterPage() {
               htmlFor="password"
               className="block text-sm font-medium mb-1.5"
             >
-              Password
+              {t.auth.password}
             </label>
             <input
               id="password"
@@ -108,7 +114,7 @@ export default function RegisterPage() {
               required
               minLength={6}
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-              placeholder="Min. 6 characters"
+              placeholder={t.auth.minChars}
             />
           </div>
 
@@ -121,7 +127,7 @@ export default function RegisterPage() {
             disabled={loading}
             className="w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
           >
-            {loading ? "Creating account..." : "Create account"}
+            {loading ? t.auth.creatingAccount : t.auth.registerCta}
           </button>
         </form>
 
@@ -131,7 +137,7 @@ export default function RegisterPage() {
           </div>
           <div className="relative flex justify-center text-xs uppercase">
             <span className="bg-background px-2 text-muted-foreground">
-              Or continue with
+              {t.auth.orContinue}
             </span>
           </div>
         </div>
@@ -147,9 +153,9 @@ export default function RegisterPage() {
         </button>
 
         <p className="text-center text-sm text-muted-foreground">
-          Already have an account?{" "}
+          {t.auth.haveAccount}{" "}
           <Link href="/login" className="font-medium text-foreground hover:underline">
-            Sign in
+            {t.auth.signInLink}
           </Link>
         </p>
       </div>

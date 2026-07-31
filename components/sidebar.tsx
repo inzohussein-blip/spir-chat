@@ -22,7 +22,10 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { WorkspaceSwitcher } from "@/components/workspace-switcher";
+import { useI18n } from "@/components/i18n-provider";
+import { LanguageSwitcher } from "@/components/language-switcher";
 import type { Database } from "@/lib/types/database";
+import type { Dictionary } from "@/lib/i18n/dictionaries";
 
 type Workspace = Database["public"]["Tables"]["workspaces"]["Row"];
 
@@ -39,17 +42,21 @@ function subscribeToThemeClass(callback: () => void) {
   return () => observer.disconnect();
 }
 
-const navigation = [
-  { name: "Flows", href: "/dashboard/flows", icon: GitBranch },
-  { name: "Inbox", href: "/dashboard/inbox", icon: MessageSquare },
-  { name: "Contacts", href: "/dashboard/contacts", icon: Users },
-  { name: "Broadcasts", href: "/dashboard/broadcasts", icon: Radio },
-  { name: "Sequences", href: "/dashboard/sequences", icon: ListOrdered },
-  { name: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
-  { name: "Growth", href: "/dashboard/growth", icon: Sprout },
-  { name: "Website", href: "/dashboard/widgets", icon: Globe },
-  { name: "Channels", href: "/dashboard/channels", icon: Plug },
-  { name: "Settings", href: "/dashboard/settings", icon: Settings },
+const navigation: {
+  key: keyof Dictionary["sidebar"];
+  href: string;
+  icon: typeof GitBranch;
+}[] = [
+  { key: "flows", href: "/dashboard/flows", icon: GitBranch },
+  { key: "inbox", href: "/dashboard/inbox", icon: MessageSquare },
+  { key: "contacts", href: "/dashboard/contacts", icon: Users },
+  { key: "broadcasts", href: "/dashboard/broadcasts", icon: Radio },
+  { key: "sequences", href: "/dashboard/sequences", icon: ListOrdered },
+  { key: "analytics", href: "/dashboard/analytics", icon: BarChart3 },
+  { key: "growth", href: "/dashboard/growth", icon: Sprout },
+  { key: "website", href: "/dashboard/widgets", icon: Globe },
+  { key: "channels", href: "/dashboard/channels", icon: Plug },
+  { key: "settings", href: "/dashboard/settings", icon: Settings },
 ];
 
 export function Sidebar({
@@ -63,6 +70,7 @@ export function Sidebar({
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
+  const { t } = useI18n();
   const dark = useSyncExternalStore(
     subscribeToThemeClass,
     () => document.documentElement.classList.contains("dark"),
@@ -92,7 +100,7 @@ export function Sidebar({
           const isActive = pathname.startsWith(item.href);
           return (
             <Link
-              key={item.name}
+              key={item.key}
               href={item.href}
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
@@ -102,26 +110,29 @@ export function Sidebar({
               )}
             >
               <item.icon className="h-4 w-4" />
-              {item.name}
+              {t.sidebar[item.key]}
             </Link>
           );
         })}
       </nav>
 
       <div className="border-t border-sidebar-border p-3 space-y-1">
+        <div className="px-1 pb-1">
+          <LanguageSwitcher />
+        </div>
         <button
           onClick={toggleTheme}
           className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
         >
           {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-          {dark ? "Light mode" : "Dark mode"}
+          {dark ? t.sidebar.lightMode : t.sidebar.darkMode}
         </button>
         <button
           onClick={handleSignOut}
           className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
         >
           <LogOut className="h-4 w-4" />
-          Sign out
+          {t.sidebar.signOut}
         </button>
       </div>
     </div>

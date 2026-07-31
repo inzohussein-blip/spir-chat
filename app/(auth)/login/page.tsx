@@ -5,6 +5,8 @@ import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useI18n } from "@/components/i18n-provider";
+import { LanguageSwitcher } from "@/components/language-switcher";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -13,6 +15,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const supabase = createClient();
+  const { t } = useI18n();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -46,11 +49,14 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center px-4">
       <div className="w-full max-w-sm space-y-6">
+        <div className="flex justify-center">
+          <LanguageSwitcher />
+        </div>
         <div className="text-center">
           <Image src="/logo.svg" alt="SpirChat" width={48} height={48} className="mx-auto mb-3" />
-          <h1 className="text-2xl font-bold">Welcome back</h1>
+          <h1 className="text-2xl font-bold">{t.auth.loginTitle}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Sign in to your account
+            {t.auth.loginSubtitle}
           </p>
         </div>
 
@@ -60,7 +66,7 @@ export default function LoginPage() {
               htmlFor="email"
               className="block text-sm font-medium mb-1.5"
             >
-              Email
+              {t.auth.email}
             </label>
             <input
               id="email"
@@ -78,7 +84,7 @@ export default function LoginPage() {
               htmlFor="password"
               className="block text-sm font-medium mb-1.5"
             >
-              Password
+              {t.auth.password}
             </label>
             <input
               id="password"
@@ -87,7 +93,7 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               required
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-              placeholder="Your password"
+              placeholder={t.auth.password}
             />
           </div>
 
@@ -100,7 +106,7 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
           >
-            {loading ? "Signing in..." : "Sign in"}
+            {loading ? t.auth.loggingIn : t.auth.loginCta}
           </button>
         </form>
 
@@ -110,7 +116,7 @@ export default function LoginPage() {
           </div>
           <div className="relative flex justify-center text-xs uppercase">
             <span className="bg-background px-2 text-muted-foreground">
-              Or continue with
+              {t.auth.orContinue}
             </span>
           </div>
         </div>
@@ -126,9 +132,9 @@ export default function LoginPage() {
         </button>
 
         <p className="text-center text-sm text-muted-foreground">
-          Don&apos;t have an account?{" "}
+          {t.auth.noAccount}{" "}
           <Link href="/register" className="font-medium text-foreground hover:underline">
-            Sign up
+            {t.auth.signUpLink}
           </Link>
         </p>
       </div>

@@ -12,7 +12,33 @@ interface WidgetMessage {
 
 const POLL_MS = 3000;
 
-export function WidgetChat({ channelId }: { channelId: string }) {
+// Self-contained strings: the widget is embedded cross-origin, so its language
+// comes from the ?lang param (set by the loader from the visitor's site), not
+// the app's locale cookie.
+const WIDGET_STRINGS = {
+  en: {
+    subtitle: "We typically reply shortly",
+    empty: "Send us a message and we'll get back to you.",
+    unavailable: "Chat is unavailable right now.",
+    placeholder: "Type a message…",
+  },
+  ar: {
+    subtitle: "نردّ عادةً خلال وقت قصير",
+    empty: "أرسل لنا رسالة وسنعاود التواصل معك.",
+    unavailable: "المحادثة غير متاحة حالياً.",
+    placeholder: "اكتب رسالة…",
+  },
+} as const;
+
+export function WidgetChat({
+  channelId,
+  lang = "en",
+}: {
+  channelId: string;
+  lang?: "en" | "ar";
+}) {
+  const s = WIDGET_STRINGS[lang] ?? WIDGET_STRINGS.en;
+  const dir = lang === "ar" ? "rtl" : "ltr";
   const [messages, setMessages] = useState<WidgetMessage[]>([]);
   const [input, setInput] = useState("");
   const [ready, setReady] = useState(false);
@@ -147,7 +173,7 @@ export function WidgetChat({ channelId }: { channelId: string }) {
   }
 
   return (
-    <div className="flex h-screen flex-col bg-white text-gray-900">
+    <div dir={dir} className="flex h-screen flex-col bg-white text-gray-900">
       {/* Header */}
       <div className="flex items-center gap-3 bg-gradient-to-r from-violet-600 to-cyan-500 px-4 py-3 text-white">
         <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-sm font-bold">
@@ -155,21 +181,17 @@ export function WidgetChat({ channelId }: { channelId: string }) {
         </div>
         <div>
           <p className="text-sm font-semibold leading-tight">SpirChat</p>
-          <p className="text-xs text-white/80 leading-tight">
-            We typically reply shortly
-          </p>
+          <p className="text-xs text-white/80 leading-tight">{s.subtitle}</p>
         </div>
       </div>
 
       {/* Messages */}
       <div ref={scrollRef} className="flex-1 space-y-2 overflow-y-auto p-4">
         {messages.length === 0 && !error && (
-          <p className="mt-8 text-center text-sm text-gray-400">
-            Send us a message and we&apos;ll get back to you.
-          </p>
+          <p className="mt-8 text-center text-sm text-gray-400">{s.empty}</p>
         )}
         {error && (
-          <p className="mt-8 text-center text-sm text-red-500">{error}</p>
+          <p className="mt-8 text-center text-sm text-red-500">{s.unavailable}</p>
         )}
         {messages.map((m) => (
           <div
@@ -204,7 +226,7 @@ export function WidgetChat({ channelId }: { channelId: string }) {
             }
           }}
           disabled={!ready}
-          placeholder="Type a message…"
+          placeholder={s.placeholder}
           className="flex-1 rounded-full border border-gray-200 px-4 py-2 text-sm outline-none focus:border-violet-400 disabled:bg-gray-50"
         />
         <button

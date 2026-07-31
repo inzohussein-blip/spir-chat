@@ -19,8 +19,11 @@ import {
   Link2,
 } from "lucide-react";
 import { PlatformIcon } from "@/components/platform-icon";
+import { getDictionary } from "@/lib/i18n/server";
+import { LanguageSwitcher } from "@/components/language-switcher";
 
-export default function Home() {
+export default async function Home() {
+  const { hero, nav, footer } = await getDictionary();
   return (
     <div className="min-h-screen bg-white">
       {/* Nav */}
@@ -31,6 +34,7 @@ export default function Home() {
             <span className="text-base font-bold text-gray-900">SpirChat</span>
           </Link>
           <div className="flex items-center gap-3">
+            <LanguageSwitcher />
             <Link
               href="https://github.com/inzohussein-blip/spir-chat"
               target="_blank"
@@ -38,19 +42,19 @@ export default function Home() {
               className="hidden items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-gray-500 hover:text-gray-900 sm:inline-flex"
             >
               <Github className="h-4 w-4" />
-              Star on GitHub
+              {nav.star}
             </Link>
             <Link
               href="/login"
               className="rounded-lg px-3 py-2 text-sm text-gray-500 hover:text-gray-900"
             >
-              Log in
+              {nav.login}
             </Link>
             <Link
               href="/register"
               className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
             >
-              Get started free
+              {nav.getStarted}
             </Link>
           </div>
         </div>
@@ -60,35 +64,32 @@ export default function Home() {
       <section className="mx-auto max-w-6xl px-6 pb-20 pt-20 sm:pt-28">
         <div className="mx-auto max-w-3xl text-center">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50 px-4 py-1.5">
-            <span className="text-xs font-medium text-indigo-700">MIT Licensed</span>
+            <span className="text-xs font-medium text-indigo-700">{hero.badge}</span>
             <Link
               href="https://github.com/inzohussein-blip/spir-chat"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 text-xs font-medium text-indigo-500 hover:text-indigo-700"
             >
-              View on GitHub <ArrowRight className="h-3 w-3" />
+              {hero.viewGithub} <ArrowRight className="h-3 w-3 rtl:rotate-180" />
             </Link>
           </div>
           <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
-            Live chat and chatbots for your{" "}
+            {hero.titleLead}{" "}
             <span className="bg-gradient-to-r from-violet-600 to-cyan-500 bg-clip-text text-transparent">
-              website and social
+              {hero.titleHighlight}
             </span>
           </h1>
           <p className="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-gray-500">
-            One inbox for every conversation — website live chat plus DMs and comments across
-            Instagram, Facebook, WhatsApp, Telegram, X, Bluesky, and Reddit. Automate with a
-            visual flow builder and AI, or take over live. Open source, self-hostable, and
-            built on Supabase.
+            {hero.subtitle}
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link
               href="/register"
               className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 px-6 py-3 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 sm:w-auto"
             >
-              Get started free
-              <ArrowRight className="h-3.5 w-3.5" />
+              {hero.ctaPrimary}
+              <ArrowRight className="h-3.5 w-3.5 rtl:rotate-180" />
             </Link>
             <Link
               href="https://github.com/inzohussein-blip/spir-chat"
@@ -97,10 +98,10 @@ export default function Home() {
               className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-6 py-3 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 sm:w-auto"
             >
               <Github className="h-4 w-4" />
-              View source code
+              {hero.ctaSource}
             </Link>
           </div>
-          <p className="mt-4 text-xs text-gray-400">MIT licensed. Self-host or use our cloud. No credit card required.</p>
+          <p className="mt-4 text-xs text-gray-400">{hero.note}</p>
         </div>
 
         {/* Flow builder preview */}
@@ -483,6 +484,7 @@ export default function Home() {
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 sm:flex-row">
           <div className="flex items-center gap-4">
             <span className="text-sm text-gray-400">SpirChat</span>
+            <span className="hidden text-sm text-gray-400 sm:inline">{footer.tagline}</span>
             <span className="text-sm text-gray-300">|</span>
             <Link
               href="https://github.com/inzohussein-blip/spir-chat"

@@ -29,10 +29,17 @@ alternative), unifying both in a single inbox and automation engine.
   (public, CORS-enabled `/api/widget/*` endpoints, no Zernio), and agents reply
   from the normal inbox. Manage widgets and copy the embed snippet at
   **Dashboard → Website**.
+- **Arabic / RTL + i18n foundation** — cookie-based locale with a server
+  dictionary + a client provider, `<html lang dir>` flipping to RTL, and a
+  language switcher. Arabic is shipped for the public surfaces (landing, login,
+  register), the dashboard navigation, and the embeddable widget (its language
+  follows the visitor's browser or a `data-spirchat-lang` attribute). Remaining
+  dashboard views inherit RTL layout and are translated incrementally against
+  the same dictionary.
 
 ### Next (high-impact, in priority order)
-1. **Arabic / RTL localization** — first-class RTL layout and Arabic UI for the
-   MENA market (deliberately deferred for now, planned).
+1. **Translate the remaining dashboard views** against the i18n dictionary
+   (inbox, flows, contacts, sequences, analytics, settings).
 2. **Team collaboration in the inbox** — internal notes, mentions, and
    assignment SLAs.
 3. **Analytics dashboard** — conversation volume, response times, flow
