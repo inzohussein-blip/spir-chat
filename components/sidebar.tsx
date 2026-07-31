@@ -90,7 +90,7 @@ export function Sidebar({
   }
 
   return (
-    <div className="flex h-full w-60 flex-col border-r border-border bg-sidebar">
+    <div className="flex h-full w-60 flex-col border-e border-border bg-sidebar">
       <div className="border-b border-sidebar-border px-3 py-3">
         <WorkspaceSwitcher current={workspace} workspaces={workspaces} />
       </div>

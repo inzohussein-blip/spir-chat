@@ -114,6 +114,47 @@ const en = {
     syncing: "Syncing…",
     syncConversations: "Sync conversations",
   },
+  landing: {
+    platformsNote: "Works with 7 platforms",
+    previewFlow: "Welcome Flow",
+    compareHeading: "Why teams switch to SpirChat",
+    compareSub: "Website live chat and social, in one inbox. No monthly bill.",
+    features: {
+      heading: "Everything you need to talk to customers",
+      items: [
+        { title: "Website live chat", desc: "Drop a chat widget on your site. Conversations land in the same inbox as your social DMs." },
+        { title: "Comment-to-DM", desc: "Someone comments a keyword? Instantly DM them your link, offer, or lead magnet." },
+        { title: "Visual flow builder", desc: "Drag-and-drop conversation flows. Welcome messages, follow-ups, funnels. No code." },
+        { title: "AI responses", desc: "Let AI handle conversations. Choose your provider: OpenAI, Anthropic, or Google." },
+        { title: "Live chat inbox", desc: "Website and social messages in one place. The bot handles the easy stuff, you step in when it matters." },
+        { title: "Contact CRM", desc: "Tag your audience, build segments, track interactions. The right message to the right people." },
+        { title: "Broadcasts", desc: "Send promotions and updates to your audience. Target by tags, platform, or segment." },
+        { title: "Sequences", desc: "Drip campaigns on autopilot. Message, wait, message. Enroll contacts from flows." },
+        { title: "Webhooks & API", desc: "Connect to any tool. Push leads to Sheets, trigger Zapier, call external APIs." },
+      ],
+    },
+    how: {
+      heading: "Up and running in 5 minutes",
+      steps: [
+        { title: "Connect your channels", desc: "Add the website widget and link Instagram, Facebook, WhatsApp, Telegram, and more in a few clicks." },
+        { title: "Build a flow", desc: "Use the visual builder to create your automation. Pick a trigger, add messages, set conditions." },
+        { title: "Watch it grow", desc: "Your flows run 24/7. Capture leads, answer questions, and sell while you sleep." },
+      ],
+    },
+    useCases: {
+      heading: "Built for creators, businesses, and agencies",
+      items: [
+        { title: "Creators", desc: "Auto-reply to comments, send lead magnets via DM, and grow your list from social." },
+        { title: "Small businesses", desc: "Answer website and DM questions instantly, qualify leads, and book appointments on autopilot." },
+        { title: "Agencies", desc: "Manage every client account in one workspace. Build flows once, reuse them across brands." },
+      ],
+    },
+    cta: {
+      heading: "Start talking to your customers",
+      sub: "Add live chat to your website and connect your social accounts in minutes. Free to start.",
+      primary: "Get started free",
+    },
+  },
 };
 
 export type Dictionary = typeof en;
@@ -229,6 +270,47 @@ const ar: Dictionary = {
       "إن كانت لديك محادثات في Zernio، زامِنها لإحضارها إلى صندوق الوارد.",
     syncing: "جارٍ المزامنة…",
     syncConversations: "مزامنة المحادثات",
+  },
+  landing: {
+    platformsNote: "يعمل مع 7 منصّات",
+    previewFlow: "تدفق الترحيب",
+    compareHeading: "لماذا تنتقل الفرق إلى SpirChat",
+    compareSub: "لايف شات للموقع والسوشيال في صندوق واحد. بلا فاتورة شهرية.",
+    features: {
+      heading: "كل ما تحتاجه للتحدّث مع عملائك",
+      items: [
+        { title: "لايف شات للموقع", desc: "ضع ويدجت محادثة على موقعك. تصل المحادثات إلى نفس صندوق رسائل السوشيال." },
+        { title: "التعليق إلى رسالة", desc: "علّق أحدهم بكلمة مفتاحية؟ أرسِل له فوراً رابطك أو عرضك أو المحتوى المجاني." },
+        { title: "منشئ تدفقات مرئي", desc: "تدفقات محادثة بالسحب والإفلات. رسائل ترحيب ومتابعات وقمعات بيع. بلا برمجة." },
+        { title: "ردود بالذكاء الاصطناعي", desc: "دع الذكاء الاصطناعي يدير المحادثات. اختر مزوّدك: OpenAI أو Anthropic أو Google." },
+        { title: "صندوق لايف شات", desc: "رسائل الموقع والسوشيال في مكان واحد. يتولّى البوت البسيط وتتدخّل أنت وقت الأهمية." },
+        { title: "نظام إدارة جهات الاتصال", desc: "صنّف جمهورك، وابنِ شرائح، وتتبّع التفاعلات. الرسالة الصحيحة للأشخاص المناسبين." },
+        { title: "البثّ", desc: "أرسل العروض والتحديثات لجمهورك. استهدِف بالوسوم أو المنصّة أو الشريحة." },
+        { title: "التسلسلات", desc: "حملات تنقيط تلقائية. رسالة، انتظار، رسالة. سجّل جهات الاتصال من التدفقات." },
+        { title: "Webhooks وواجهة برمجية", desc: "اربط بأي أداة. ادفع العملاء إلى Sheets، وشغّل Zapier، ونادِ واجهات خارجية." },
+      ],
+    },
+    how: {
+      heading: "جاهز للعمل خلال 5 دقائق",
+      steps: [
+        { title: "اربط قنواتك", desc: "أضف ويدجت الموقع واربط إنستغرام وفيسبوك وواتساب وتيليغرام والمزيد بنقرات." },
+        { title: "ابنِ تدفقاً", desc: "استخدم المنشئ المرئي لبناء الأتمتة. اختر محفّزاً، أضف رسائل، وحدّد الشروط." },
+        { title: "شاهده ينمو", desc: "تعمل تدفقاتك على مدار الساعة. تلتقط العملاء وتجيب الأسئلة وتبيع بينما تنام." },
+      ],
+    },
+    useCases: {
+      heading: "مصمّم للمبدعين والشركات والوكالات",
+      items: [
+        { title: "المبدعون", desc: "ردّ تلقائياً على التعليقات، وأرسل المحتوى المجاني عبر الرسائل، ونمِّ قائمتك من السوشيال." },
+        { title: "الشركات الصغيرة", desc: "أجب أسئلة الموقع والرسائل فوراً، وأهّل العملاء، واحجز المواعيد تلقائياً." },
+        { title: "الوكالات", desc: "أدِر كل حسابات العملاء في مساحة عمل واحدة. ابنِ التدفقات مرّة وأعِد استخدامها عبر العلامات." },
+      ],
+    },
+    cta: {
+      heading: "ابدأ التحدّث مع عملائك",
+      sub: "أضف لايف شات إلى موقعك واربط حساباتك الاجتماعية خلال دقائق. ابدأ مجاناً.",
+      primary: "ابدأ مجاناً",
+    },
   },
 };
 

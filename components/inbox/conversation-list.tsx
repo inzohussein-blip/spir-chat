@@ -112,7 +112,7 @@ export function ConversationList({
   });
 
   return (
-    <div className="flex h-full flex-col border-r border-border bg-background">
+    <div className="flex h-full flex-col border-e border-border bg-background">
       {/* Header */}
       <div className="flex h-14 items-center justify-between border-b border-border px-4">
         <h2 className="text-sm font-semibold">Inbox</h2>

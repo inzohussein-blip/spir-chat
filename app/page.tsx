@@ -11,21 +11,44 @@ import {
   CheckCircle,
   TrendingUp,
   Heart,
-  Github,
-  X,
-  Check,
   Sparkles,
   ListOrdered,
   Link2,
+  Globe,
 } from "lucide-react";
 import { PlatformIcon } from "@/components/platform-icon";
 import { getDictionary } from "@/lib/i18n/server";
 import { LanguageSwitcher } from "@/components/language-switcher";
 
+const FEATURE_ICONS = [
+  Globe,
+  MessageCircle,
+  GitBranch,
+  Sparkles,
+  MessageSquare,
+  Users,
+  Radio,
+  ListOrdered,
+  Zap,
+];
+const STEP_ICONS = [CheckCircle, GitBranch, TrendingUp];
+const USE_CASE_ICONS = [Heart, TrendingUp, Users];
+
+const PLATFORMS = [
+  { name: "Instagram", platform: "instagram" },
+  { name: "Facebook", platform: "facebook" },
+  { name: "WhatsApp", platform: "whatsapp" },
+  { name: "Telegram", platform: "telegram" },
+  { name: "X / Twitter", platform: "twitter" },
+  { name: "Bluesky", platform: "bluesky" },
+  { name: "Reddit", platform: "reddit" },
+];
+
 export default async function Home() {
-  const { hero, nav, footer } = await getDictionary();
+  const { hero, nav, footer, landing } = await getDictionary();
+
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen overflow-x-hidden bg-white">
       {/* Nav */}
       <nav className="sticky top-0 z-50 border-b border-gray-100 bg-white/80 backdrop-blur-lg">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
@@ -35,15 +58,6 @@ export default async function Home() {
           </Link>
           <div className="flex items-center gap-3">
             <LanguageSwitcher />
-            <Link
-              href="https://github.com/inzohussein-blip/spir-chat"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hidden items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-gray-500 hover:text-gray-900 sm:inline-flex"
-            >
-              <Github className="h-4 w-4" />
-              {nav.star}
-            </Link>
             <Link
               href="/login"
               className="rounded-lg px-3 py-2 text-sm text-gray-500 hover:text-gray-900"
@@ -65,14 +79,6 @@ export default async function Home() {
         <div className="mx-auto max-w-3xl text-center">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50 px-4 py-1.5">
             <span className="text-xs font-medium text-indigo-700">{hero.badge}</span>
-            <Link
-              href="https://github.com/inzohussein-blip/spir-chat"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-xs font-medium text-indigo-500 hover:text-indigo-700"
-            >
-              {hero.viewGithub} <ArrowRight className="h-3 w-3 rtl:rotate-180" />
-            </Link>
           </div>
           <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
             {hero.titleLead}{" "}
@@ -92,13 +98,10 @@ export default async function Home() {
               <ArrowRight className="h-3.5 w-3.5 rtl:rotate-180" />
             </Link>
             <Link
-              href="https://github.com/inzohussein-blip/spir-chat"
-              target="_blank"
-              rel="noopener noreferrer"
+              href="/login"
               className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-6 py-3 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 sm:w-auto"
             >
-              <Github className="h-4 w-4" />
-              {hero.ctaSource}
+              {nav.login}
             </Link>
           </div>
           <p className="mt-4 text-xs text-gray-400">{hero.note}</p>
@@ -111,49 +114,47 @@ export default async function Home() {
               <div className="h-2.5 w-2.5 rounded-full bg-red-300" />
               <div className="h-2.5 w-2.5 rounded-full bg-yellow-300" />
               <div className="h-2.5 w-2.5 rounded-full bg-green-300" />
-              <span className="ml-3 text-xs text-gray-400">Welcome Flow</span>
+              <span className="text-xs text-gray-400">{landing.previewFlow}</span>
             </div>
-            <div className="relative flex min-h-[300px] items-center justify-center gap-4 p-8 sm:gap-6 sm:p-12"
+            <div
+              className="relative flex min-h-[300px] flex-wrap items-center justify-center gap-4 p-8 sm:gap-6 sm:p-12"
               style={{
                 backgroundImage: "radial-gradient(circle, #e5e7eb 1px, transparent 1px)",
                 backgroundSize: "20px 20px",
               }}
             >
-              {/* Trigger */}
               <div className="w-40 rounded-xl border-2 border-indigo-200 bg-white p-4 shadow-sm">
                 <div className="mb-2 flex items-center gap-2">
                   <div className="flex h-6 w-6 items-center justify-center rounded-md bg-indigo-50">
                     <MessageCircle className="h-3.5 w-3.5 text-indigo-600" />
                   </div>
-                  <span className="text-xs font-semibold text-gray-900">Comment trigger</span>
+                  <span className="text-xs font-semibold text-gray-900">{landing.features.items[1].title}</span>
                 </div>
-                <p className="text-[10px] text-gray-500">Keyword: &quot;info&quot;</p>
+                <p className="text-[10px] text-gray-500">{landing.features.items[0].title}</p>
               </div>
 
               <div className="hidden h-0.5 w-6 bg-gray-300 sm:block" />
 
-              {/* Send DM */}
               <div className="hidden w-44 rounded-xl border-2 border-emerald-200 bg-white p-4 shadow-sm sm:block">
                 <div className="mb-2 flex items-center gap-2">
                   <div className="flex h-6 w-6 items-center justify-center rounded-md bg-emerald-50">
                     <MessageSquare className="h-3.5 w-3.5 text-emerald-600" />
                   </div>
-                  <span className="text-xs font-semibold text-gray-900">Send DM</span>
+                  <span className="text-xs font-semibold text-gray-900">{landing.features.items[4].title}</span>
                 </div>
-                <p className="text-[10px] text-gray-500">&quot;Hey! Here&apos;s the link...&quot;</p>
+                <p className="text-[10px] text-gray-500">{landing.features.items[3].title}</p>
               </div>
 
               <div className="hidden h-0.5 w-6 bg-gray-300 sm:block" />
 
-              {/* Tag */}
               <div className="w-36 rounded-xl border-2 border-amber-200 bg-white p-4 shadow-sm">
                 <div className="mb-2 flex items-center gap-2">
                   <div className="flex h-6 w-6 items-center justify-center rounded-md bg-amber-50">
                     <Users className="h-3.5 w-3.5 text-amber-600" />
                   </div>
-                  <span className="text-xs font-semibold text-gray-900">Tag as lead</span>
+                  <span className="text-xs font-semibold text-gray-900">{landing.features.items[5].title}</span>
                 </div>
-                <p className="text-[10px] text-gray-500">Tag: &quot;interested&quot;</p>
+                <p className="text-[10px] text-gray-500">{landing.features.items[7].title}</p>
               </div>
             </div>
           </div>
@@ -163,17 +164,11 @@ export default async function Home() {
       {/* Platforms */}
       <section className="border-y border-gray-100 bg-gray-50/60 py-10">
         <div className="mx-auto max-w-6xl px-6">
-          <p className="mb-4 text-center text-xs font-medium uppercase tracking-wider text-gray-400">Works with 7 platforms (ManyChat only supports 2)</p>
+          <p className="mb-4 text-center text-xs font-medium uppercase tracking-wider text-gray-400">
+            {landing.platformsNote}
+          </p>
           <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
-            {[
-              { name: "Instagram", platform: "instagram" },
-              { name: "Facebook", platform: "facebook" },
-              { name: "WhatsApp", platform: "whatsapp" },
-              { name: "Telegram", platform: "telegram" },
-              { name: "X / Twitter", platform: "twitter" },
-              { name: "Bluesky", platform: "bluesky" },
-              { name: "Reddit", platform: "reddit" },
-            ].map((p) => (
+            {PLATFORMS.map((p) => (
               <span key={p.platform} className="inline-flex items-center gap-2 text-sm font-medium text-gray-500">
                 <PlatformIcon platform={p.platform} size={18} />
                 {p.name}
@@ -183,125 +178,17 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* ManyChat comparison */}
-      <section className="py-20">
-        <div className="mx-auto max-w-6xl px-6">
-          <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-2xl font-bold text-gray-900 sm:text-3xl">
-              Why teams switch from ManyChat
-            </h2>
-            <p className="mt-3 text-base text-gray-500">
-              Same features you rely on. More platforms. No monthly bill.
-            </p>
-          </div>
-          <div className="mx-auto mt-12 max-w-3xl">
-            <div className="overflow-hidden rounded-2xl border border-gray-200">
-              {/* Header */}
-              <div className="grid grid-cols-3 border-b border-gray-200 bg-gray-50">
-                <div className="px-6 py-4" />
-                <div className="border-l border-gray-200 px-6 py-4 text-center">
-                  <p className="text-sm font-semibold text-gray-400">ManyChat</p>
-                </div>
-                <div className="border-l border-gray-200 bg-indigo-50 px-6 py-4 text-center">
-                  <p className="text-sm font-semibold text-indigo-600">SpirChat</p>
-                </div>
-              </div>
-              {/* Rows */}
-              {[
-                { feature: "Instagram & Facebook", manychat: true, zernflow: true },
-                { feature: "WhatsApp", manychat: true, zernflow: true },
-                { feature: "Telegram", manychat: false, zernflow: true },
-                { feature: "X / Twitter", manychat: false, zernflow: true },
-                { feature: "Bluesky & Reddit", manychat: false, zernflow: true },
-                { feature: "Visual flow builder", manychat: true, zernflow: true },
-                { feature: "AI responses (BYO key)", manychat: true, zernflow: true },
-                { feature: "Choose your AI provider", manychat: false, zernflow: true },
-                { feature: "Comment-to-DM", manychat: true, zernflow: true },
-                { feature: "Live chat inbox", manychat: true, zernflow: true },
-                { feature: "Sequences / drip campaigns", manychat: true, zernflow: true },
-                { feature: "Contact CRM", manychat: true, zernflow: true },
-                { feature: "Open source", manychat: false, zernflow: true },
-                { feature: "Self-hostable", manychat: false, zernflow: true },
-                { feature: "Free forever", manychat: false, zernflow: true },
-              ].map((row) => (
-                <div key={row.feature} className="grid grid-cols-3 border-b border-gray-100 last:border-b-0">
-                  <div className="px-6 py-3">
-                    <p className="text-sm text-gray-700">{row.feature}</p>
-                  </div>
-                  <div className="flex items-center justify-center border-l border-gray-100 px-6 py-3">
-                    {row.manychat ? (
-                      <Check className="h-4 w-4 text-gray-300" />
-                    ) : (
-                      <X className="h-4 w-4 text-gray-300" />
-                    )}
-                  </div>
-                  <div className="flex items-center justify-center border-l border-gray-100 bg-indigo-50/30 px-6 py-3">
-                    <Check className="h-4 w-4 text-indigo-600" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* Features */}
       <section className="border-t border-gray-100 bg-gray-50/60 py-20">
         <div className="mx-auto max-w-6xl px-6">
           <div className="mx-auto max-w-2xl text-center">
             <h2 className="text-2xl font-bold text-gray-900 sm:text-3xl">
-              Everything you need to grow on social
+              {landing.features.heading}
             </h2>
           </div>
           <div className="mt-14 grid gap-px overflow-hidden rounded-2xl border border-gray-200 bg-gray-200 sm:grid-cols-2 lg:grid-cols-3">
-            {[
-              {
-                icon: MessageCircle,
-                title: "Comment-to-DM",
-                desc: "Someone comments a keyword? Instantly DM them your link, offer, or lead magnet.",
-              },
-              {
-                icon: GitBranch,
-                title: "Visual flow builder",
-                desc: "Drag-and-drop conversation flows. Welcome messages, follow-ups, sales funnels. No code.",
-              },
-              {
-                icon: Sparkles,
-                title: "AI responses",
-                desc: "Let AI handle conversations. Pick your provider: OpenAI, Anthropic, or Google. Your API key, your choice.",
-              },
-              {
-                icon: MessageSquare,
-                title: "Live chat inbox",
-                desc: "All your DMs in one place. Bot handles the easy stuff, you jump in when it matters.",
-              },
-              {
-                icon: Users,
-                title: "Contact CRM",
-                desc: "Tag your audience, build segments, track interactions. Right message to the right people.",
-              },
-              {
-                icon: Radio,
-                title: "Broadcasts",
-                desc: "Send promotions and updates to your audience. Target by tags, platform, or segments.",
-              },
-              {
-                icon: ListOrdered,
-                title: "Sequences",
-                desc: "Drip campaigns that run on autopilot. Message, wait, message. Enroll contacts from flows.",
-              },
-              {
-                icon: Link2,
-                title: "Growth tools",
-                desc: "Generate DM starter links for every platform. Share them anywhere to start conversations.",
-              },
-              {
-                icon: Zap,
-                title: "Webhooks & API",
-                desc: "Connect to any tool. Push leads to Google Sheets, trigger Zapier, call external APIs.",
-              },
-            ].map((item) => {
-              const Icon = item.icon;
+            {landing.features.items.map((item, i) => {
+              const Icon = FEATURE_ICONS[i] ?? Sparkles;
               return (
                 <div key={item.title} className="bg-white p-6">
                   <Icon className="mb-3 h-5 w-5 text-indigo-500" />
@@ -314,87 +201,17 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Open source section */}
+      {/* How it works */}
       <section className="py-20">
         <div className="mx-auto max-w-6xl px-6">
-          <div className="grid gap-12 lg:grid-cols-2 lg:gap-20">
-            <div>
-              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-gray-200 px-3 py-1">
-                <Github className="h-3.5 w-3.5 text-gray-500" />
-                <span className="text-xs font-medium text-gray-500">MIT licensed</span>
-              </div>
-              <h2 className="text-2xl font-bold text-gray-900 sm:text-3xl">
-                Open source. Not open-washing.
-              </h2>
-              <p className="mt-4 text-base leading-relaxed text-gray-500">
-                SpirChat is fully open source under the MIT license. Read every line of code,
-                self-host on your own infrastructure, or fork it and make it yours.
-                No &ldquo;open core&rdquo; tricks, no enterprise-only features behind a paywall.
-              </p>
-              <p className="mt-3 text-base leading-relaxed text-gray-500">
-                Your automations, your contacts, your data. You own everything.
-                No vendor lock-in, ever.
-              </p>
-              <div className="mt-6">
-                <Link
-                  href="https://github.com/inzohussein-blip/spir-chat"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 text-sm font-medium text-indigo-600 hover:text-indigo-700"
-                >
-                  <Github className="h-4 w-4" />
-                  Star us on GitHub
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </Link>
-              </div>
-            </div>
-            <div className="space-y-3">
-              {[
-                { label: "7 platforms, one tool", detail: "Instagram, Facebook, WhatsApp, Telegram, X, Bluesky, Reddit. ManyChat only does 3." },
-                { label: "Free forever", detail: "No monthly fees. No per-account charges. No feature limits." },
-                { label: "Self-hostable", detail: "Clone the repo, set your env vars, deploy. Your server, your rules." },
-                { label: "Community-driven", detail: "Built in public. PRs welcome. Roadmap shaped by users, not investors." },
-              ].map((item) => (
-                <div key={item.label} className="rounded-xl border border-gray-200 px-5 py-4">
-                  <p className="text-sm font-semibold text-gray-900">{item.label}</p>
-                  <p className="mt-0.5 text-sm text-gray-500">{item.detail}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* How it works */}
-      <section className="border-t border-gray-100 bg-gray-50/60 py-20">
-        <div className="mx-auto max-w-6xl px-6">
           <h2 className="text-center text-2xl font-bold text-gray-900 sm:text-3xl">
-            Up and running in 5 minutes
+            {landing.how.heading}
           </h2>
           <div className="mx-auto mt-14 grid max-w-3xl gap-10 sm:grid-cols-3">
-            {[
-              {
-                step: "1",
-                icon: CheckCircle,
-                title: "Connect your accounts",
-                desc: "Link your Instagram, Facebook, WhatsApp, Telegram, or any other platform in a few clicks.",
-              },
-              {
-                step: "2",
-                icon: GitBranch,
-                title: "Build a flow",
-                desc: "Use the visual builder to create your automation. Pick a trigger, add messages, set conditions.",
-              },
-              {
-                step: "3",
-                icon: TrendingUp,
-                title: "Watch it grow",
-                desc: "Your flows run 24/7. Capture leads, answer questions, and sell while you sleep.",
-              },
-            ].map((item) => {
-              const Icon = item.icon;
+            {landing.how.steps.map((item, i) => {
+              const Icon = STEP_ICONS[i] ?? CheckCircle;
               return (
-                <div key={item.step} className="text-center">
+                <div key={item.title} className="text-center">
                   <div className="mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-indigo-50">
                     <Icon className="h-5 w-5 text-indigo-600" />
                   </div>
@@ -408,30 +225,14 @@ export default async function Home() {
       </section>
 
       {/* Use cases */}
-      <section className="py-20">
+      <section className="border-t border-gray-100 bg-gray-50/60 py-20">
         <div className="mx-auto max-w-6xl px-6">
           <h2 className="text-center text-2xl font-bold text-gray-900 sm:text-3xl">
-            Built for creators, businesses, and agencies
+            {landing.useCases.heading}
           </h2>
           <div className="mx-auto mt-12 grid max-w-4xl gap-6 sm:grid-cols-3">
-            {[
-              {
-                icon: Heart,
-                title: "Creators",
-                desc: "Auto-reply to comments, send lead magnets via DM, and grow your email list from social.",
-              },
-              {
-                icon: TrendingUp,
-                title: "Small businesses",
-                desc: "Qualify leads through DM conversations, answer FAQs instantly, and book appointments on autopilot.",
-              },
-              {
-                icon: Users,
-                title: "Agencies",
-                desc: "Manage all your clients' accounts in one workspace. Build flows once, reuse them across brands.",
-              },
-            ].map((item) => {
-              const Icon = item.icon;
+            {landing.useCases.items.map((item, i) => {
+              const Icon = USE_CASE_ICONS[i] ?? Heart;
               return (
                 <div key={item.title} className="rounded-xl border border-gray-200 bg-white p-6">
                   <Icon className="mb-3 h-5 w-5 text-indigo-500" />
@@ -450,28 +251,16 @@ export default async function Home() {
           <div className="rounded-2xl bg-indigo-600 p-10 sm:p-14">
             <div className="mx-auto max-w-xl text-center">
               <h2 className="text-2xl font-bold text-white sm:text-3xl">
-                Stop paying for chat automation
+                {landing.cta.heading}
               </h2>
-              <p className="mt-3 text-sm text-indigo-100">
-                Switch from ManyChat in minutes. Import your flows, connect your accounts, and go live.
-                Free forever, open source, MIT licensed.
-              </p>
-              <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+              <p className="mt-3 text-sm text-indigo-100">{landing.cta.sub}</p>
+              <div className="mt-8 flex justify-center">
                 <Link
                   href="/register"
                   className="inline-flex items-center gap-2 rounded-lg bg-white px-6 py-3 text-sm font-medium text-indigo-600 shadow-sm hover:bg-indigo-50"
                 >
-                  Get started free
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </Link>
-                <Link
-                  href="https://github.com/inzohussein-blip/spir-chat"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 rounded-lg border border-indigo-400 px-6 py-3 text-sm font-medium text-white hover:bg-indigo-500"
-                >
-                  <Github className="h-4 w-4" />
-                  Star on GitHub
+                  {landing.cta.primary}
+                  <ArrowRight className="h-3.5 w-3.5 rtl:rotate-180" />
                 </Link>
               </div>
             </div>
@@ -482,32 +271,20 @@ export default async function Home() {
       {/* Footer */}
       <footer className="border-t border-gray-100 py-8">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 sm:flex-row">
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-4">
             <span className="text-sm text-gray-400">SpirChat</span>
             <span className="hidden text-sm text-gray-400 sm:inline">{footer.tagline}</span>
-            <span className="text-sm text-gray-300">|</span>
-            <Link
-              href="https://github.com/inzohussein-blip/spir-chat"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-gray-600"
-            >
-              <Github className="h-3.5 w-3.5" />
-              GitHub
-            </Link>
             <Link
               href="https://zernio.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:opacity-80 transition-opacity"
+              className="transition-opacity hover:opacity-80"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/powered-by-zernio.svg" alt="Powered by Zernio" className="h-10" />
             </Link>
           </div>
-          <p className="text-xs text-gray-400">
-            Open source, MIT licensed
-          </p>
+          <p className="text-xs text-gray-400">{hero.badge}</p>
         </div>
       </footer>
     </div>
