@@ -1,5 +1,7 @@
 "use client";
 
+import { useI18n } from "@/components/i18n-provider";
+
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -276,6 +278,7 @@ const templates: FlowTemplate[] = [
 // --- Component ---
 
 export function TemplatesView({ workspaceId }: { workspaceId: string }) {
+  const { t } = useI18n();
   const router = useRouter();
   const [creating, setCreating] = useState<string | null>(null);
   const pendingRef = useRef(false);
@@ -325,9 +328,9 @@ export function TemplatesView({ workspaceId }: { workspaceId: string }) {
                 Flows
               </Link>
             </div>
-            <h1 className="text-2xl font-bold">Flow Templates</h1>
+            <h1 className="text-2xl font-bold">{t.dash.templates.title}</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Start with a pre-built flow and customize it to your needs
+              {t.dash.templates.subtitle}
             </p>
           </div>
           <button

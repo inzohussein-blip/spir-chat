@@ -1,5 +1,7 @@
 "use client";
 
+import { useI18n } from "@/components/i18n-provider";
+
 import { useState } from "react";
 import {
   Settings,
@@ -40,6 +42,7 @@ export function SettingsView({
 }: {
   workspace: WorkspaceSettings;
 }) {
+  const { t } = useI18n();
   const [name, setName] = useState(workspace.name);
   const [apiKey, setApiKey] = useState("");
   const [showApiKey, setShowApiKey] = useState(false);
@@ -161,9 +164,9 @@ export function SettingsView({
     <div className="flex h-full flex-col">
       {/* Header */}
       <div className="border-b border-border px-8 py-6">
-        <h1 className="text-2xl font-bold">Settings</h1>
+        <h1 className="text-2xl font-bold">{t.dash.settings.title}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Manage your workspace settings
+          {t.dash.settings.subtitle}
         </p>
       </div>
 

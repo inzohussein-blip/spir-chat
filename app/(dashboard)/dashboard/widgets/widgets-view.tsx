@@ -1,5 +1,7 @@
 "use client";
 
+import { useI18n } from "@/components/i18n-provider";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Globe, Plus, Check, Copy, Power } from "lucide-react";
@@ -19,6 +21,7 @@ export function WidgetsView({
   widgets: Widget[];
   appUrl: string;
 }) {
+  const { t } = useI18n();
   const router = useRouter();
   const [name, setName] = useState("");
   const [creating, setCreating] = useState(false);
@@ -68,9 +71,9 @@ export function WidgetsView({
       <div className="border-b border-border px-8 py-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold">Website widget</h1>
+            <h1 className="text-2xl font-bold">{t.dash.widgets.title}</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Add live chat to your website — conversations land in your inbox.
+              {t.dash.widgets.subtitle}
             </p>
           </div>
         </div>

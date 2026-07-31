@@ -32,14 +32,16 @@ alternative), unifying both in a single inbox and automation engine.
 - **Arabic / RTL + i18n foundation** — cookie-based locale with a server
   dictionary + a client provider, `<html lang dir>` flipping to RTL, and a
   language switcher. Arabic is shipped for the public surfaces (landing, login,
-  register), the dashboard navigation, and the embeddable widget (its language
-  follows the visitor's browser or a `data-spirchat-lang` attribute). Remaining
-  dashboard views inherit RTL layout and are translated incrementally against
-  the same dictionary.
+  register), the dashboard navigation, every dashboard section header
+  (flows, inbox, contacts, broadcasts, analytics, channels, settings, growth,
+  sequences, templates, website) plus the inbox empty state, and the embeddable
+  widget (its language follows the visitor's browser or a `data-spirchat-lang`
+  attribute). Remaining dashboard views inherit RTL layout and their deeper
+  body strings are translated incrementally against the same dictionary.
 
 ### Next (high-impact, in priority order)
-1. **Translate the remaining dashboard views** against the i18n dictionary
-   (inbox, flows, contacts, sequences, analytics, settings).
+1. **Finish deep per-view strings** (forms, buttons, table columns, dialogs)
+   against the i18n dictionary — the section headers and chrome are already done.
 2. **Team collaboration in the inbox** — internal notes, mentions, and
    assignment SLAs.
 3. **Analytics dashboard** — conversation volume, response times, flow

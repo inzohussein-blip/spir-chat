@@ -63,6 +63,57 @@ const en = {
     unavailable: "Chat is unavailable right now.",
     placeholder: "Type a message…",
   },
+  dash: {
+    flows: {
+      title: "Flows",
+      subtitle: "Build automated chatbot flows for your channels",
+    },
+    templates: {
+      title: "Flow Templates",
+      subtitle: "Start with a pre-built flow and customize it to your needs",
+    },
+    contacts: {
+      title: "Contacts",
+      subtitleSuffix: "contacts in your workspace",
+    },
+    broadcasts: {
+      title: "Broadcasts",
+      subtitle: "Send messages to multiple contacts at once",
+    },
+    analytics: {
+      title: "Analytics",
+      subtitle: "Monitor your workspace performance",
+    },
+    channels: {
+      title: "Channels",
+      subtitle: "Your connected social media accounts from Zernio",
+    },
+    settings: {
+      title: "Settings",
+      subtitle: "Manage your workspace settings",
+    },
+    growth: {
+      title: "Growth Tools",
+      subtitle: "Comment-to-DM automation for lead capture and engagement",
+    },
+    sequences: {
+      title: "Sequences",
+      subtitle: "Create drip campaigns to nurture contacts over time",
+    },
+    widgets: {
+      title: "Website widget",
+      subtitle:
+        "Add live chat to your website — conversations land in your inbox.",
+    },
+  },
+  inbox: {
+    contactInfo: "Contact info",
+    noConversations: "No conversations yet",
+    syncHint:
+      "If you already have conversations in Zernio, sync them to bring them into your inbox.",
+    syncing: "Syncing…",
+    syncConversations: "Sync conversations",
+  },
 };
 
 export type Dictionary = typeof en;
@@ -128,6 +179,56 @@ const ar: Dictionary = {
     empty: "أرسل لنا رسالة وسنعاود التواصل معك.",
     unavailable: "المحادثة غير متاحة حالياً.",
     placeholder: "اكتب رسالة…",
+  },
+  dash: {
+    flows: {
+      title: "التدفقات",
+      subtitle: "أنشئ تدفقات بوت مؤتمتة لقنواتك",
+    },
+    templates: {
+      title: "قوالب التدفقات",
+      subtitle: "ابدأ بتدفق جاهز وخصّصه حسب احتياجك",
+    },
+    contacts: {
+      title: "جهات الاتصال",
+      subtitleSuffix: "جهة اتصال في مساحة عملك",
+    },
+    broadcasts: {
+      title: "البثّ",
+      subtitle: "أرسل رسائل إلى عدّة جهات اتصال دفعةً واحدة",
+    },
+    analytics: {
+      title: "التحليلات",
+      subtitle: "راقب أداء مساحة عملك",
+    },
+    channels: {
+      title: "القنوات",
+      subtitle: "حساباتك المتّصلة على منصّات التواصل عبر Zernio",
+    },
+    settings: {
+      title: "الإعدادات",
+      subtitle: "أدِر إعدادات مساحة عملك",
+    },
+    growth: {
+      title: "أدوات النموّ",
+      subtitle: "أتمتة التعليق-إلى-رسالة لالتقاط العملاء وزيادة التفاعل",
+    },
+    sequences: {
+      title: "التسلسلات",
+      subtitle: "أنشئ حملات تنقيط لرعاية جهات الاتصال عبر الوقت",
+    },
+    widgets: {
+      title: "ويدجت الموقع",
+      subtitle: "أضف لايف شات إلى موقعك — تصل المحادثات إلى صندوق الوارد.",
+    },
+  },
+  inbox: {
+    contactInfo: "معلومات جهة الاتصال",
+    noConversations: "لا توجد محادثات بعد",
+    syncHint:
+      "إن كانت لديك محادثات في Zernio، زامِنها لإحضارها إلى صندوق الوارد.",
+    syncing: "جارٍ المزامنة…",
+    syncConversations: "مزامنة المحادثات",
   },
 };
 

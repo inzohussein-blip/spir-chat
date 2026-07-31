@@ -1,4 +1,5 @@
 import { getWorkspace } from "@/lib/workspace";
+import { getDictionary } from "@/lib/i18n/server";
 import Link from "next/link";
 import { GitBranch, Sparkles, Plug } from "lucide-react";
 import { CreateFlowButton } from "@/components/create-flow-button";
@@ -35,6 +36,7 @@ function formatDate(dateString: string) {
 
 export default async function FlowsPage() {
   const { workspace, supabase } = await getWorkspace();
+  const { dash } = await getDictionary();
 
   const [{ data: flows }, { count: channelCount }] = await Promise.all([
     supabase
@@ -54,9 +56,9 @@ export default async function FlowsPage() {
       <div className="border-b border-border px-8 py-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold">Flows</h1>
+            <h1 className="text-2xl font-bold">{dash.flows.title}</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Build automated chatbot flows for your channels
+              {dash.flows.subtitle}
             </p>
           </div>
           <div className="flex items-center gap-3">

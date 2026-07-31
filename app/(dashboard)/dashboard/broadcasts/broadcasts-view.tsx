@@ -1,5 +1,7 @@
 "use client";
 
+import { useI18n } from "@/components/i18n-provider";
+
 import { useState } from "react";
 import {
   Radio,
@@ -76,6 +78,7 @@ export function BroadcastsView({
   broadcasts: Broadcast[];
   workspaceId: string;
 }) {
+  const { t } = useI18n();
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState("");
@@ -145,9 +148,9 @@ export function BroadcastsView({
       <div className="border-b border-border px-8 py-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold">Broadcasts</h1>
+            <h1 className="text-2xl font-bold">{t.dash.broadcasts.title}</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Send messages to multiple contacts at once
+              {t.dash.broadcasts.subtitle}
             </p>
           </div>
           <button

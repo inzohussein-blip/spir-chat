@@ -1,5 +1,7 @@
 "use client";
 
+import { useI18n } from "@/components/i18n-provider";
+
 import { useState, useEffect } from "react";
 import {
   BarChart3,
@@ -200,6 +202,7 @@ export function AnalyticsView({
   workspaceId: string;
   initialData: AnalyticsData;
 }) {
+  const { t } = useI18n();
   const [timeRange, setTimeRange] = useState<TimeRange>("30d");
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
@@ -413,9 +416,9 @@ export function AnalyticsView({
       <div className="border-b border-border px-8 py-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold">Analytics</h1>
+            <h1 className="text-2xl font-bold">{t.dash.analytics.title}</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Monitor your workspace performance
+              {t.dash.analytics.subtitle}
             </p>
           </div>
 

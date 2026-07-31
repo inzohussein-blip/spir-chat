@@ -1,5 +1,7 @@
 "use client";
 
+import { useI18n } from "@/components/i18n-provider";
+
 import { useRef, useState, useEffect } from "react";
 import Link from "next/link";
 import {
@@ -72,6 +74,7 @@ export function GrowthView({
   };
   recentLogs: CommentLog[];
 }) {
+  const { t } = useI18n();
   const [triggers, setTriggers] = useState(initialTriggers);
   const [showCreate, setShowCreate] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
@@ -300,10 +303,10 @@ export function GrowthView({
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-foreground">
-              Growth Tools
+              {t.dash.growth.title}
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Comment-to-DM automation for lead capture and engagement
+              {t.dash.growth.subtitle}
             </p>
           </div>
           <button

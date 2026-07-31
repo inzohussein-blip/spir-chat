@@ -1,4 +1,5 @@
 import { getWorkspace } from "@/lib/workspace";
+import { getDictionary } from "@/lib/i18n/server";
 import Link from "next/link";
 import { ListOrdered } from "lucide-react";
 import { CreateSequenceButton } from "@/components/sequences/create-sequence-button";
@@ -31,6 +32,7 @@ function formatDate(dateString: string) {
 
 export default async function SequencesPage() {
   const { workspace, supabase } = await getWorkspace();
+  const { dash } = await getDictionary();
 
   const { data: sequences } = await supabase
     .from("sequences")
@@ -62,9 +64,9 @@ export default async function SequencesPage() {
       <div className="border-b border-border px-8 py-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold">Sequences</h1>
+            <h1 className="text-2xl font-bold">{dash.sequences.title}</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Create drip campaigns to nurture contacts over time
+              {dash.sequences.subtitle}
             </p>
           </div>
           <CreateSequenceButton />

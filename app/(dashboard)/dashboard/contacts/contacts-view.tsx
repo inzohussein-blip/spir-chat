@@ -1,5 +1,7 @@
 "use client";
 
+import { useI18n } from "@/components/i18n-provider";
+
 import { useState } from "react";
 import Link from "next/link";
 import {
@@ -61,6 +63,7 @@ export function ContactsView({
   tags: Tag[];
   workspaceId: string;
 }) {
+  const { t } = useI18n();
   const [search, setSearch] = useState("");
   const [selectedTagId, setSelectedTagId] = useState<string | null>(null);
   const [showSegmentBuilder, setShowSegmentBuilder] = useState(false);
@@ -92,9 +95,9 @@ export function ContactsView({
       <div className="border-b border-border px-8 py-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold">Contacts</h1>
+            <h1 className="text-2xl font-bold">{t.dash.contacts.title}</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              {contacts.length} contact{contacts.length !== 1 ? "s" : ""} in your workspace
+              {contacts.length} {t.dash.contacts.subtitleSuffix}
             </p>
           </div>
         </div>

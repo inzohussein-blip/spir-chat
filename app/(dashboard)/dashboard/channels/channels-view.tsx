@@ -1,5 +1,7 @@
 "use client";
 
+import { useI18n } from "@/components/i18n-provider";
+
 import { useState, useRef, useEffect } from "react";
 import {
   Check,
@@ -74,6 +76,7 @@ export function ChannelsView({
   channels: Channel[];
   workspaceId: string;
 }) {
+  const { t } = useI18n();
   const [channels, setChannels] = useState(initialChannels);
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
@@ -210,9 +213,9 @@ export function ChannelsView({
       <div className="border-b border-border px-8 py-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold">Channels</h1>
+            <h1 className="text-2xl font-bold">{t.dash.channels.title}</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Your connected social media accounts from Zernio
+              {t.dash.channels.subtitle}
             </p>
           </div>
           <div className="flex items-center gap-3">
