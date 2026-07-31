@@ -27,7 +27,7 @@ export default function Home() {
       <nav className="sticky top-0 z-50 border-b border-gray-100 bg-white/80 backdrop-blur-lg">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <Link href="/" className="flex items-center gap-2.5">
-            <Image src="/logo.png" alt="SpirChat" width={28} height={28} className="rounded-lg" />
+            <Image src="/logo.svg" alt="SpirChat" width={28} height={28} className="rounded-lg" />
             <span className="text-base font-bold text-gray-900">SpirChat</span>
           </Link>
           <div className="flex items-center gap-3">
@@ -71,12 +71,16 @@ export default function Home() {
             </Link>
           </div>
           <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
-            The Open Source{" "}
-            <span className="text-indigo-600">ManyChat Alternative</span>
+            Live chat and chatbots for your{" "}
+            <span className="bg-gradient-to-r from-violet-600 to-cyan-500 bg-clip-text text-transparent">
+              website and social
+            </span>
           </h1>
           <p className="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-gray-500">
-            Automate DMs, comments, and flows across Instagram, Facebook, WhatsApp,
-            Telegram, X, Bluesky, and Reddit. Free, self-hostable, and built for developers.
+            One inbox for every conversation — website live chat plus DMs and comments across
+            Instagram, Facebook, WhatsApp, Telegram, X, Bluesky, and Reddit. Automate with a
+            visual flow builder and AI, or take over live. Open source, self-hostable, and
+            built on Supabase.
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link

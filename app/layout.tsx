@@ -6,25 +6,25 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: {
-    default: "SpirChat - The Open Source ManyChat Alternative",
+    default: "SpirChat - Live chat and chatbots for website and social",
     template: "%s | SpirChat",
   },
   description:
-    "Automate DMs, comments, and flows across Instagram, Facebook, Telegram, X, Bluesky, and Reddit. Free, self-hostable, and open source.",
+    "One inbox for website live chat plus DMs and comments across Instagram, Facebook, WhatsApp, Telegram, X, Bluesky, and Reddit. Automate with a visual flow builder and AI. Open source, built on Supabase.",
   metadataBase: new URL("https://spirchat.com"),
   openGraph: {
-    title: "SpirChat - The Open Source ManyChat Alternative",
+    title: "SpirChat - Live chat and chatbots for website and social",
     description:
-      "Automate DMs, comments, and flows across Instagram, Facebook, Telegram, X, Bluesky, and Reddit. Free, self-hostable, and open source.",
+      "One inbox for website live chat plus DMs and comments across every major platform. Visual flow builder, AI replies, human takeover. Open source, built on Supabase.",
     url: "https://spirchat.com",
     siteName: "SpirChat",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "SpirChat - The Open Source ManyChat Alternative",
+    title: "SpirChat - Live chat and chatbots for website and social",
     description:
-      "Automate DMs, comments, and flows across 6 platforms. Free, self-hostable, open source.",
+      "One inbox for website live chat plus social DMs. Visual flow builder, AI, human takeover. Open source, built on Supabase.",
   },
   icons: {
     icon: [

@@ -60,7 +60,7 @@ export function AcceptInviteView({
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center">
           <Image
-            src="/logo.png"
+            src="/logo.svg"
             alt="SpirChat"
             width={48}
             height={48}

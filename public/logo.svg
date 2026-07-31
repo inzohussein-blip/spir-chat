@@ -1,0 +1,12 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="SpirChat">
+  <defs>
+    <linearGradient id="spir" x1="8" y1="8" x2="56" y2="56" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7C3AED"/>
+      <stop offset="1" stop-color="#06B6D4"/>
+    </linearGradient>
+  </defs>
+  <!-- Chat bubble -->
+  <path d="M32 6C17.64 6 6 15.85 6 28c0 6.9 3.77 13.03 9.66 17.03L13 57l12.06-6.3c2.2.52 4.53.8 6.94.8 14.36 0 26-9.85 26-22S46.36 6 32 6Z" fill="url(#spir)"/>
+  <!-- Spiral (the "spir") -->
+  <path d="M41.5 27.5a9.5 9.5 0 1 1-9.5-9.5c4.14 0 7.5 2.8 7.5 6.5s-3 6-6 6-5-2-5-4.2 1.6-3.8 3.6-3.8" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+</svg>
