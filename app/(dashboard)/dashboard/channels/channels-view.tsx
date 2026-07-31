@@ -243,7 +243,7 @@ export function ChannelsView({
                 Connect Channel
               </button>
               {showPlatformPicker && (
-                <div className="absolute right-0 top-full z-50 mt-2 w-56 rounded-xl border border-border bg-card p-2 shadow-lg">
+                <div className="absolute end-0 top-full z-50 mt-2 w-56 rounded-xl border border-border bg-card p-2 shadow-lg">
                   {connectablePlatforms.map((p) => (
                     <button
                       key={p.id}
