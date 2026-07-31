@@ -22,9 +22,20 @@ export async function GET(request: NextRequest) {
   // Look up the Zernio conversation ID and workspace API key
   const { data: conversation } = await supabase
     .from("conversations")
-    .select("late_conversation_id, workspace_id, channels(late_account_id)")
+    .select("late_conversation_id, workspace_id, platform, channels(late_account_id)")
     .eq("id", conversationId)
     .single();
+
+  // Website conversations are served entirely from Supabase (no Zernio) — the
+  // messages table is the source of truth. RLS scopes this to workspace members.
+  if (conversation?.platform === "website") {
+    const { data: rows } = await supabase
+      .from("messages")
+      .select("*")
+      .eq("conversation_id", conversationId)
+      .order("created_at", { ascending: true });
+    return NextResponse.json(rows ?? []);
+  }
 
   if (!conversation?.late_conversation_id) {
     return NextResponse.json({ error: "Conversation not found or missing Zernio ID" }, { status: 404 });
@@ -118,6 +129,40 @@ export async function POST(request: NextRequest) {
 
   if (!conversation) {
     return NextResponse.json({ error: "Conversation not found" }, { status: 404 });
+  }
+
+  // Website conversations: store the agent reply locally. The visitor's widget
+  // polls it; no Zernio call. RLS ensures only workspace members reach here.
+  if (conversation.platform === "website") {
+    const { data: message, error } = await supabase
+      .from("messages")
+      .insert({
+        conversation_id: conversationId,
+        direction: "outbound",
+        text,
+        sent_by_user_id: user.id,
+      })
+      .select("*")
+      .single();
+
+    if (error || !message) {
+      return NextResponse.json(
+        { error: `Failed to send message: ${error?.message ?? "unknown"}` },
+        { status: 500 }
+      );
+    }
+
+    // Replying marks the thread read; also refresh the inbox preview.
+    await supabase
+      .from("conversations")
+      .update({
+        last_message_at: new Date().toISOString(),
+        last_message_preview: text.slice(0, 100),
+        unread_count: 0,
+      })
+      .eq("id", conversationId);
+
+    return NextResponse.json(message, { status: 201 });
   }
 
   if (!conversation.late_conversation_id) {

@@ -11,6 +11,7 @@ import {
   ListOrdered,
   BarChart3,
   Sprout,
+  Globe,
   Plug,
   Settings,
   LogOut,
@@ -46,6 +47,7 @@ const navigation = [
   { name: "Sequences", href: "/dashboard/sequences", icon: ListOrdered },
   { name: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
   { name: "Growth", href: "/dashboard/growth", icon: Sprout },
+  { name: "Website", href: "/dashboard/widgets", icon: Globe },
   { name: "Channels", href: "/dashboard/channels", icon: Plug },
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
 ];

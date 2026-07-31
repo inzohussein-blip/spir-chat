@@ -22,17 +22,20 @@ alternative), unifying both in a single inbox and automation engine.
   and website-first positioning distinct from ZernFlow.
 - **Supabase project** provisioned with the full schema (24 tables, RLS) and a
   security-hardening migration (`00016`) beyond the upstream migrations.
+- **Website live-chat widget** — the core LiveChat-style capability ZernFlow
+  lacks. An embeddable `/widget.js` loader drops a chat bubble onto any site; a
+  `website` channel type (migration `00017`) routes visitor conversations into
+  the same unified inbox. Website threads are served entirely from Supabase
+  (public, CORS-enabled `/api/widget/*` endpoints, no Zernio), and agents reply
+  from the normal inbox. Manage widgets and copy the embed snippet at
+  **Dashboard → Website**.
 
 ### Next (high-impact, in priority order)
-1. **Website live-chat widget** — an embeddable `<script>` widget + a `website`
-   channel type, so businesses can drop live chat onto their own site. This is
-   the core LiveChat-style capability ZernFlow lacks. Routes into the same
-   unified inbox and flow engine.
-2. **Arabic / RTL localization** — first-class RTL layout and Arabic UI for the
+1. **Arabic / RTL localization** — first-class RTL layout and Arabic UI for the
    MENA market (deliberately deferred for now, planned).
-3. **Team collaboration in the inbox** — internal notes, mentions, and
+2. **Team collaboration in the inbox** — internal notes, mentions, and
    assignment SLAs.
-4. **Analytics dashboard** — conversation volume, response times, flow
+3. **Analytics dashboard** — conversation volume, response times, flow
    conversion, per channel.
 
 ## Architecture (unchanged foundation)

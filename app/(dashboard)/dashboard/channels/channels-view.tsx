@@ -28,6 +28,7 @@ const platformLabels: Record<Platform, string> = {
   bluesky: "Bluesky",
   reddit: "Reddit",
   whatsapp: "WhatsApp",
+  website: "Website",
 };
 
 const connectablePlatforms: { id: Platform; label: string }[] = [

@@ -13,7 +13,8 @@ export type Platform =
   | "telegram"
   | "bluesky"
   | "reddit"
-  | "whatsapp";
+  | "whatsapp"
+  | "website";
 
 export type FlowStatus = "draft" | "published" | "archived";
 export type ConversationStatus = "open" | "closed" | "snoozed";

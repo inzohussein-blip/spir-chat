@@ -103,6 +103,20 @@ minute-level processing, pick one:
   curl -H "Authorization: Bearer $CRON_SECRET" https://<your-app>/api/cron/sequences
   ```
 
+## Website widget
+
+Add live chat to any website. In **Dashboard → Website**, create a widget and
+copy its snippet:
+
+```html
+<script src="https://<your-app>/widget.js" data-spirchat="CHANNEL_ID" async></script>
+```
+
+Visitor conversations land in the same inbox as your social channels. Website
+threads are stored in Supabase (no Zernio) and served by public, CORS-enabled
+`/api/widget/*` endpoints scoped to a channel id and an opaque per-visitor id;
+agents reply from the normal inbox.
+
 ## Architecture
 
 ```

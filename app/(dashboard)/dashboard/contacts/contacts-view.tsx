@@ -36,6 +36,7 @@ const platformLabels: Record<Platform, string> = {
   bluesky: "Bluesky",
   reddit: "Reddit",
   whatsapp: "WhatsApp",
+  website: "Website",
 };
 
 function formatDate(dateStr: string | null): string {
