@@ -83,6 +83,26 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000), sign up, and start building flows.
 
+## Background jobs (cron)
+
+Two endpoints drive timed work — `/api/cron/jobs` (delayed flow steps, broadcasts)
+and `/api/cron/sequences` (drip-campaign steps). For a responsive product these
+should run about once a minute.
+
+Vercel's **Hobby** plan caps cron jobs at **once per day**, so `vercel.json`
+ships with daily schedules to keep Hobby deploys building. To restore
+minute-level processing, pick one:
+
+- **Vercel Pro** — change both schedules in `vercel.json` back to `* * * * *`.
+- **External scheduler** (works on Hobby) — leave Vercel crons daily (or remove
+  them) and have a service like [cron-job.org](https://cron-job.org) call each
+  endpoint every minute with the shared secret:
+
+  ```
+  curl -H "Authorization: Bearer $CRON_SECRET" https://<your-app>/api/cron/jobs
+  curl -H "Authorization: Bearer $CRON_SECRET" https://<your-app>/api/cron/sequences
+  ```
+
 ## Architecture
 
 ```
