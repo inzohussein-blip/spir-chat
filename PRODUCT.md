@@ -44,6 +44,10 @@ alternative), unifying both in a single inbox and automation engine.
   **Dashboard → Saved replies**) and insert them into the inbox composer via a
   picker button or by typing `/shortcode`.
 
+- **Inbox performance** — per-conversation message cache with in-flight dedup,
+  hover/focus prefetch on conversation rows, and preload of the top conversation,
+  so opening a thread is instant and repeat opens don't refetch.
+
 ### Borrowed / planned from other open-source projects
 
 SpirChat cherry-picks proven features from adjacent open-source tools:

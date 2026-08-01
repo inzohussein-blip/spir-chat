@@ -2,7 +2,7 @@
 
 import { useI18n } from "@/components/i18n-provider";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { MessageSquare, RefreshCw, User } from "lucide-react";
 import { ConversationList } from "@/components/inbox/conversation-list";
@@ -56,50 +56,87 @@ export function InboxView({
     }
   }
 
-  // Keep selected conversation in sync when conversation list updates
+  // Per-conversation message cache + in-flight dedup, so re-opening a thread is
+  // instant and hovering a row can warm it up before the click.
+  const messagesCache = useRef<Map<string, Message[]>>(new Map());
+  const inflight = useRef<Map<string, Promise<Message[]>>>(new Map());
+
+  const fetchMessages = useCallback(async (id: string): Promise<Message[]> => {
+    const existing = inflight.current.get(id);
+    if (existing) return existing;
+
+    const p = (async () => {
+      try {
+        const res = await fetch(`/api/v1/messages?conversationId=${id}`);
+        const msgs: Message[] = res.ok ? ((await res.json()) ?? []) : [];
+        messagesCache.current.set(id, msgs);
+        return msgs;
+      } catch {
+        return messagesCache.current.get(id) ?? [];
+      } finally {
+        inflight.current.delete(id);
+      }
+    })();
+
+    inflight.current.set(id, p);
+    return p;
+  }, []);
+
+  // Warm the cache for a conversation without touching the UI (hover / preload).
+  const prefetch = useCallback(
+    (id: string) => {
+      if (messagesCache.current.has(id) || inflight.current.has(id)) return;
+      void fetchMessages(id);
+    },
+    [fetchMessages]
+  );
+
   const handleSelect = useCallback((c: Conversation) => {
     setSelected(c);
   }, []);
 
-  // Load messages when a conversation is selected
+  // Load messages when a conversation is selected — show the cached copy
+  // immediately (no spinner) and revalidate in the background.
   useEffect(() => {
     if (!selected) {
       setMessages([]);
       return;
     }
+    const id = selected.id;
+    let cancelled = false;
 
-    async function loadMessages() {
+    const cached = messagesCache.current.get(id);
+    if (cached) {
+      setMessages(cached);
+      setLoadingMessages(false);
+    } else {
       setLoadingMessages(true);
-      try {
-        const res = await fetch(
-          `/api/v1/messages?conversationId=${selected!.id}`
-        );
-        if (res.ok) {
-          const data = await res.json();
-          setMessages(data ?? []);
-        } else {
-          console.error("Failed to load messages:", res.status);
-          setMessages([]);
-        }
-      } catch (err) {
-        console.error("Failed to load messages:", err);
-        setMessages([]);
-      } finally {
-        setLoadingMessages(false);
-      }
-
-      // Mark as read
-      if (selected!.unread_count > 0) {
-        const supabase = createClient();
-        await supabase
-          .from("conversations")
-          .update({ unread_count: 0 })
-          .eq("id", selected!.id);
-      }
     }
 
-    loadMessages();
-  }, [selected?.id]);
+    fetchMessages(id).then((msgs) => {
+      if (cancelled) return;
+      setMessages(msgs);
+      setLoadingMessages(false);
+    });
+
+    // Mark as read
+    if (selected.unread_count > 0) {
+      createClient()
+        .from("conversations")
+        .update({ unread_count: 0 })
+        .eq("id", id)
+        .then(() => {});
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selected?.id, fetchMessages]);
+
+  // Preload the top conversation so the first open is instant.
+  useEffect(() => {
+    if (conversations.length > 0) prefetch(conversations[0].id);
+  }, [conversations, prefetch]);
 
   return (
     <div className="flex h-full">
@@ -110,6 +147,7 @@ export function InboxView({
           workspaceId={workspaceId}
           selectedId={selected?.id ?? null}
           onSelect={handleSelect}
+          onPrefetch={prefetch}
         />
       </div>
 

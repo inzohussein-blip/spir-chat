@@ -33,11 +33,13 @@ export function ConversationList({
   workspaceId,
   selectedId,
   onSelect,
+  onPrefetch,
 }: {
   conversations: Conversation[];
   workspaceId: string;
   selectedId: string | null;
   onSelect: (conversation: Conversation) => void;
+  onPrefetch?: (conversationId: string) => void;
 }) {
   const [conversations, setConversations] = useState(initialConversations);
   const [search, setSearch] = useState("");
@@ -165,8 +167,10 @@ export function ConversationList({
             <button
               key={conversation.id}
               onClick={() => onSelect(conversation)}
+              onMouseEnter={() => onPrefetch?.(conversation.id)}
+              onFocus={() => onPrefetch?.(conversation.id)}
               className={cn(
-                "flex w-full items-start gap-3 border-b border-border p-3 text-left transition-colors hover:bg-accent/50",
+                "flex w-full items-start gap-3 border-b border-border p-3 text-start transition-colors hover:bg-accent/50",
                 selectedId === conversation.id && "bg-accent"
               )}
             >
