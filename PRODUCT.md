@@ -39,6 +39,19 @@ alternative), unifying both in a single inbox and automation engine.
   attribute). Remaining dashboard views inherit RTL layout and their deeper
   body strings are translated incrementally against the same dictionary.
 
+- **Saved replies (canned responses)** — borrowed from Chatwoot. Agents store
+  reusable replies keyed by a short code (migration `00018`, managed at
+  **Dashboard → Saved replies**) and insert them into the inbox composer via a
+  picker button or by typing `/shortcode`.
+
+### Borrowed / planned from other open-source projects
+
+SpirChat cherry-picks proven features from adjacent open-source tools:
+
+- **From Chatwoot:** saved replies (shipped); next — private/internal notes on
+  conversations, a pre-chat form for the website widget, and CSAT ratings.
+- **From ChatbotX:** an AI knowledge base (RAG) for the AI-response node.
+
 ### Next (high-impact, in priority order)
 1. **Finish deep per-view strings** (forms, buttons, table columns, dialogs)
    against the i18n dictionary — the section headers and chrome are already done.

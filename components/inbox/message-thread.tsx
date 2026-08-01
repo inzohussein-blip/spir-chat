@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Send, Paperclip, Bot, User, MessageSquare, CheckCircle, Clock, RotateCcw, Loader2 } from "lucide-react";
+import { Send, Paperclip, Bot, User, MessageSquare, MessageSquareText, CheckCircle, Clock, RotateCcw, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { PlatformIcon } from "@/components/platform-icon";
+import { filterCannedResponses, isCannedShortcut, type CannedResponseItem } from "@/lib/canned";
 import type { Database, ConversationStatus } from "@/lib/types/database";
 
 type Message = Database["public"]["Tables"]["messages"]["Row"];
@@ -116,15 +117,26 @@ function MessageBubble({ message }: { message: Message }) {
 export function MessageThread({
   conversation,
   messages: initialMessages,
+  cannedResponses = [],
 }: {
   conversation: Conversation | null;
   messages: Message[];
+  cannedResponses?: CannedResponseItem[];
 }) {
   const router = useRouter();
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [statusUpdating, setStatusUpdating] = useState<string | null>(null);
+  const [showCanned, setShowCanned] = useState(false);
+
+  const cannedMatches = filterCannedResponses(cannedResponses, input);
+
+  function insertCanned(content: string) {
+    setInput(content);
+    setShowCanned(false);
+    textareaRef.current?.focus();
+  }
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -385,22 +397,56 @@ export function MessageThread({
 
       {/* Composer */}
       <div className="border-t border-border p-4">
-        <div className="mx-auto flex max-w-2xl items-end gap-2">
+        <div className="relative mx-auto flex max-w-2xl items-end gap-2">
+          {/* Saved-replies picker */}
+          {showCanned && cannedMatches.length > 0 && (
+            <div className="absolute inset-x-0 bottom-full mb-2 max-h-64 overflow-auto rounded-lg border border-border bg-popover p-1 shadow-lg">
+              {cannedMatches.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => insertCanned(c.content)}
+                  className="flex w-full flex-col items-start gap-0.5 rounded-md px-3 py-2 text-start hover:bg-accent"
+                >
+                  <span className="font-mono text-xs text-primary">/{c.short_code}</span>
+                  <span className="line-clamp-2 text-sm text-muted-foreground">{c.content}</span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {cannedResponses.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowCanned((s) => !s)}
+              aria-label="Saved replies"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-input text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            >
+              <MessageSquareText className="h-4 w-4" />
+            </button>
+          )}
+
           <div className="flex-1">
             <textarea
               ref={textareaRef}
               value={input}
               onChange={(e) => {
-                setInput(e.target.value);
+                const value = e.target.value;
+                setInput(value);
                 autoResize();
+                setShowCanned(cannedResponses.length > 0 && isCannedShortcut(value));
               }}
               onKeyDown={(e) => {
+                if (e.key === "Escape") {
+                  setShowCanned(false);
+                  return;
+                }
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
                   handleSend();
                 }
               }}
-              placeholder="Type a message..."
+              placeholder="Type a message…  (use / for saved replies)"
               rows={1}
               className="w-full resize-none rounded-lg border border-input bg-background px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               style={{ maxHeight: 150 }}

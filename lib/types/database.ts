@@ -300,6 +300,37 @@ export interface Database {
           },
         ];
       };
+      canned_responses: {
+        Row: {
+          id: string;
+          workspace_id: string;
+          short_code: string;
+          content: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          workspace_id: string;
+          short_code: string;
+          content: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          short_code?: string;
+          content?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "canned_responses_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       contact_tags: {
         Row: {
           contact_id: string;

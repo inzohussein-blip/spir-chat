@@ -12,6 +12,7 @@ import {
   BarChart3,
   Sprout,
   Globe,
+  MessageSquareText,
   Plug,
   Settings,
   LogOut,
@@ -55,6 +56,7 @@ const navigation: {
   { key: "analytics", href: "/dashboard/analytics", icon: BarChart3 },
   { key: "growth", href: "/dashboard/growth", icon: Sprout },
   { key: "website", href: "/dashboard/widgets", icon: Globe },
+  { key: "savedReplies", href: "/dashboard/saved-replies", icon: MessageSquareText },
   { key: "channels", href: "/dashboard/channels", icon: Plug },
   { key: "settings", href: "/dashboard/settings", icon: Settings },
 ];
