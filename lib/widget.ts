@@ -49,6 +49,28 @@ export function visitorSenderId(visitorId: string): string {
   return `web:${visitorId}`;
 }
 
+/** Per-widget configuration (pre-chat form + greeting), Chatwoot-style. */
+export interface WidgetConfig {
+  prechat: boolean;
+  greeting: string | null;
+}
+
+/** Safely read a channel's widget_config jsonb into a typed WidgetConfig. */
+export function parseWidgetConfig(raw: unknown): WidgetConfig {
+  const o =
+    raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  const greeting =
+    typeof o.greeting === "string" && o.greeting.trim()
+      ? o.greeting.trim().slice(0, 300)
+      : null;
+  return { prechat: o.prechat === true, greeting };
+}
+
+/** Basic email sanity check for the optional pre-chat email field. */
+export function isValidEmail(value: unknown): value is string {
+  return typeof value === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
 /** Project a raw messages row down to the fields the widget may see. */
 export function mapDbMessageToWidget(row: {
   id: string;

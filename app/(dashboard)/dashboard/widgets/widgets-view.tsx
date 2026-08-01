@@ -4,14 +4,79 @@ import { useI18n } from "@/components/i18n-provider";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Globe, Plus, Check, Copy, Power } from "lucide-react";
-import { createWebsiteWidget, setWidgetActive } from "@/lib/actions/widgets";
+import { Globe, Plus, Check, Copy, Power, Save } from "lucide-react";
+import {
+  createWebsiteWidget,
+  setWidgetActive,
+  setWidgetConfig,
+} from "@/lib/actions/widgets";
+import { parseWidgetConfig } from "@/lib/widget";
 
 interface Widget {
   id: string;
   display_name: string | null;
   is_active: boolean;
   created_at: string;
+  widget_config: unknown;
+}
+
+function WidgetConfigEditor({ widget }: { widget: Widget }) {
+  const router = useRouter();
+  const initial = parseWidgetConfig(widget.widget_config);
+  const [prechat, setPrechat] = useState(initial.prechat);
+  const [greeting, setGreeting] = useState(initial.greeting ?? "");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  async function save() {
+    setSaving(true);
+    setSaved(false);
+    await setWidgetConfig(widget.id, { prechat, greeting });
+    setSaving(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+    router.refresh();
+  }
+
+  return (
+    <div className="mt-4 border-t border-border pt-4">
+      <p className="mb-2 text-xs font-medium text-muted-foreground">
+        Pre-chat form
+      </p>
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={prechat}
+          onChange={(e) => setPrechat(e.target.checked)}
+          className="h-4 w-4 rounded border-border"
+        />
+        Ask visitors for their name &amp; email before chatting
+      </label>
+      <input
+        value={greeting}
+        onChange={(e) => setGreeting(e.target.value)}
+        placeholder="Greeting shown to visitors (optional)"
+        className="mt-3 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+      />
+      <div className="mt-3 flex justify-end">
+        <button
+          onClick={save}
+          disabled={saving}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted disabled:opacity-50"
+        >
+          {saved ? (
+            <>
+              <Check className="h-3.5 w-3.5 text-emerald-600" /> Saved
+            </>
+          ) : (
+            <>
+              <Save className="h-3.5 w-3.5" /> Save settings
+            </>
+          )}
+        </button>
+      </div>
+    </div>
+  );
 }
 
 export function WidgetsView({
@@ -166,6 +231,8 @@ export function WidgetsView({
                     </button>
                   </div>
                 </div>
+
+                <WidgetConfigEditor widget={w} />
               </div>
             ))}
           </div>

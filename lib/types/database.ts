@@ -148,6 +148,7 @@ export interface Database {
           is_active: boolean;
           last_comment_cursor: string | null;
           comment_rules: Json | null;
+          widget_config: Json;
           created_at: string;
           updated_at: string;
         };
@@ -164,6 +165,7 @@ export interface Database {
           is_active?: boolean;
           last_comment_cursor?: string | null;
           comment_rules?: Json | null;
+          widget_config?: Json;
           created_at?: string;
           updated_at?: string;
         };
@@ -178,6 +180,7 @@ export interface Database {
           is_active?: boolean;
           last_comment_cursor?: string | null;
           comment_rules?: Json | null;
+          widget_config?: Json;
           updated_at?: string;
         };
         Relationships: [

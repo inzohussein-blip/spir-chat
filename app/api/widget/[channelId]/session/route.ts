@@ -3,6 +3,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import {
   WIDGET_CORS_HEADERS,
   isValidVisitorId,
+  isValidEmail,
   visitorSenderId,
 } from "@/lib/widget";
 import { randomUUID } from "crypto";
@@ -53,6 +54,7 @@ export async function POST(
     typeof body?.name === "string" && body.name.trim()
       ? body.name.trim().slice(0, 120)
       : "Website visitor";
+  const email = isValidEmail(body?.email) ? (body.email as string) : null;
 
   // Resume path: an existing contact_channel means we've seen this visitor.
   const { data: existingLink } = await supabase
@@ -67,7 +69,11 @@ export async function POST(
   if (!contactId) {
     const { data: contact, error: contactError } = await supabase
       .from("contacts")
-      .insert({ workspace_id: channel.workspace_id, display_name: displayName })
+      .insert({
+        workspace_id: channel.workspace_id,
+        display_name: displayName,
+        email,
+      })
       .select("id")
       .single();
     if (contactError || !contact) {

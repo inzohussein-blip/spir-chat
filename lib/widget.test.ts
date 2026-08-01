@@ -4,6 +4,8 @@ import {
   isValidVisitorId,
   visitorSenderId,
   mapDbMessageToWidget,
+  parseWidgetConfig,
+  isValidEmail,
   WIDGET_MAX_TEXT_LENGTH,
 } from "./widget";
 
@@ -47,6 +49,32 @@ describe("isValidVisitorId", () => {
 describe("visitorSenderId", () => {
   it("namespaces the visitor id under the web: prefix", () => {
     expect(visitorSenderId("abc")).toBe("web:abc");
+  });
+});
+
+describe("parseWidgetConfig", () => {
+  it("defaults to prechat off and no greeting", () => {
+    expect(parseWidgetConfig({})).toEqual({ prechat: false, greeting: null });
+    expect(parseWidgetConfig(null)).toEqual({ prechat: false, greeting: null });
+  });
+
+  it("reads prechat and trims the greeting", () => {
+    expect(parseWidgetConfig({ prechat: true, greeting: "  Hi!  " })).toEqual({
+      prechat: true,
+      greeting: "Hi!",
+    });
+  });
+
+  it("ignores an empty greeting", () => {
+    expect(parseWidgetConfig({ greeting: "   " }).greeting).toBeNull();
+  });
+});
+
+describe("isValidEmail", () => {
+  it("accepts a normal address and rejects junk", () => {
+    expect(isValidEmail("a@b.co")).toBe(true);
+    expect(isValidEmail("nope")).toBe(false);
+    expect(isValidEmail(123)).toBe(false);
   });
 });
 

@@ -34,6 +34,30 @@ export async function createWebsiteWidget(name: string) {
   return { data };
 }
 
+/** Update a widget's pre-chat form + greeting configuration. */
+export async function setWidgetConfig(
+  channelId: string,
+  config: { prechat: boolean; greeting: string }
+) {
+  const { supabase } = await getWorkspace();
+
+  const { error } = await supabase
+    .from("channels")
+    .update({
+      widget_config: {
+        prechat: config.prechat === true,
+        greeting: config.greeting.trim().slice(0, 300),
+      },
+    })
+    .eq("id", channelId)
+    .eq("platform", "website");
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/dashboard/widgets");
+  return { success: true };
+}
+
 /** Toggle a website widget on/off without deleting its conversation history. */
 export async function setWidgetActive(channelId: string, isActive: boolean) {
   const { supabase } = await getWorkspace();

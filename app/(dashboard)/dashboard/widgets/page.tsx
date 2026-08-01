@@ -6,7 +6,7 @@ export default async function WidgetsPage() {
 
   const { data: widgets } = await supabase
     .from("channels")
-    .select("id, display_name, is_active, created_at")
+    .select("id, display_name, is_active, created_at, widget_config")
     .eq("workspace_id", workspace.id)
     .eq("platform", "website")
     .order("created_at", { ascending: false });
