@@ -52,10 +52,11 @@ alternative), unifying both in a single inbox and automation engine.
 
 SpirChat cherry-picks proven features from adjacent open-source tools:
 
-- **From Chatwoot:** saved replies (shipped) and a per-widget pre-chat form +
+- **From Chatwoot:** saved replies (shipped); a per-widget pre-chat form +
   greeting that captures the visitor's name/email before chatting (shipped,
-  migration `00019`); next — private/internal notes on conversations and CSAT
-  ratings.
+  migration `00019`); and internal notes on conversations — private team notes
+  interleaved into the thread via a Reply/Note toggle (shipped, migration
+  `00020`). Next — CSAT ratings and conversation labels.
 - **From ChatbotX:** an AI knowledge base (RAG) for the AI-response node.
 
 ### Next (high-impact, in priority order)
