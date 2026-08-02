@@ -56,7 +56,9 @@ SpirChat cherry-picks proven features from adjacent open-source tools:
   greeting that captures the visitor's name/email before chatting (shipped,
   migration `00019`); and internal notes on conversations — private team notes
   interleaved into the thread via a Reply/Note toggle (shipped, migration
-  `00020`). Next — CSAT ratings and conversation labels.
+  `00020`); and conversation labels — a per-workspace label taxonomy assigned
+  to conversations from an inline picker in the thread header (shipped, migration
+  `00021`). Next — CSAT ratings and label-based inbox filtering.
 - **From ChatbotX:** an AI knowledge base (RAG) for the AI-response node.
 
 ### Next (high-impact, in priority order)

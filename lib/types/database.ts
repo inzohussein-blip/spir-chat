@@ -371,6 +371,67 @@ export interface Database {
           },
         ];
       };
+      labels: {
+        Row: {
+          id: string;
+          workspace_id: string;
+          name: string;
+          color: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          workspace_id: string;
+          name: string;
+          color?: string;
+          created_at?: string;
+        };
+        Update: {
+          name?: string;
+          color?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "labels_workspace_id_fkey";
+            columns: ["workspace_id"];
+            isOneToOne: false;
+            referencedRelation: "workspaces";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      conversation_labels: {
+        Row: {
+          conversation_id: string;
+          label_id: string;
+          created_at: string;
+        };
+        Insert: {
+          conversation_id: string;
+          label_id: string;
+          created_at?: string;
+        };
+        Update: {
+          conversation_id?: string;
+          label_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "conversation_labels_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "conversations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "conversation_labels_label_id_fkey";
+            columns: ["label_id"];
+            isOneToOne: false;
+            referencedRelation: "labels";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       contact_tags: {
         Row: {
           contact_id: string;

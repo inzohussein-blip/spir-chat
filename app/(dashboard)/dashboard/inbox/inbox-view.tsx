@@ -16,16 +16,19 @@ type Conversation = Database["public"]["Tables"]["conversations"]["Row"] & {
   contacts: Database["public"]["Tables"]["contacts"]["Row"] | null;
 };
 type Message = Database["public"]["Tables"]["messages"]["Row"];
+type Label = Database["public"]["Tables"]["labels"]["Row"];
 type CannedResponse = { id: string; short_code: string; content: string };
 
 export function InboxView({
   conversations,
   workspaceId,
   cannedResponses,
+  labels,
 }: {
   conversations: Conversation[];
   workspaceId: string;
   cannedResponses: CannedResponse[];
+  labels: Label[];
 }) {
   const { t } = useI18n();
   const router = useRouter();
@@ -197,6 +200,8 @@ export function InboxView({
               conversation={selected}
               messages={messages}
               cannedResponses={cannedResponses}
+              workspaceId={workspaceId}
+              labels={labels}
             />
           )}
         </div>

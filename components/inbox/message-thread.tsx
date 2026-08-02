@@ -7,9 +7,11 @@ import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { PlatformIcon } from "@/components/platform-icon";
 import { filterCannedResponses, isCannedShortcut, type CannedResponseItem } from "@/lib/canned";
+import { LabelPicker } from "@/components/inbox/label-picker";
 import type { Database, ConversationStatus } from "@/lib/types/database";
 
 type Message = Database["public"]["Tables"]["messages"]["Row"];
+type Label = Database["public"]["Tables"]["labels"]["Row"];
 type Note = Database["public"]["Tables"]["conversation_notes"]["Row"];
 type Conversation = Database["public"]["Tables"]["conversations"]["Row"] & {
   contacts: Database["public"]["Tables"]["contacts"]["Row"] | null;
@@ -130,10 +132,14 @@ export function MessageThread({
   conversation,
   messages: initialMessages,
   cannedResponses = [],
+  workspaceId,
+  labels = [],
 }: {
   conversation: Conversation | null;
   messages: Message[];
   cannedResponses?: CannedResponseItem[];
+  workspaceId?: string;
+  labels?: Label[];
 }) {
   const router = useRouter();
   const [messages, setMessages] = useState<Message[]>(initialMessages);
@@ -451,6 +457,18 @@ export function MessageThread({
           </div>
         </div>
       </div>
+
+      {/* Labels */}
+      {workspaceId && (
+        <div className="border-b border-border px-4 py-2">
+          <LabelPicker
+            key={conversation.id}
+            conversationId={conversation.id}
+            workspaceId={workspaceId}
+            allLabels={labels}
+          />
+        </div>
+      )}
 
       {/* Messages */}
       <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-4">
