@@ -51,11 +51,11 @@ npm install
 
 2. **Set up Supabase**
 
-Create a free project at [supabase.com](https://supabase.com). Then run the SQL migrations in the Supabase SQL editor:
-
-```bash
-# Run each file in supabase/migrations/ in order (00001 through 00009)
-```
+Create a free project at [supabase.com](https://supabase.com). Then, in the
+Supabase **SQL Editor**, paste and run [`supabase/schema.sql`](./supabase/schema.sql)
+once — it creates the full schema (all migrations consolidated). See
+[`SETUP.md`](./SETUP.md) for the complete go-live guide (switching Supabase
+projects, custom domains, free-tier notes).
 
 3. **Configure environment**
 
