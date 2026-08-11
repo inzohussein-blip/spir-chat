@@ -4,6 +4,7 @@ import "./globals.css";
 import { getDictionary, getLocale } from "@/lib/i18n/server";
 import { LOCALE_DIR } from "@/lib/i18n/config";
 import { I18nProvider } from "@/components/i18n-provider";
+import { SITE_URL } from "@/lib/site";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -14,12 +15,12 @@ export const metadata: Metadata = {
   },
   description:
     "One inbox for website live chat plus DMs and comments across Instagram, Facebook, WhatsApp, Telegram, X, Bluesky, and Reddit. Automate with a visual flow builder and AI. Open source, built on Supabase.",
-  metadataBase: new URL("https://spirchat.com"),
+  metadataBase: new URL(SITE_URL),
   openGraph: {
     title: "SpirChat - Live chat and chatbots for website and social",
     description:
       "One inbox for website live chat plus DMs and comments across every major platform. Visual flow builder, AI replies, human takeover. Open source, built on Supabase.",
-    url: "https://spirchat.com",
+    url: SITE_URL,
     siteName: "SpirChat",
     type: "website",
   },
