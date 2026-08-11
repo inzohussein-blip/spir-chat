@@ -4,25 +4,34 @@ import { InboxView } from "./inbox-view";
 export default async function InboxPage() {
   const { workspace, supabase } = await getWorkspace();
 
-  const [{ data: conversations }, { data: cannedResponses }, { data: labels }] =
-    await Promise.all([
-      supabase
-        .from("conversations")
-        .select("*, contacts(*)")
-        .eq("workspace_id", workspace.id)
-        .order("last_message_at", { ascending: false, nullsFirst: false })
-        .limit(50),
-      supabase
-        .from("canned_responses")
-        .select("id, short_code, content")
-        .eq("workspace_id", workspace.id)
-        .order("short_code", { ascending: true }),
-      supabase
-        .from("labels")
-        .select("*")
-        .eq("workspace_id", workspace.id)
-        .order("name", { ascending: true }),
-    ]);
+  const [
+    { data: conversations },
+    { data: cannedResponses },
+    { data: labels },
+    { data: channels },
+  ] = await Promise.all([
+    supabase
+      .from("conversations")
+      .select("*, contacts(*)")
+      .eq("workspace_id", workspace.id)
+      .order("last_message_at", { ascending: false, nullsFirst: false })
+      .limit(50),
+    supabase
+      .from("canned_responses")
+      .select("id, short_code, content")
+      .eq("workspace_id", workspace.id)
+      .order("short_code", { ascending: true }),
+    supabase
+      .from("labels")
+      .select("*")
+      .eq("workspace_id", workspace.id)
+      .order("name", { ascending: true }),
+    supabase
+      .from("channels")
+      .select("id, platform, display_name, username")
+      .eq("workspace_id", workspace.id)
+      .order("created_at", { ascending: true }),
+  ]);
 
   return (
     <InboxView
@@ -30,6 +39,7 @@ export default async function InboxPage() {
       workspaceId={workspace.id}
       cannedResponses={cannedResponses ?? []}
       labels={labels ?? []}
+      channels={channels ?? []}
     />
   );
 }

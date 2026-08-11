@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, MessageSquare } from "lucide-react";
+import { Search, MessageSquare, Filter } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { PlatformIcon } from "@/components/platform-icon";
@@ -10,6 +10,16 @@ import type { Database, Platform, ConversationStatus } from "@/lib/types/databas
 type Conversation = Database["public"]["Tables"]["conversations"]["Row"] & {
   contacts: Database["public"]["Tables"]["contacts"]["Row"] | null;
 };
+type ChannelOption = {
+  id: string;
+  platform: Platform;
+  display_name: string | null;
+  username: string | null;
+};
+
+function channelLabel(c: ChannelOption): string {
+  return c.display_name || c.username || c.platform;
+}
 
 function formatTime(dateStr: string | null): string {
   if (!dateStr) return "";
@@ -34,16 +44,19 @@ export function ConversationList({
   selectedId,
   onSelect,
   onPrefetch,
+  channels = [],
 }: {
   conversations: Conversation[];
   workspaceId: string;
   selectedId: string | null;
   onSelect: (conversation: Conversation) => void;
   onPrefetch?: (conversationId: string) => void;
+  channels?: ChannelOption[];
 }) {
   const [conversations, setConversations] = useState(initialConversations);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<ConversationStatus | "all">("open");
+  const [channelFilter, setChannelFilter] = useState<string>("all");
   // Relative timestamps depend on the client's clock/locale, which differ from the
   // server's during SSR and trigger a hydration mismatch (React #418, which crashes
   // the inbox in production). Defer time rendering until after mount so the server
@@ -104,6 +117,7 @@ export function ConversationList({
 
   const filtered = conversations.filter((c) => {
     if (statusFilter !== "all" && c.status !== statusFilter) return false;
+    if (channelFilter !== "all" && c.channel_id !== channelFilter) return false;
     if (search) {
       const name = c.contacts?.display_name?.toLowerCase() ?? "";
       const preview = c.last_message_preview?.toLowerCase() ?? "";
@@ -155,6 +169,27 @@ export function ConversationList({
         ))}
       </div>
 
+      {/* Channel filter */}
+      {channels.length > 0 && (
+        <div className="px-3 pb-2">
+          <div className="relative">
+            <Filter className="pointer-events-none absolute start-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <select
+              value={channelFilter}
+              onChange={(e) => setChannelFilter(e.target.value)}
+              className="w-full appearance-none rounded-lg border border-input bg-background py-2 ps-9 pe-3 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              <option value="all">All channels</option>
+              {channels.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {channelLabel(c)}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
+
       {/* Conversation list */}
       <div className="flex-1 overflow-y-auto">
         {filtered.length === 0 ? (
@@ -187,7 +222,7 @@ export function ConversationList({
                     {conversation.contacts?.display_name?.[0]?.toUpperCase() ?? "?"}
                   </div>
                 )}
-                <div className="absolute -bottom-0.5 -right-0.5 flex h-4.5 w-4.5 items-center justify-center rounded-full border-2 border-background bg-background">
+                <div className="absolute -bottom-0.5 -end-0.5 flex h-4.5 w-4.5 items-center justify-center rounded-full border-2 border-background bg-background">
                   <PlatformIcon
                     platform={conversation.platform}
                     className="h-3 w-3"
@@ -214,7 +249,7 @@ export function ConversationList({
                     {conversation.last_message_preview ?? "No messages yet"}
                   </p>
                   {conversation.unread_count > 0 && (
-                    <span className="ml-2 flex h-5 min-w-5 flex-shrink-0 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground">
+                    <span className="ms-2 flex h-5 min-w-5 flex-shrink-0 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground">
                       {conversation.unread_count}
                     </span>
                   )}

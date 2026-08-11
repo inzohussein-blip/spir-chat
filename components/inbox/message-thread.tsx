@@ -387,7 +387,7 @@ export function MessageThread({
                 {conversation.contacts?.display_name?.[0]?.toUpperCase() ?? "?"}
               </div>
             )}
-            <div className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full border-2 border-background bg-background">
+            <div className="absolute -bottom-0.5 -end-0.5 flex h-4 w-4 items-center justify-center rounded-full border-2 border-background bg-background">
               <PlatformIcon
                 platform={conversation.platform}
                 className="h-2.5 w-2.5"
