@@ -28,12 +28,14 @@ type ChannelOption = {
 export function InboxView({
   conversations,
   workspaceId,
+  currentUserId,
   cannedResponses,
   labels,
   channels,
 }: {
   conversations: Conversation[];
   workspaceId: string;
+  currentUserId: string;
   cannedResponses: CannedResponse[];
   labels: Label[];
   channels: ChannelOption[];
@@ -160,6 +162,7 @@ export function InboxView({
           onSelect={handleSelect}
           onPrefetch={prefetch}
           channels={channels}
+          currentUserId={currentUserId}
         />
       </div>
 
@@ -211,6 +214,7 @@ export function InboxView({
               cannedResponses={cannedResponses}
               workspaceId={workspaceId}
               labels={labels}
+              currentUserId={currentUserId}
             />
           )}
         </div>

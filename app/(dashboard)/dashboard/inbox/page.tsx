@@ -2,7 +2,7 @@ import { getWorkspace } from "@/lib/workspace";
 import { InboxView } from "./inbox-view";
 
 export default async function InboxPage() {
-  const { workspace, supabase } = await getWorkspace();
+  const { workspace, user, supabase } = await getWorkspace();
 
   const [
     { data: conversations },
@@ -37,6 +37,7 @@ export default async function InboxPage() {
     <InboxView
       conversations={conversations ?? []}
       workspaceId={workspace.id}
+      currentUserId={user.id}
       cannedResponses={cannedResponses ?? []}
       labels={labels ?? []}
       channels={channels ?? []}

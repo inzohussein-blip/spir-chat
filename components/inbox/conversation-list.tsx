@@ -45,6 +45,7 @@ export function ConversationList({
   onSelect,
   onPrefetch,
   channels = [],
+  currentUserId,
 }: {
   conversations: Conversation[];
   workspaceId: string;
@@ -52,11 +53,13 @@ export function ConversationList({
   onSelect: (conversation: Conversation) => void;
   onPrefetch?: (conversationId: string) => void;
   channels?: ChannelOption[];
+  currentUserId?: string;
 }) {
   const [conversations, setConversations] = useState(initialConversations);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<ConversationStatus | "all">("open");
   const [channelFilter, setChannelFilter] = useState<string>("all");
+  const [mineOnly, setMineOnly] = useState(false);
   // Relative timestamps depend on the client's clock/locale, which differ from the
   // server's during SSR and trigger a hydration mismatch (React #418, which crashes
   // the inbox in production). Defer time rendering until after mount so the server
@@ -120,6 +123,7 @@ export function ConversationList({
   const filtered = conversations.filter((c) => {
     if (statusFilter !== "all" && c.status !== statusFilter) return false;
     if (channelFilter !== "all" && c.channel_id !== channelFilter) return false;
+    if (mineOnly && c.assigned_to !== currentUserId) return false;
     if (search) {
       const name = c.contacts?.display_name?.toLowerCase() ?? "";
       const preview = c.last_message_preview?.toLowerCase() ?? "";
@@ -169,6 +173,19 @@ export function ConversationList({
             {status === "closed" ? "Resolved" : status}
           </button>
         ))}
+        {currentUserId && (
+          <button
+            onClick={() => setMineOnly((m) => !m)}
+            className={cn(
+              "ms-auto rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+              mineOnly
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+            )}
+          >
+            Mine
+          </button>
+        )}
       </div>
 
       {/* Channel filter */}

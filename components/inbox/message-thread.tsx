@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Send, Paperclip, Bot, User, MessageSquare, MessageSquareText, CheckCircle, Clock, RotateCcw, Loader2, StickyNote } from "lucide-react";
+import { Send, Paperclip, Bot, User, MessageSquare, MessageSquareText, CheckCircle, Clock, RotateCcw, Loader2, StickyNote, UserPlus, UserCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { PlatformIcon } from "@/components/platform-icon";
@@ -134,12 +134,14 @@ export function MessageThread({
   cannedResponses = [],
   workspaceId,
   labels = [],
+  currentUserId,
 }: {
   conversation: Conversation | null;
   messages: Message[];
   cannedResponses?: CannedResponseItem[];
   workspaceId?: string;
   labels?: Label[];
+  currentUserId?: string;
 }) {
   const router = useRouter();
   const [messages, setMessages] = useState<Message[]>(initialMessages);
@@ -151,6 +153,23 @@ export function MessageThread({
   const [mode, setMode] = useState<"reply" | "note">("reply");
   const [showUndo, setShowUndo] = useState(false);
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [assignedTo, setAssignedTo] = useState<string | null>(
+    conversation?.assigned_to ?? null
+  );
+
+  useEffect(() => {
+    setAssignedTo(conversation?.assigned_to ?? null);
+  }, [conversation?.id, conversation?.assigned_to]);
+
+  async function toggleAssign() {
+    if (!conversation || !currentUserId) return;
+    const next = assignedTo === currentUserId ? null : currentUserId;
+    setAssignedTo(next);
+    await createClient()
+      .from("conversations")
+      .update({ assigned_to: next })
+      .eq("id", conversation.id);
+  }
 
   const cannedMatches = filterCannedResponses(cannedResponses, input);
 
@@ -418,6 +437,38 @@ export function MessageThread({
         </div>
 
         <div className="flex items-center gap-2">
+          {currentUserId && (
+            <button
+              onClick={toggleAssign}
+              title={
+                assignedTo === currentUserId
+                  ? "Assigned to you — click to unassign"
+                  : assignedTo
+                  ? "Assigned to a teammate — click to take over"
+                  : "Assign to me"
+              }
+              className={cn(
+                "inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium transition-colors",
+                assignedTo === currentUserId
+                  ? "bg-primary/10 text-primary hover:bg-primary/20"
+                  : "text-muted-foreground hover:bg-accent hover:text-foreground"
+              )}
+            >
+              {assignedTo === currentUserId ? (
+                <>
+                  <UserCheck className="h-3.5 w-3.5" /> You
+                </>
+              ) : assignedTo ? (
+                <>
+                  <User className="h-3.5 w-3.5" /> Assigned
+                </>
+              ) : (
+                <>
+                  <UserPlus className="h-3.5 w-3.5" /> Assign to me
+                </>
+              )}
+            </button>
+          )}
           <span
             className={cn(
               "rounded-full px-2 py-0.5 text-[10px] font-medium capitalize",
