@@ -67,6 +67,19 @@ export function ConversationList({
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
+  // Re-evaluate "online" status periodically so a visitor's dot turns off once
+  // their heartbeats stop, even without a new realtime event.
+  const [, setNowTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setNowTick((t) => t + 1), 20000);
+    return () => clearInterval(id);
+  }, []);
+
+  function isOnline(c: Conversation): boolean {
+    if (!c.visitor_last_seen_at) return false;
+    return Date.now() - new Date(c.visitor_last_seen_at).getTime() < 45000;
+  }
+
   useEffect(() => {
     setConversations(initialConversations);
   }, [initialConversations]);
@@ -248,6 +261,12 @@ export function ConversationList({
                     size={12}
                   />
                 </div>
+                {isOnline(conversation) && (
+                  <span
+                    title="Online now"
+                    className="absolute -top-0.5 -end-0.5 h-3 w-3 rounded-full border-2 border-background bg-green-500"
+                  />
+                )}
               </div>
 
               {/* Content */}

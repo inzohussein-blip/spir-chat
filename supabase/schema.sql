@@ -1,4 +1,4 @@
--- SpirChat — full database schema (consolidated from migrations/00001..00021).
+-- SpirChat — full database schema (consolidated from migrations/00001..latest).
 -- Run ONCE in the Supabase SQL Editor on a fresh project to create everything.
 -- Source of truth is migrations/; regenerate this file if you add migrations.
 
@@ -1186,4 +1186,14 @@ create policy "Users manage conversation labels in their workspaces"
         and is_workspace_member(c.workspace_id)
     )
   );
+
+
+-- ============================================================
+-- 00022_widget_presence.sql
+-- ============================================================
+-- Website visitor presence (Tidio-style "online now" + current page).
+-- Stored on the conversation; only website conversations set these.
+alter table conversations
+  add column if not exists visitor_last_seen_at timestamptz,
+  add column if not exists visitor_current_page text;
 

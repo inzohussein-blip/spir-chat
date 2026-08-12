@@ -176,6 +176,37 @@ export function WidgetChat({
     };
   }, [ready, channelId, merge]);
 
+  // Presence heartbeat: tell the agent inbox the visitor is online + which page
+  // they're on (the parent page that embedded the widget).
+  useEffect(() => {
+    if (!ready) return;
+    let stop = false;
+
+    async function ping() {
+      if (stop || !conversationId.current || !visitorId.current) return;
+      try {
+        await fetch(`/api/widget/${channelId}/presence`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            conversationId: conversationId.current,
+            visitorId: visitorId.current,
+            page: document.referrer || null,
+          }),
+        });
+      } catch {
+        // best-effort
+      }
+    }
+
+    ping();
+    const id = setInterval(ping, 20000);
+    return () => {
+      stop = true;
+      clearInterval(id);
+    };
+  }, [ready, channelId]);
+
   // Keep the view pinned to the latest message.
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });

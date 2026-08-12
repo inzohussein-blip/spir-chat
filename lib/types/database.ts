@@ -738,6 +738,8 @@ export interface Database {
           last_message_preview: string | null;
           unread_count: number;
           is_automation_paused: boolean;
+          visitor_last_seen_at: string | null;
+          visitor_current_page: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -754,6 +756,8 @@ export interface Database {
           last_message_preview?: string | null;
           unread_count?: number;
           is_automation_paused?: boolean;
+          visitor_last_seen_at?: string | null;
+          visitor_current_page?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -765,6 +769,8 @@ export interface Database {
           last_message_preview?: string | null;
           unread_count?: number;
           is_automation_paused?: boolean;
+          visitor_last_seen_at?: string | null;
+          visitor_current_page?: string | null;
           updated_at?: string;
         };
         Relationships: [
