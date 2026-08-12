@@ -166,7 +166,7 @@ export function ConversationList({
                 : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
             )}
           >
-            {status}
+            {status === "closed" ? "Resolved" : status}
           </button>
         ))}
       </div>

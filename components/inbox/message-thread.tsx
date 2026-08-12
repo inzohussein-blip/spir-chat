@@ -149,6 +149,8 @@ export function MessageThread({
   const [showCanned, setShowCanned] = useState(false);
   const [notes, setNotes] = useState<Note[]>([]);
   const [mode, setMode] = useState<"reply" | "note">("reply");
+  const [showUndo, setShowUndo] = useState(false);
+  const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const cannedMatches = filterCannedResponses(cannedResponses, input);
 
@@ -220,6 +222,19 @@ export function MessageThread({
   function submit() {
     if (mode === "note") addNote();
     else handleSend();
+  }
+
+  function resolve() {
+    updateConversationStatus("closed");
+    setShowUndo(true);
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    undoTimer.current = setTimeout(() => setShowUndo(false), 6000);
+  }
+
+  function undoResolve() {
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    setShowUndo(false);
+    updateConversationStatus("open");
   }
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -413,50 +428,66 @@ export function MessageThread({
                 : "bg-muted text-muted-foreground"
             )}
           >
-            {conversation.status}
+            {conversation.status === "closed" ? "Resolved" : conversation.status}
           </span>
           {conversation.is_automation_paused && (
             <span className="rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-medium text-orange-700">
               Bot paused
             </span>
           )}
-          <div className="flex items-center gap-1">
-            {conversation.status !== "closed" && (
-              <button
-                onClick={() => updateConversationStatus("closed")}
-                disabled={!!statusUpdating}
-                title="Close conversation"
-                aria-label="Close conversation"
-                className="rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors disabled:opacity-50"
-              >
-                {statusUpdating === "closed" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle className="h-3.5 w-3.5" />}
-              </button>
-            )}
-            {conversation.status !== "snoozed" && (
-              <button
-                onClick={() => updateConversationStatus("snoozed")}
-                disabled={!!statusUpdating}
-                title="Snooze conversation"
-                aria-label="Snooze conversation"
-                className="rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors disabled:opacity-50"
-              >
-                {statusUpdating === "snoozed" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Clock className="h-3.5 w-3.5" />}
-              </button>
-            )}
-            {conversation.status !== "open" && (
+          <div className="flex items-center gap-1.5">
+            {conversation.status !== "closed" ? (
+              <>
+                {conversation.status !== "snoozed" && (
+                  <button
+                    onClick={() => updateConversationStatus("snoozed")}
+                    disabled={!!statusUpdating}
+                    title="Snooze"
+                    aria-label="Snooze conversation"
+                    className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors disabled:opacity-50"
+                  >
+                    {statusUpdating === "snoozed" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Clock className="h-3.5 w-3.5" />}
+                  </button>
+                )}
+                <button
+                  onClick={resolve}
+                  disabled={!!statusUpdating}
+                  className="inline-flex items-center gap-1.5 rounded-md bg-emerald-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-emerald-700 transition-colors disabled:opacity-50"
+                >
+                  {statusUpdating === "closed" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle className="h-3.5 w-3.5" />}
+                  Resolve
+                </button>
+              </>
+            ) : (
               <button
                 onClick={() => updateConversationStatus("open")}
                 disabled={!!statusUpdating}
-                title="Reopen conversation"
-                aria-label="Reopen conversation"
-                className="rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1 text-xs font-medium text-foreground hover:bg-accent transition-colors disabled:opacity-50"
               >
                 {statusUpdating === "open" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />}
+                Reopen
               </button>
             )}
           </div>
         </div>
       </div>
+
+      {/* Resolve undo banner */}
+      {showUndo && (
+        <div className="flex items-center justify-between gap-3 border-b border-emerald-200 bg-emerald-50 px-4 py-2 text-xs text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-300">
+          <span className="inline-flex items-center gap-1.5">
+            <CheckCircle className="h-3.5 w-3.5" />
+            Conversation resolved.
+          </span>
+          <button
+            onClick={undoResolve}
+            className="inline-flex items-center gap-1 font-semibold underline underline-offset-2 hover:opacity-80"
+          >
+            <RotateCcw className="h-3 w-3" />
+            Undo
+          </button>
+        </div>
+      )}
 
       {/* Labels */}
       {workspaceId && (
