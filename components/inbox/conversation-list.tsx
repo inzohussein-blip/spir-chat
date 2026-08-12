@@ -115,6 +115,8 @@ export function ConversationList({
     };
   }, [workspaceId]);
 
+  const channelMap = new Map(channels.map((c) => [c.id, channelLabel(c)]));
+
   const filtered = conversations.filter((c) => {
     if (statusFilter !== "all" && c.status !== statusFilter) return false;
     if (channelFilter !== "all" && c.channel_id !== channelFilter) return false;
@@ -244,6 +246,11 @@ export function ConversationList({
                     {mounted ? formatTime(conversation.last_message_at) : ""}
                   </span>
                 </div>
+                {channels.length > 1 && conversation.channel_id && channelMap.get(conversation.channel_id) && (
+                  <p className="truncate text-[10px] text-muted-foreground/80">
+                    {channelMap.get(conversation.channel_id)}
+                  </p>
+                )}
                 <div className="flex items-center justify-between">
                   <p className="mt-0.5 truncate text-xs text-muted-foreground">
                     {conversation.last_message_preview ?? "No messages yet"}
