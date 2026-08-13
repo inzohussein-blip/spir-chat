@@ -47,6 +47,7 @@ const en = {
     broadcasts: "Broadcasts",
     sequences: "Sequences",
     analytics: "Analytics",
+    reports: "Reports",
     growth: "Growth",
     website: "Website",
     savedReplies: "Saved replies",
@@ -83,6 +84,10 @@ const en = {
     analytics: {
       title: "Analytics",
       subtitle: "Monitor your workspace performance",
+    },
+    reports: {
+      title: "Reports",
+      subtitle: "Inbox performance at a glance",
     },
     channels: {
       title: "Channels",
@@ -205,6 +210,7 @@ const ar: Dictionary = {
     broadcasts: "البثّ",
     sequences: "التسلسلات",
     analytics: "التحليلات",
+    reports: "التقارير",
     growth: "النموّ",
     website: "الموقع",
     savedReplies: "الردود الجاهزة",
@@ -241,6 +247,10 @@ const ar: Dictionary = {
     analytics: {
       title: "التحليلات",
       subtitle: "راقب أداء مساحة عملك",
+    },
+    reports: {
+      title: "التقارير",
+      subtitle: "أداء صندوق الوارد في لمحة",
     },
     channels: {
       title: "القنوات",
