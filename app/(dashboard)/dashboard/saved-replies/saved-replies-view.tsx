@@ -49,7 +49,7 @@ export function SavedRepliesView({ replies }: { replies: Reply[] }) {
 
       <div className="flex-1 overflow-auto px-8 py-6">
         {/* Create */}
-        <div className="mb-8 rounded-xl border border-border bg-card p-5">
+        <div className="mb-8 rounded-xl border border-border bg-card shadow-card p-5">
           <div className="grid gap-3 sm:grid-cols-[200px_1fr]">
             <div>
               <label className="text-sm font-medium">Short code</label>
@@ -105,7 +105,7 @@ export function SavedRepliesView({ replies }: { replies: Reply[] }) {
         ) : (
           <div className="space-y-3">
             {replies.map((r) => (
-              <div key={r.id} className="flex items-start justify-between gap-4 rounded-xl border border-border bg-card p-4">
+              <div key={r.id} className="flex items-start justify-between gap-4 rounded-xl border border-border bg-card shadow-card p-4">
                 <div className="min-w-0">
                   <span className="inline-flex rounded-md bg-muted px-2 py-0.5 font-mono text-xs text-foreground">
                     /{r.short_code}

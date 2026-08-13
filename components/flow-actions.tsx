@@ -246,7 +246,7 @@ export function ImportFlowButton() {
       {/* Import preview */}
       {preview && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setPreview(null)}>
-          <div className="mx-4 w-full max-w-sm rounded-xl border border-border bg-card p-5 shadow-lg" onClick={(e) => e.stopPropagation()}>
+          <div className="mx-4 w-full max-w-sm rounded-xl border border-border bg-card shadow-card p-5 shadow-lg" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-start gap-3">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted">
                 <GitBranch className="h-4 w-4 text-muted-foreground" />

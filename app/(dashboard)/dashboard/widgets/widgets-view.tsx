@@ -215,7 +215,7 @@ export function WidgetsView({
 
       <div className="flex-1 overflow-auto px-8 py-6">
         {/* Create */}
-        <div className="mb-8 rounded-xl border border-border bg-card p-5">
+        <div className="mb-8 rounded-xl border border-border bg-card shadow-card p-5">
           <label className="text-sm font-medium">Create a widget</label>
           <div className="mt-2 flex gap-2">
             <input
@@ -249,7 +249,7 @@ export function WidgetsView({
         ) : (
           <div className="space-y-4">
             {widgets.map((w) => (
-              <div key={w.id} className="rounded-xl border border-border bg-card p-5">
+              <div key={w.id} className="rounded-xl border border-border bg-card shadow-card p-5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted">

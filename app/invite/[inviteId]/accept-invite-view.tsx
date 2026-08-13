@@ -72,7 +72,7 @@ export function AcceptInviteView({
           </p>
         </div>
 
-        <div className="rounded-xl border border-border bg-card p-6 text-center">
+        <div className="rounded-xl border border-border bg-card shadow-card p-6 text-center">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
             <Users className="h-6 w-6 text-primary" />
           </div>

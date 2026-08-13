@@ -27,6 +27,22 @@ const EMOJIS = [
   "🔥", "👋", "✅", "🤔", "😅", "🙌", "💯", "😢",
 ];
 
+const AVATAR_GRADIENTS = [
+  "from-violet-500 to-purple-600",
+  "from-blue-500 to-cyan-500",
+  "from-emerald-500 to-teal-600",
+  "from-amber-500 to-orange-600",
+  "from-pink-500 to-rose-600",
+  "from-indigo-500 to-blue-600",
+  "from-fuchsia-500 to-pink-600",
+  "from-cyan-500 to-sky-600",
+];
+function avatarGradient(name: string): string {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  return AVATAR_GRADIENTS[h % AVATAR_GRADIENTS.length];
+}
+
 function formatMessageTime(dateStr: string): string {
   const date = new Date(dateStr);
   return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -542,21 +558,26 @@ export function MessageThread({
   return (
     <div className="flex h-full flex-col bg-background">
       {/* Header */}
-      <div className="flex h-14 items-center justify-between border-b border-border px-4">
+      <div className="flex h-14 items-center justify-between border-b border-border bg-card px-4">
         <div className="flex items-center gap-3">
           <div className="relative">
             {conversation.contacts?.avatar_url ? (
               <img
                 src={conversation.contacts.avatar_url}
                 alt=""
-                className="h-8 w-8 rounded-full object-cover"
+                className="h-9 w-9 rounded-full object-cover"
               />
             ) : (
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-sm font-medium">
+              <div
+                className={cn(
+                  "flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br text-sm font-semibold text-white shadow-sm",
+                  avatarGradient(conversation.contacts?.display_name ?? "Unknown")
+                )}
+              >
                 {conversation.contacts?.display_name?.[0]?.toUpperCase() ?? "?"}
               </div>
             )}
-            <div className="absolute -bottom-0.5 -end-0.5 flex h-4 w-4 items-center justify-center rounded-full border-2 border-background bg-background">
+            <div className="absolute -bottom-0.5 -end-0.5 flex h-4 w-4 items-center justify-center rounded-full border-2 border-card bg-card">
               <PlatformIcon
                 platform={conversation.platform}
                 className="h-2.5 w-2.5"
@@ -565,7 +586,7 @@ export function MessageThread({
             </div>
           </div>
           <div>
-            <p className="text-sm font-medium">
+            <p className="text-sm font-semibold">
               {conversation.contacts?.display_name ?? "Unknown"}
             </p>
           </div>
@@ -735,7 +756,7 @@ export function MessageThread({
       <div
         className={cn(
           "border-t border-border p-4",
-          mode === "note" && "bg-amber-50/60 dark:bg-amber-950/20"
+          mode === "note" ? "bg-amber-50/60 dark:bg-amber-950/20" : "bg-card"
         )}
       >
         {/* Reply / Note toggle */}

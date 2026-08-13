@@ -100,7 +100,7 @@ export default async function SequencesPage() {
               <Link
                 key={sequence.id}
                 href={`/dashboard/sequences/${sequence.id}`}
-                className="group rounded-xl border border-border bg-card p-5 transition-colors hover:border-primary/50"
+                className="group rounded-xl border border-border bg-card shadow-card p-5 transition-colors hover:border-primary/50"
               >
                 <div className="flex items-start gap-3">
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted">

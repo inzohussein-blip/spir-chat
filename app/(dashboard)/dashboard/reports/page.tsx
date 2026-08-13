@@ -111,7 +111,7 @@ export default async function ReportsPage() {
           {cards.map((c) => {
             const Icon = c.icon;
             return (
-              <div key={c.label} className="rounded-xl border border-border bg-card p-5">
+              <div key={c.label} className="rounded-xl border border-border bg-card shadow-card p-5">
                 <div className="flex items-center justify-between">
                   <p className="text-sm text-muted-foreground">{c.label}</p>
                   <Icon className={`h-4 w-4 ${c.tone}`} />

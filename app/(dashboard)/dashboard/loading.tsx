@@ -12,7 +12,7 @@ export default function DashboardLoading() {
         {Array.from({ length: 6 }).map((_, i) => (
           <div
             key={i}
-            className="rounded-xl border border-border bg-card p-5"
+            className="rounded-xl border border-border bg-card shadow-card p-5"
           >
             <div className="flex items-center gap-3">
               <div className="h-9 w-9 animate-pulse rounded-lg bg-muted" />

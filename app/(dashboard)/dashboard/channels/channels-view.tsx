@@ -243,7 +243,7 @@ export function ChannelsView({
                 Connect Channel
               </button>
               {showPlatformPicker && (
-                <div className="absolute end-0 top-full z-50 mt-2 w-56 rounded-xl border border-border bg-card p-2 shadow-lg">
+                <div className="absolute end-0 top-full z-50 mt-2 w-56 rounded-xl border border-border bg-card shadow-card p-2 shadow-lg">
                   {connectablePlatforms.map((p) => (
                     <button
                       key={p.id}
@@ -293,7 +293,7 @@ export function ChannelsView({
               return (
                 <div
                   key={channel.id}
-                  className="rounded-xl border border-border bg-card p-5 transition-shadow hover:shadow-sm"
+                  className="rounded-xl border border-border bg-card shadow-card p-5 transition-shadow hover:shadow-sm"
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">

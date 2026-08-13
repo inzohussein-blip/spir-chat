@@ -117,7 +117,7 @@ export default async function FlowsPage() {
               <Link
                 key={flow.id}
                 href={`/dashboard/flows/${flow.id}`}
-                className="group rounded-xl border border-border bg-card p-5 transition-colors hover:border-primary/50"
+                className="group rounded-xl border border-border bg-card shadow-card p-5 transition-colors hover:border-primary/50"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3">

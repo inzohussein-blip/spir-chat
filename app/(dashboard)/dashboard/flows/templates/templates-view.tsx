@@ -355,7 +355,7 @@ export function TemplatesView({ workspaceId }: { workspaceId: string }) {
             return (
               <div
                 key={template.id}
-                className="group rounded-xl border border-border bg-card p-6 transition-colors hover:border-primary/50"
+                className="group rounded-xl border border-border bg-card shadow-card p-6 transition-colors hover:border-primary/50"
               >
                 {/* Icon + category */}
                 <div className="flex items-start justify-between">

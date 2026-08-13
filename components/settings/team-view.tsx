@@ -171,7 +171,7 @@ export function TeamView({
               {members.map((member) => (
                 <div
                   key={member.userId}
-                  className="flex items-center justify-between rounded-xl border border-border bg-card p-4"
+                  className="flex items-center justify-between rounded-xl border border-border bg-card shadow-card p-4"
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-medium text-muted-foreground">
@@ -317,7 +317,7 @@ export function TeamView({
                       <div
                         key={invite.id}
                         className={cn(
-                          "flex items-center justify-between rounded-xl border border-border bg-card p-4",
+                          "flex items-center justify-between rounded-xl border border-border bg-card shadow-card p-4",
                           isExpired && "opacity-60"
                         )}
                       >

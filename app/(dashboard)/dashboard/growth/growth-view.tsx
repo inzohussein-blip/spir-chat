@@ -351,7 +351,7 @@ export function GrowthView({
 
         {/* Create / Edit form */}
         {(showCreate || editingId) && (
-          <div ref={createFormRef} className="mt-6 rounded-xl border border-border bg-card p-6">
+          <div ref={createFormRef} className="mt-6 rounded-xl border border-border bg-card shadow-card p-6">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-semibold text-foreground">
                 {editingId ? "Edit Comment-to-DM Rule" : "Create Comment-to-DM Rule"}
@@ -810,7 +810,7 @@ function StatCard({
   sublabel: string;
 }) {
   return (
-    <div className="rounded-xl border border-border bg-card p-6">
+    <div className="rounded-xl border border-border bg-card shadow-card p-6">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">{label}</p>
         <div className="text-muted-foreground/60">{icon}</div>

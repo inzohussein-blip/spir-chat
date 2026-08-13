@@ -21,6 +21,23 @@ function channelLabel(c: ChannelOption): string {
   return c.display_name || c.username || c.platform;
 }
 
+// Colorful avatar fallbacks (Tidio/ManyChat vibe) — deterministic per name.
+const AVATAR_GRADIENTS = [
+  "from-violet-500 to-purple-600",
+  "from-blue-500 to-cyan-500",
+  "from-emerald-500 to-teal-600",
+  "from-amber-500 to-orange-600",
+  "from-pink-500 to-rose-600",
+  "from-indigo-500 to-blue-600",
+  "from-fuchsia-500 to-pink-600",
+  "from-cyan-500 to-sky-600",
+];
+function avatarGradient(name: string): string {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  return AVATAR_GRADIENTS[h % AVATAR_GRADIENTS.length];
+}
+
 function formatTime(dateStr: string | null): string {
   if (!dateStr) return "";
   const date = new Date(dateStr);
@@ -152,12 +169,12 @@ export function ConversationList({
   });
 
   return (
-    <div className="flex h-full flex-col border-e border-border bg-background">
+    <div className="flex h-full flex-col border-e border-border bg-card">
       {/* Header */}
       <div className="flex h-14 items-center justify-between border-b border-border px-4">
-        <h2 className="text-sm font-semibold">Inbox</h2>
-        <span className="text-xs text-muted-foreground">
-          {filtered.length} conversation{filtered.length !== 1 ? "s" : ""}
+        <h2 className="text-base font-bold tracking-tight">Inbox</h2>
+        <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+          {filtered.length}
         </span>
       </div>
 
@@ -228,24 +245,33 @@ export function ConversationList({
       )}
 
       {/* Conversation list */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 space-y-0.5 overflow-y-auto p-2">
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <MessageSquare className="h-8 w-8 text-muted-foreground/50" />
             <p className="mt-2 text-sm text-muted-foreground">No conversations found</p>
           </div>
         ) : (
-          filtered.map((conversation) => (
+          filtered.map((conversation) => {
+            const name = conversation.contacts?.display_name ?? "Unknown";
+            const unread = conversation.unread_count > 0;
+            const selected = selectedId === conversation.id;
+            return (
             <button
               key={conversation.id}
               onClick={() => onSelect(conversation)}
               onMouseEnter={() => onPrefetch?.(conversation.id)}
               onFocus={() => onPrefetch?.(conversation.id)}
               className={cn(
-                "flex w-full items-start gap-3 border-b border-border p-3 text-start transition-colors hover:bg-accent/50",
-                selectedId === conversation.id && "bg-accent"
+                "relative flex w-full items-start gap-3 rounded-xl p-2.5 text-start transition-colors",
+                selected
+                  ? "bg-accent"
+                  : "hover:bg-muted"
               )}
             >
+              {selected && (
+                <span className="absolute inset-y-2 start-0 w-1 rounded-full bg-primary" />
+              )}
               {/* Avatar with platform badge */}
               <div className="relative flex-shrink-0">
                 {conversation.contacts?.avatar_url ? (
@@ -255,11 +281,16 @@ export function ConversationList({
                     className="h-10 w-10 rounded-full object-cover"
                   />
                 ) : (
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-sm font-medium">
-                    {conversation.contacts?.display_name?.[0]?.toUpperCase() ?? "?"}
+                  <div
+                    className={cn(
+                      "flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br text-sm font-semibold text-white shadow-sm",
+                      avatarGradient(name)
+                    )}
+                  >
+                    {name[0]?.toUpperCase() ?? "?"}
                   </div>
                 )}
-                <div className="absolute -bottom-0.5 -end-0.5 flex h-4.5 w-4.5 items-center justify-center rounded-full border-2 border-background bg-background">
+                <div className="absolute -bottom-0.5 -end-0.5 flex h-4.5 w-4.5 items-center justify-center rounded-full border-2 border-card bg-card">
                   <PlatformIcon
                     platform={conversation.platform}
                     className="h-3 w-3"
@@ -269,7 +300,7 @@ export function ConversationList({
                 {isOnline(conversation) && (
                   <span
                     title="Online now"
-                    className="absolute -top-0.5 -end-0.5 h-3 w-3 rounded-full border-2 border-background bg-green-500"
+                    className="absolute -top-0.5 -end-0.5 h-3 w-3 rounded-full border-2 border-card bg-green-500"
                   />
                 )}
               </div>
@@ -277,8 +308,8 @@ export function ConversationList({
               {/* Content */}
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between">
-                  <p className="truncate text-sm font-medium">
-                    {conversation.contacts?.display_name ?? "Unknown"}
+                  <p className={cn("truncate text-sm", unread ? "font-bold" : "font-medium")}>
+                    {name}
                   </p>
                   <span
                     suppressHydrationWarning
@@ -292,25 +323,31 @@ export function ConversationList({
                     {channelMap.get(conversation.channel_id)}
                   </p>
                 )}
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-2">
                   {isTyping(conversation) ? (
                     <p className="mt-0.5 truncate text-xs font-medium text-green-600">
                       typing…
                     </p>
                   ) : (
-                    <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                    <p
+                      className={cn(
+                        "mt-0.5 truncate text-xs",
+                        unread ? "font-medium text-foreground" : "text-muted-foreground"
+                      )}
+                    >
                       {conversation.last_message_preview ?? "No messages yet"}
                     </p>
                   )}
-                  {conversation.unread_count > 0 && (
-                    <span className="ms-2 flex h-5 min-w-5 flex-shrink-0 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground">
+                  {unread && (
+                    <span className="ms-2 flex h-5 min-w-5 flex-shrink-0 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground shadow-sm">
                       {conversation.unread_count}
                     </span>
                   )}
                 </div>
               </div>
             </button>
-          ))
+            );
+          })
         )}
       </div>
     </div>

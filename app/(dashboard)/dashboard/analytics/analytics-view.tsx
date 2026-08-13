@@ -484,7 +484,7 @@ export function AnalyticsView({
               {statCards.map((card) => (
                 <div
                   key={card.label}
-                  className="rounded-xl border border-border bg-card p-6"
+                  className="rounded-xl border border-border bg-card shadow-card p-6"
                 >
                   <div className="flex items-center gap-3">
                     <div
@@ -509,7 +509,7 @@ export function AnalyticsView({
             {/* Charts row */}
             <div className="grid gap-6 lg:grid-cols-2">
               {/* Contact growth */}
-              <div className="rounded-xl border border-border bg-card p-6">
+              <div className="rounded-xl border border-border bg-card shadow-card p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-sm font-semibold">Contact Growth</h3>
                   <span className="text-xs text-muted-foreground">
@@ -541,7 +541,7 @@ export function AnalyticsView({
               </div>
 
               {/* Message volume */}
-              <div className="rounded-xl border border-border bg-card p-6">
+              <div className="rounded-xl border border-border bg-card shadow-card p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-sm font-semibold">Message Volume</h3>
                   <div className="flex items-center gap-3">
@@ -566,7 +566,7 @@ export function AnalyticsView({
             </div>
 
             {/* Flow performance table */}
-            <div className="rounded-xl border border-border bg-card">
+            <div className="rounded-xl border border-border bg-card shadow-card">
               <div className="border-b border-border px-6 py-4">
                 <h3 className="text-sm font-semibold">Flow Performance</h3>
               </div>

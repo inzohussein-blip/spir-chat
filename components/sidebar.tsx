@@ -94,12 +94,19 @@ export function Sidebar({
   }
 
   return (
-    <div className="flex h-full w-60 flex-col border-e border-border bg-sidebar">
-      <div className="border-b border-sidebar-border px-3 py-3">
+    <div className="flex h-full w-60 flex-col border-e border-sidebar-border bg-sidebar">
+      <div className="flex items-center gap-2.5 px-4 pt-4 pb-1">
+        <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-cyan-500 text-sm font-bold text-white shadow-sm">
+          S
+        </div>
+        <span className="text-base font-bold tracking-tight">SpirChat</span>
+      </div>
+
+      <div className="px-3 pt-2 pb-2">
         <WorkspaceSwitcher current={workspace} workspaces={workspaces} />
       </div>
 
-      <nav className="flex-1 space-y-1 p-3">
+      <nav className="flex-1 space-y-0.5 px-3 pb-3">
         {navigation.map((item) => {
           const isActive = pathname.startsWith(item.href);
           return (
@@ -107,13 +114,20 @@ export function Sidebar({
               key={item.key}
               href={item.href}
               className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all",
                 isActive
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                  ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm"
+                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"
               )}
             >
-              <item.icon className="h-4 w-4" />
+              <item.icon
+                className={cn(
+                  "h-4 w-4 transition-colors",
+                  isActive
+                    ? "text-sidebar-accent-foreground"
+                    : "text-sidebar-foreground/50 group-hover:text-sidebar-accent-foreground"
+                )}
+              />
               {t.sidebar[item.key]}
             </Link>
           );
