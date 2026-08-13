@@ -104,6 +104,20 @@ export function WidgetChat({
   const lastAt = useRef<string | null>(null);
   const lastTypingPing = useRef(0);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const unreadRef = useRef(0);
+
+  // Tell the parent loader how many unread agent messages there are, so it can
+  // show a badge on the launcher while the chat is closed.
+  function postUnread(count: number) {
+    try {
+      window.parent?.postMessage(
+        { source: "spirchat", type: "unread", count },
+        "*"
+      );
+    } catch {
+      // parent may be cross-origin restricted; badge is best-effort
+    }
+  }
 
   // Tell the agent inbox the visitor is typing (throttled to once per ~2s).
   function notifyTyping() {
@@ -129,12 +143,21 @@ export function WidgetChat({
     if (incoming.length === 0) return;
     setMessages((prev) => {
       const seen = new Set(prev.map((m) => m.id));
-      const next = [...prev];
-      for (const m of incoming) {
-        if (!seen.has(m.id)) next.push(m);
+      const added = incoming.filter((m) => !seen.has(m.id));
+      if (added.length === 0) return prev;
+      lastAt.current =
+        added[added.length - 1]?.created_at ?? lastAt.current;
+      // Badge new agent replies that arrive while the widget is hidden/closed.
+      if (typeof document !== "undefined" && document.hidden) {
+        const agentReplies = added.filter(
+          (m) => m.direction === "outbound"
+        ).length;
+        if (agentReplies > 0) {
+          unreadRef.current += agentReplies;
+          postUnread(unreadRef.current);
+        }
       }
-      lastAt.current = next[next.length - 1]?.created_at ?? lastAt.current;
-      return next;
+      return [...prev, ...added];
     });
   }, []);
 
@@ -271,6 +294,19 @@ export function WidgetChat({
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
   }, [messages, phase]);
+
+  // When the chat becomes visible again (the visitor opened the launcher, so
+  // the hidden iframe is shown), clear the unread badge.
+  useEffect(() => {
+    function onVisibility() {
+      if (!document.hidden) {
+        unreadRef.current = 0;
+        postUnread(0);
+      }
+    }
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, []);
 
   async function submitPrechat() {
     if (!formName.trim() || starting) return;

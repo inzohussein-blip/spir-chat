@@ -99,13 +99,60 @@
     '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18 6L6 18M6 6l12 12" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>';
   button.innerHTML = chatIcon;
 
+  // Unread badge: a red counter shown on the launcher when the agent replies
+  // while the chat is closed. Fed by postMessage from the iframe.
+  var unread = 0;
+  var badge = document.createElement("span");
+  badge.style.cssText = [
+    "position:absolute",
+    "top:-2px",
+    "right:-2px",
+    "min-width:20px",
+    "height:20px",
+    "padding:0 5px",
+    "box-sizing:border-box",
+    "border-radius:10px",
+    "background:#ef4444",
+    "color:#fff",
+    "font:bold 12px/20px -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif",
+    "text-align:center",
+    "box-shadow:0 0 0 2px #fff",
+    "display:none",
+  ].join(";");
+  button.appendChild(badge);
+
+  function updateBadge() {
+    if (unread > 0 && !open) {
+      badge.textContent = unread > 9 ? "9+" : String(unread);
+      badge.style.display = "block";
+    } else {
+      badge.style.display = "none";
+    }
+  }
+
   function setOpen(state) {
     open = state;
     iframe.style.display = open ? "block" : "none";
     button.innerHTML = open ? closeIcon : chatIcon;
+    button.appendChild(badge);
     button.setAttribute("aria-label", open ? "Close chat" : "Open chat");
-    if (open) hideTeaser();
+    if (open) {
+      unread = 0;
+      hideTeaser();
+    }
+    updateBadge();
   }
+
+  // The iframe reports unread agent messages while it is hidden.
+  window.addEventListener("message", function (e) {
+    if (origin && e.origin !== origin) return;
+    var d = e.data;
+    if (!d || d.source !== "spirchat") return;
+    if (d.type === "unread") {
+      unread = typeof d.count === "number" ? d.count : 0;
+      updateBadge();
+    }
+  });
 
   button.addEventListener("click", function () {
     setOpen(!open);
