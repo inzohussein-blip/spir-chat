@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import { avatarGradient } from "@/lib/avatar";
 import { PlatformIcon } from "@/components/platform-icon";
 import type { Database, Platform } from "@/lib/types/database";
 
@@ -114,7 +115,7 @@ export function ContactPanel({
     loadedDetails?.contact.id === contactId ? loadedDetails : null;
 
   return (
-    <div className="flex h-full w-80 flex-col border-s border-border bg-background">
+    <div className="flex h-full w-80 flex-col border-s border-border bg-card">
       {/* Header */}
       <div className="flex h-14 items-center justify-between border-b border-border px-4">
         <h3 className="text-sm font-semibold">Contact Info</h3>
@@ -134,17 +135,22 @@ export function ContactPanel({
         <div className="flex-1 overflow-y-auto">
           {/* Profile section */}
           <div className="flex flex-col items-center border-b border-border p-6">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted text-xl font-semibold">
-              {details.contact.avatar_url ? (
-                <img
-                  src={details.contact.avatar_url}
-                  alt=""
-                  className="h-16 w-16 rounded-full object-cover"
-                />
-              ) : (
-                details.contact.display_name?.[0]?.toUpperCase() ?? "?"
-              )}
-            </div>
+            {details.contact.avatar_url ? (
+              <img
+                src={details.contact.avatar_url}
+                alt=""
+                className="h-16 w-16 rounded-full object-cover shadow-sm"
+              />
+            ) : (
+              <div
+                className={cn(
+                  "flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br text-xl font-semibold text-white shadow-sm",
+                  avatarGradient(details.contact.display_name ?? "Unknown")
+                )}
+              >
+                {details.contact.display_name?.[0]?.toUpperCase() ?? "?"}
+              </div>
+            )}
             <p className="mt-3 text-sm font-semibold">
               {details.contact.display_name ?? "Unknown"}
             </p>

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Search, MessageSquare, Filter } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import { avatarGradient } from "@/lib/avatar";
 import { PlatformIcon } from "@/components/platform-icon";
 import type { Database, Platform, ConversationStatus } from "@/lib/types/database";
 
@@ -19,23 +20,6 @@ type ChannelOption = {
 
 function channelLabel(c: ChannelOption): string {
   return c.display_name || c.username || c.platform;
-}
-
-// Colorful avatar fallbacks (Tidio/ManyChat vibe) — deterministic per name.
-const AVATAR_GRADIENTS = [
-  "from-violet-500 to-purple-600",
-  "from-blue-500 to-cyan-500",
-  "from-emerald-500 to-teal-600",
-  "from-amber-500 to-orange-600",
-  "from-pink-500 to-rose-600",
-  "from-indigo-500 to-blue-600",
-  "from-fuchsia-500 to-pink-600",
-  "from-cyan-500 to-sky-600",
-];
-function avatarGradient(name: string): string {
-  let h = 0;
-  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
-  return AVATAR_GRADIENTS[h % AVATAR_GRADIENTS.length];
 }
 
 function formatTime(dateStr: string | null): string {

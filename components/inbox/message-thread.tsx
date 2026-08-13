@@ -9,6 +9,7 @@ import { PlatformIcon } from "@/components/platform-icon";
 import { filterCannedResponses, isCannedShortcut, type CannedResponseItem } from "@/lib/canned";
 import { LabelPicker } from "@/components/inbox/label-picker";
 import { parseAttachments, isImageType, type MessageAttachment } from "@/lib/attachments";
+import { avatarGradient } from "@/lib/avatar";
 import type { Database, ConversationStatus } from "@/lib/types/database";
 
 type Message = Database["public"]["Tables"]["messages"]["Row"];
@@ -27,21 +28,6 @@ const EMOJIS = [
   "🔥", "👋", "✅", "🤔", "😅", "🙌", "💯", "😢",
 ];
 
-const AVATAR_GRADIENTS = [
-  "from-violet-500 to-purple-600",
-  "from-blue-500 to-cyan-500",
-  "from-emerald-500 to-teal-600",
-  "from-amber-500 to-orange-600",
-  "from-pink-500 to-rose-600",
-  "from-indigo-500 to-blue-600",
-  "from-fuchsia-500 to-pink-600",
-  "from-cyan-500 to-sky-600",
-];
-function avatarGradient(name: string): string {
-  let h = 0;
-  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
-  return AVATAR_GRADIENTS[h % AVATAR_GRADIENTS.length];
-}
 
 function formatMessageTime(dateStr: string): string {
   const date = new Date(dateStr);
