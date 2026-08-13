@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Send, Paperclip, Bot, User, MessageSquare, MessageSquareText, CheckCircle, Clock, RotateCcw, Loader2, StickyNote, UserPlus, UserCheck, PenLine } from "lucide-react";
+import { Send, Paperclip, Bot, User, MessageSquare, MessageSquareText, CheckCircle, Clock, RotateCcw, Loader2, StickyNote, UserPlus, UserCheck, PenLine, Smile } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { PlatformIcon } from "@/components/platform-icon";
@@ -21,6 +21,11 @@ type Conversation = Database["public"]["Tables"]["conversations"]["Row"] & {
 type TimelineItem =
   | { kind: "message"; at: string; message: Message }
   | { kind: "note"; at: string; note: Note };
+
+const EMOJIS = [
+  "😀", "😂", "😍", "😊", "👍", "🙏", "🎉", "❤️",
+  "🔥", "👋", "✅", "🤔", "😅", "🙌", "💯", "😢",
+];
 
 function formatMessageTime(dateStr: string): string {
   const date = new Date(dateStr);
@@ -179,6 +184,7 @@ export function MessageThread({
   const [sending, setSending] = useState(false);
   const [statusUpdating, setStatusUpdating] = useState<string | null>(null);
   const [showCanned, setShowCanned] = useState(false);
+  const [showEmoji, setShowEmoji] = useState(false);
   const [notes, setNotes] = useState<Note[]>([]);
   const [mode, setMode] = useState<"reply" | "note">("reply");
   const [showUndo, setShowUndo] = useState(false);
@@ -259,6 +265,23 @@ export function MessageThread({
     setInput(content);
     setShowCanned(false);
     textareaRef.current?.focus();
+  }
+
+  function insertEmoji(emoji: string) {
+    const el = textareaRef.current;
+    if (el) {
+      const start = el.selectionStart ?? input.length;
+      const end = el.selectionEnd ?? input.length;
+      setInput(input.slice(0, start) + emoji + input.slice(end));
+      requestAnimationFrame(() => {
+        el.focus();
+        const pos = start + emoji.length;
+        el.setSelectionRange(pos, pos);
+      });
+    } else {
+      setInput((v) => v + emoji);
+    }
+    setShowEmoji(false);
   }
 
   // Load internal notes for the selected conversation. Notes live in their own
@@ -841,6 +864,34 @@ export function MessageThread({
               )}
             </button>
           )}
+
+          <div className="relative shrink-0">
+            {showEmoji && (
+              <div className="absolute bottom-full mb-2 grid grid-cols-8 gap-1 rounded-lg border border-border bg-popover p-2 shadow-lg">
+                {EMOJIS.map((e) => (
+                  <button
+                    key={e}
+                    type="button"
+                    onClick={() => insertEmoji(e)}
+                    className="flex h-8 w-8 items-center justify-center rounded-md text-lg hover:bg-accent"
+                  >
+                    {e}
+                  </button>
+                ))}
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => setShowEmoji((s) => !s)}
+              aria-label="Emoji"
+              className={cn(
+                "flex h-10 w-10 items-center justify-center rounded-lg border border-input transition-colors hover:bg-accent hover:text-foreground",
+                showEmoji ? "text-primary" : "text-muted-foreground"
+              )}
+            >
+              <Smile className="h-4 w-4" />
+            </button>
+          </div>
 
           <div className="flex-1">
             <textarea

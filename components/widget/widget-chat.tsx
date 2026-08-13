@@ -1,7 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Send, Paperclip, Loader2, X } from "lucide-react";
+import { Send, Paperclip, Loader2, X, Smile } from "lucide-react";
+
+// A small, dependency-free set of common emojis for the composer picker.
+const EMOJIS = [
+  "😀", "😂", "😍", "😊", "👍", "🙏", "🎉", "❤️",
+  "🔥", "👋", "✅", "🤔", "😅", "🙌", "💯", "😢",
+];
 
 interface WidgetAttachment {
   url: string;
@@ -50,6 +56,7 @@ const WIDGET_STRINGS = {
     email: "Email (optional)",
     start: "Start chat",
     attach: "Attach a file",
+    emoji: "Emoji",
     away: "We're away right now — leave a message.",
   },
   ar: {
@@ -62,6 +69,7 @@ const WIDGET_STRINGS = {
     email: "البريد الإلكتروني (اختياري)",
     start: "ابدأ المحادثة",
     attach: "إرفاق ملف",
+    emoji: "إيموجي",
     away: "نحن غير متواجدين حالياً — اترك رسالة وسنعاود التواصل.",
   },
 } as const;
@@ -98,6 +106,8 @@ export function WidgetChat({
     useState<WidgetAttachment | null>(null);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showEmoji, setShowEmoji] = useState(false);
+  const textInputRef = useRef<HTMLInputElement>(null);
 
   const visitorId = useRef<string | null>(null);
   const conversationId = useRef<string | null>(null);
@@ -337,6 +347,24 @@ export function WidgetChat({
     }
   }
 
+  function insertEmoji(emoji: string) {
+    const el = textInputRef.current;
+    if (el) {
+      const start = el.selectionStart ?? input.length;
+      const end = el.selectionEnd ?? input.length;
+      const next = input.slice(0, start) + emoji + input.slice(end);
+      setInput(next);
+      requestAnimationFrame(() => {
+        el.focus();
+        const pos = start + emoji.length;
+        el.setSelectionRange(pos, pos);
+      });
+    } else {
+      setInput((v) => v + emoji);
+    }
+    setShowEmoji(false);
+  }
+
   async function send(override?: string) {
     const text = (override ?? input).trim();
     const attachment = override ? null : pendingAttachment;
@@ -537,7 +565,21 @@ export function WidgetChat({
           </div>
 
           {/* Composer */}
-          <div className="border-t border-gray-100 bg-white p-3">
+          <div className="relative border-t border-gray-100 bg-white p-3">
+            {showEmoji && (
+              <div className="absolute bottom-full end-3 mb-2 grid grid-cols-8 gap-1 rounded-xl border border-gray-100 bg-white p-2 shadow-lg">
+                {EMOJIS.map((e) => (
+                  <button
+                    key={e}
+                    type="button"
+                    onClick={() => insertEmoji(e)}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg text-lg hover:bg-gray-100"
+                  >
+                    {e}
+                  </button>
+                ))}
+              </div>
+            )}
             {pendingAttachment && (
               <div className="mb-2 flex items-center gap-2 rounded-lg bg-gray-50 px-2 py-1.5 text-xs text-gray-700">
                 {isImage(pendingAttachment.type) ? (
@@ -581,7 +623,20 @@ export function WidgetChat({
                   <Paperclip className="h-4 w-4" />
                 )}
               </button>
+              <button
+                onClick={() => setShowEmoji((v) => !v)}
+                disabled={!ready}
+                aria-label={s.emoji}
+                title={s.emoji}
+                className={
+                  "flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full hover:bg-gray-100 disabled:opacity-40 " +
+                  (showEmoji ? "text-violet-600" : "text-gray-400 hover:text-gray-600")
+                }
+              >
+                <Smile className="h-4 w-4" />
+              </button>
               <input
+                ref={textInputRef}
                 value={input}
                 onChange={(e) => {
                   setInput(e.target.value);
