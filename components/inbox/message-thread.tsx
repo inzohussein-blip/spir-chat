@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { PlatformIcon } from "@/components/platform-icon";
 import { filterCannedResponses, isCannedShortcut, type CannedResponseItem } from "@/lib/canned";
 import { LabelPicker } from "@/components/inbox/label-picker";
+import { parseAttachments, isImageType, type MessageAttachment } from "@/lib/attachments";
 import type { Database, ConversationStatus } from "@/lib/types/database";
 
 type Message = Database["public"]["Tables"]["messages"]["Row"];
@@ -85,11 +86,38 @@ function MessageBubble({ message }: { message: Message }) {
           )}
         >
           {message.text && <p className="whitespace-pre-wrap">{message.text}</p>}
-          {message.attachments && (
-            <div className="mt-1">
-              <Paperclip className="inline h-3 w-3" />
-              <span className="ml-1 text-xs opacity-70">Attachment</span>
-            </div>
+          {parseAttachments(message.attachments).map((a, i) =>
+            isImageType(a.type) ? (
+              <a
+                key={i}
+                href={a.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={cn("block", message.text && "mt-2")}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={a.url}
+                  alt={a.name}
+                  className="max-h-56 max-w-full rounded-lg object-cover"
+                />
+              </a>
+            ) : (
+              <a
+                key={i}
+                href={a.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={cn(
+                  "flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs underline-offset-2 hover:underline",
+                  message.text && "mt-2",
+                  isInbound ? "bg-background/60" : "bg-white/15"
+                )}
+              >
+                <Paperclip className="h-3 w-3 flex-shrink-0" />
+                <span className="truncate">{a.name}</span>
+              </a>
+            )
           )}
         </div>
         <div
@@ -180,6 +208,36 @@ export function MessageThread({
   const [assignedTo, setAssignedTo] = useState<string | null>(
     conversation?.assigned_to ?? null
   );
+
+  // Attachments (website conversations only): staged files the agent has
+  // uploaded and will send with the next reply.
+  const isWebsite = conversation?.platform === "website";
+  const [pendingAttachments, setPendingAttachments] = useState<
+    MessageAttachment[]
+  >([]);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  async function handleFilePick(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-picking the same file
+    if (!file || !conversation) return;
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("conversationId", conversation.id);
+      const res = await fetch("/api/v1/upload", { method: "POST", body: fd });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.attachment) {
+        setPendingAttachments((prev) => [...prev, data.attachment]);
+      }
+    } catch {
+      // surfaced by the empty staging area; agent can retry
+    } finally {
+      setUploading(false);
+    }
+  }
 
   useEffect(() => {
     setAssignedTo(conversation?.assigned_to ?? null);
@@ -375,13 +433,18 @@ export function MessageThread({
   }, [conversation?.id, conversation?.last_message_at]);
 
   async function handleSend() {
-    if (!input.trim() || !conversation || sending) return;
+    if (!conversation || sending) return;
+    const hasText = input.trim().length > 0;
+    const attachments = pendingAttachments;
+    if (!hasText && attachments.length === 0) return;
 
-    const text =
-      signing && currentUserName
+    const text = hasText
+      ? signing && currentUserName
         ? `${input.trim()}\n\n— ${currentUserName}`
-        : input.trim();
+        : input.trim()
+      : "";
     setInput("");
+    setPendingAttachments([]);
     setSending(true);
 
     // Optimistic update: add a temporary message immediately
@@ -390,8 +453,8 @@ export function MessageThread({
       id: optimisticId,
       conversation_id: conversation.id,
       direction: "outbound",
-      text,
-      attachments: null,
+      text: text || null,
+      attachments: attachments.length > 0 ? attachments : null,
       quick_reply_payload: null,
       postback_payload: null,
       callback_data: null,
@@ -408,7 +471,11 @@ export function MessageThread({
       const res = await fetch("/api/v1/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ conversationId: conversation.id, text }),
+        body: JSON.stringify({
+          conversationId: conversation.id,
+          text,
+          attachments: attachments.length > 0 ? attachments : undefined,
+        }),
       });
 
       if (!res.ok) {
@@ -692,6 +759,44 @@ export function MessageThread({
           )}
         </div>
 
+        {/* Staged attachments (website reply mode) */}
+        {mode === "reply" && isWebsite && pendingAttachments.length > 0 && (
+          <div className="mx-auto mb-2 flex max-w-2xl flex-wrap gap-2">
+            {pendingAttachments.map((a, i) => (
+              <div
+                key={i}
+                className="flex items-center gap-1.5 rounded-lg border border-border bg-muted px-2 py-1 text-xs"
+              >
+                {isImageType(a.type) ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={a.url} alt={a.name} className="h-6 w-6 rounded object-cover" />
+                ) : (
+                  <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
+                )}
+                <span className="max-w-[140px] truncate">{a.name}</span>
+                <button
+                  type="button"
+                  aria-label="Remove attachment"
+                  onClick={() =>
+                    setPendingAttachments((prev) => prev.filter((_, j) => j !== i))
+                  }
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          hidden
+          accept="image/png,image/jpeg,image/gif,image/webp,application/pdf,text/plain,.doc,.docx"
+          onChange={handleFilePick}
+        />
+
         <div className="relative mx-auto flex max-w-2xl items-end gap-2">
           {/* Saved-replies picker (reply mode only) */}
           {mode === "reply" && showCanned && cannedMatches.length > 0 && (
@@ -718,6 +823,22 @@ export function MessageThread({
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-input text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
             >
               <MessageSquareText className="h-4 w-4" />
+            </button>
+          )}
+
+          {mode === "reply" && isWebsite && (
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              aria-label="Attach file"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-input text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-50"
+            >
+              {uploading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Paperclip className="h-4 w-4" />
+              )}
             </button>
           )}
 
@@ -760,11 +881,17 @@ export function MessageThread({
           </div>
           <button
             onClick={submit}
-            disabled={!input.trim() || sending}
+            disabled={
+              sending ||
+              (!input.trim() &&
+                !(mode === "reply" && pendingAttachments.length > 0))
+            }
             aria-label={mode === "note" ? "Save note" : "Send message"}
             className={cn(
               "flex h-10 w-10 items-center justify-center rounded-lg transition-colors",
-              !input.trim() || sending
+              sending ||
+                (!input.trim() &&
+                  !(mode === "reply" && pendingAttachments.length > 0))
                 ? "bg-muted text-muted-foreground"
                 : mode === "note"
                 ? "bg-amber-500 text-white hover:opacity-90"

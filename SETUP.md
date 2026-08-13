@@ -36,6 +36,17 @@ Works the same for a brand-new project or when switching to a different one.
    - `Site URL` = your public URL (see §3)
    - Add to `Redirect URLs`: `<your public URL>/**`
 
+5. **Create the attachments bucket** (for images/files in chat). Supabase →
+   **Storage** → **New bucket**:
+   - Name: `chat-attachments`
+   - **Public bucket: ON** (so uploaded images/files are viewable by link)
+   - Leave the rest default and create it.
+
+   Uploads always go through the server using the `service_role` key, so the
+   bucket needs no extra INSERT policies — only the public read that a public
+   bucket already grants. If you skip this, chat text still works; the paperclip
+   button just returns an "Upload failed" until the bucket exists.
+
 That's all a project switch needs — no code edits.
 
 ## 2. Free tier notes

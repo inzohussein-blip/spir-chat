@@ -106,8 +106,27 @@ describe("mapDbMessageToWidget", () => {
       id: "m1",
       direction: "outbound",
       text: "hello",
+      attachments: [],
       created_at: "2026-01-01T00:00:00Z",
     });
     expect(mapped).not.toHaveProperty("sent_by_user_id");
+  });
+
+  it("passes through valid attachments and drops malformed ones", () => {
+    const mapped = mapDbMessageToWidget({
+      id: "m2",
+      direction: "inbound",
+      text: null,
+      created_at: "2026-01-01T00:00:00Z",
+      attachments: [
+        { url: "https://x/a.png", name: "a.png", type: "image/png", size: 10 },
+        { name: "no-url" },
+        "garbage",
+      ],
+    } as never);
+
+    expect(mapped.attachments).toEqual([
+      { url: "https://x/a.png", name: "a.png", type: "image/png", size: 10 },
+    ]);
   });
 });

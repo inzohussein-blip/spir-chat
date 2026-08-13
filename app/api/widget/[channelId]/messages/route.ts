@@ -2,58 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import {
   WIDGET_CORS_HEADERS,
-  isValidVisitorId,
   mapDbMessageToWidget,
   sanitizeWidgetText,
-  visitorSenderId,
 } from "@/lib/widget";
-
-type ServiceClient = Awaited<ReturnType<typeof createServiceClient>>;
+import { authorizeWidgetConversation } from "@/lib/widget-server";
+import { parseAttachments } from "@/lib/attachments";
 
 export async function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: WIDGET_CORS_HEADERS });
-}
-
-/**
- * Verify the (channelId, conversationId, visitorId) triple all belong together:
- * the conversation is on this website channel and the visitor owns its contact.
- * Returns the conversation's contact_id, or null when anything doesn't match.
- */
-async function authorize(
-  supabase: ServiceClient,
-  channelId: string,
-  conversationId: unknown,
-  visitorId: unknown
-): Promise<{ contactId: string } | null> {
-  if (typeof conversationId !== "string" || !isValidVisitorId(visitorId)) {
-    return null;
-  }
-
-  const { data: conversation } = await supabase
-    .from("conversations")
-    .select("id, channel_id, contact_id, platform, channels(is_active)")
-    .eq("id", conversationId)
-    .single();
-
-  const channel = conversation?.channels as { is_active: boolean } | null;
-  if (
-    !conversation ||
-    conversation.channel_id !== channelId ||
-    conversation.platform !== "website" ||
-    !channel?.is_active
-  ) {
-    return null;
-  }
-
-  const { data: link } = await supabase
-    .from("contact_channels")
-    .select("contact_id")
-    .eq("channel_id", channelId)
-    .eq("platform_sender_id", visitorSenderId(visitorId))
-    .maybeSingle();
-
-  if (!link || link.contact_id !== conversation.contact_id) return null;
-  return { contactId: conversation.contact_id };
 }
 
 /**
@@ -68,7 +24,7 @@ export async function GET(
   const supabase = await createServiceClient();
   const q = request.nextUrl.searchParams;
 
-  const auth = await authorize(
+  const auth = await authorizeWidgetConversation(
     supabase,
     channelId,
     q.get("conversationId"),
@@ -83,7 +39,7 @@ export async function GET(
 
   let query = supabase
     .from("messages")
-    .select("id, direction, text, created_at")
+    .select("id, direction, text, attachments, created_at")
     .eq("conversation_id", q.get("conversationId") as string)
     .order("created_at", { ascending: true })
     .limit(200);
@@ -111,7 +67,7 @@ export async function POST(
   const supabase = await createServiceClient();
   const body = await request.json().catch(() => ({}));
 
-  const auth = await authorize(
+  const auth = await authorizeWidgetConversation(
     supabase,
     channelId,
     body?.conversationId,
@@ -125,7 +81,9 @@ export async function POST(
   }
 
   const text = sanitizeWidgetText(body?.text);
-  if (!text) {
+  const attachments = parseAttachments(body?.attachments);
+  // A message needs either text or at least one attachment.
+  if (!text && attachments.length === 0) {
     return NextResponse.json(
       { error: "Message text required" },
       { status: 400, headers: WIDGET_CORS_HEADERS }
@@ -136,8 +94,13 @@ export async function POST(
 
   const { data: message, error } = await supabase
     .from("messages")
-    .insert({ conversation_id: conversationId, direction: "inbound", text })
-    .select("id, direction, text, created_at")
+    .insert({
+      conversation_id: conversationId,
+      direction: "inbound",
+      text,
+      attachments: attachments.length > 0 ? attachments : null,
+    })
+    .select("id, direction, text, attachments, created_at")
     .single();
 
   if (error || !message) {
@@ -149,9 +112,10 @@ export async function POST(
 
   // Bump the conversation so the agent inbox (subscribed to conversation
   // updates) refreshes, and mark it unread + open.
+  const preview = text || `📎 ${attachments[0]?.name ?? "Attachment"}`;
   await supabase.rpc("increment_unread", {
     conv_id: conversationId,
-    preview: text.slice(0, 100),
+    preview: preview.slice(0, 100),
   });
   await supabase
     .from("contacts")

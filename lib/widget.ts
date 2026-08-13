@@ -5,6 +5,7 @@
 // per-visitor id, so keep the surface small and validate everything.
 
 import type { MessageDirection } from "@/lib/types/database";
+import { parseAttachments, type MessageAttachment } from "@/lib/attachments";
 
 export const WIDGET_MAX_TEXT_LENGTH = 4000;
 
@@ -21,6 +22,7 @@ export interface WidgetMessage {
   id: string;
   direction: MessageDirection;
   text: string | null;
+  attachments: MessageAttachment[];
   created_at: string;
 }
 
@@ -90,12 +92,14 @@ export function mapDbMessageToWidget(row: {
   id: string;
   direction: MessageDirection;
   text: string | null;
+  attachments?: unknown;
   created_at: string;
 }): WidgetMessage {
   return {
     id: row.id,
     direction: row.direction,
     text: row.text,
+    attachments: parseAttachments(row.attachments),
     created_at: row.created_at,
   };
 }

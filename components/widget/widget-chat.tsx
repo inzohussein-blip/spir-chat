@@ -1,16 +1,40 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Send } from "lucide-react";
+import { Send, Paperclip, Loader2, X } from "lucide-react";
+
+interface WidgetAttachment {
+  url: string;
+  name: string;
+  type: string;
+  size: number;
+}
 
 interface WidgetMessage {
   id: string;
   direction: "inbound" | "outbound";
   text: string | null;
+  attachments?: WidgetAttachment[];
   created_at: string;
 }
 
+function isImage(type: string): boolean {
+  return typeof type === "string" && type.startsWith("image/");
+}
+
 const POLL_MS = 3000;
+
+// Short HH:MM stamp in the visitor's locale, shown under each bubble.
+function formatTime(iso: string, lang: "en" | "ar"): string {
+  try {
+    return new Date(iso).toLocaleTimeString(lang === "ar" ? "ar" : "en", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return "";
+  }
+}
 
 // Self-contained strings: the widget is embedded cross-origin, so its language
 // comes from the ?lang param (set by the loader from the visitor's site), not
@@ -25,6 +49,7 @@ const WIDGET_STRINGS = {
     name: "Your name",
     email: "Email (optional)",
     start: "Start chat",
+    attach: "Attach a file",
   },
   ar: {
     subtitle: "نردّ عادةً خلال وقت قصير",
@@ -35,6 +60,7 @@ const WIDGET_STRINGS = {
     name: "اسمك",
     email: "البريد الإلكتروني (اختياري)",
     start: "ابدأ المحادثة",
+    attach: "إرفاق ملف",
   },
 } as const;
 
@@ -61,6 +87,12 @@ export function WidgetChat({
   const [formName, setFormName] = useState("");
   const [formEmail, setFormEmail] = useState("");
   const [starting, setStarting] = useState(false);
+
+  // Attachment staged for the next message.
+  const [pendingAttachment, setPendingAttachment] =
+    useState<WidgetAttachment | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const visitorId = useRef<string | null>(null);
   const conversationId = useRef<string | null>(null);
@@ -237,15 +269,42 @@ export function WidgetChat({
     await startSession(formName.trim(), formEmail.trim() || undefined);
   }
 
+  async function handleFilePick(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !conversationId.current || !visitorId.current) return;
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("conversationId", conversationId.current);
+      fd.append("visitorId", visitorId.current);
+      const res = await fetch(`/api/widget/${channelId}/upload`, {
+        method: "POST",
+        body: fd,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.attachment) setPendingAttachment(data.attachment);
+    } catch {
+      // best-effort; the visitor can retry
+    } finally {
+      setUploading(false);
+    }
+  }
+
   async function send() {
     const text = input.trim();
-    if (!text || !conversationId.current || !visitorId.current) return;
+    const attachment = pendingAttachment;
+    if ((!text && !attachment) || !conversationId.current || !visitorId.current)
+      return;
     setInput("");
+    setPendingAttachment(null);
 
     const optimistic: WidgetMessage = {
       id: `optimistic-${Date.now()}`,
       direction: "inbound",
-      text,
+      text: text || null,
+      attachments: attachment ? [attachment] : undefined,
       created_at: new Date().toISOString(),
     };
     setMessages((prev) => [...prev, optimistic]);
@@ -258,6 +317,7 @@ export function WidgetChat({
           conversationId: conversationId.current,
           visitorId: visitorId.current,
           text,
+          attachments: attachment ? [attachment] : undefined,
         }),
       });
       if (res.ok) {
@@ -276,8 +336,11 @@ export function WidgetChat({
     <div dir={dir} className="flex h-screen flex-col bg-white text-gray-900">
       {/* Header */}
       <div className="flex items-center gap-3 bg-gradient-to-r from-violet-600 to-cyan-500 px-4 py-3 text-white">
-        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-sm font-bold">
-          S
+        <div className="relative">
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 text-sm font-bold shadow-sm">
+            S
+          </div>
+          <span className="absolute -bottom-0.5 -end-0.5 h-3 w-3 rounded-full border-2 border-violet-600 bg-emerald-400" />
         </div>
         <div>
           <p className="text-sm font-semibold leading-tight">SpirChat</p>
@@ -314,7 +377,7 @@ export function WidgetChat({
       ) : (
         <>
           {/* Messages */}
-          <div ref={scrollRef} className="flex-1 space-y-2 overflow-y-auto p-4">
+          <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto bg-gray-50 p-4">
             {messages.length === 0 && !error && (
               <p className="mt-8 text-center text-sm text-gray-400">
                 {greeting ?? s.empty}
@@ -323,53 +386,156 @@ export function WidgetChat({
             {error && (
               <p className="mt-8 text-center text-sm text-red-500">{s.unavailable}</p>
             )}
-            {messages.map((m) => (
-              <div
-                key={m.id}
-                className={
-                  m.direction === "inbound" ? "flex justify-end" : "flex justify-start"
-                }
-              >
+            {messages.map((m, i) => {
+              const isVisitor = m.direction === "inbound";
+              // Group consecutive agent messages: only the last in a run shows
+              // the avatar, so a burst of replies reads as one speaker.
+              const nextSame =
+                i < messages.length - 1 &&
+                messages[i + 1].direction === m.direction;
+              return (
                 <div
+                  key={m.id}
                   className={
-                    "max-w-[80%] whitespace-pre-wrap break-words rounded-2xl px-3 py-2 text-sm " +
-                    (m.direction === "inbound"
-                      ? "bg-violet-600 text-white"
-                      : "bg-gray-100 text-gray-900")
+                    "flex items-end gap-2 " +
+                    (isVisitor ? "flex-row-reverse" : "flex-row")
                   }
                 >
-                  {m.text}
+                  {!isVisitor && (
+                    <div
+                      className={
+                        "flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-cyan-500 text-[10px] font-bold text-white " +
+                        (nextSame ? "opacity-0" : "")
+                      }
+                    >
+                      S
+                    </div>
+                  )}
+                  <div className={"flex max-w-[78%] flex-col " + (isVisitor ? "items-end" : "items-start")}>
+                    <div
+                      className={
+                        "whitespace-pre-wrap break-words px-3.5 py-2 text-sm shadow-sm " +
+                        (isVisitor
+                          ? "rounded-2xl rounded-ee-md bg-violet-600 text-white"
+                          : "rounded-2xl rounded-es-md bg-white text-gray-900")
+                      }
+                    >
+                      {m.text}
+                      {(m.attachments ?? []).map((a, ai) =>
+                        isImage(a.type) ? (
+                          <a
+                            key={ai}
+                            href={a.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={m.text ? "mt-2 block" : "block"}
+                          >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={a.url}
+                              alt={a.name}
+                              className="max-h-48 max-w-full rounded-lg object-cover"
+                            />
+                          </a>
+                        ) : (
+                          <a
+                            key={ai}
+                            href={a.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={
+                              "flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs underline-offset-2 hover:underline " +
+                              (m.text ? "mt-2 " : "") +
+                              (isVisitor ? "bg-white/15" : "bg-gray-100")
+                            }
+                          >
+                            <Paperclip className="h-3 w-3 flex-shrink-0" />
+                            <span className="truncate">{a.name}</span>
+                          </a>
+                        )
+                      )}
+                    </div>
+                    {!nextSame && (
+                      <span className="mt-1 px-1 text-[10px] text-gray-400">
+                        {formatTime(m.created_at, lang)}
+                      </span>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Composer */}
-          <div className="flex items-center gap-2 border-t border-gray-100 p-3">
-            <input
-              value={input}
-              onChange={(e) => {
-                setInput(e.target.value);
-                if (e.target.value.trim()) notifyTyping();
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  send();
-                }
-              }}
-              disabled={!ready}
-              placeholder={s.placeholder}
-              className="flex-1 rounded-full border border-gray-200 px-4 py-2 text-sm outline-none focus:border-violet-400 disabled:bg-gray-50"
-            />
-            <button
-              onClick={send}
-              disabled={!ready || !input.trim()}
-              aria-label="Send"
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-r from-violet-600 to-cyan-500 text-white disabled:opacity-40"
-            >
-              <Send className="h-4 w-4" />
-            </button>
+          <div className="border-t border-gray-100 bg-white p-3">
+            {pendingAttachment && (
+              <div className="mb-2 flex items-center gap-2 rounded-lg bg-gray-50 px-2 py-1.5 text-xs text-gray-700">
+                {isImage(pendingAttachment.type) ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={pendingAttachment.url}
+                    alt={pendingAttachment.name}
+                    className="h-7 w-7 rounded object-cover"
+                  />
+                ) : (
+                  <Paperclip className="h-4 w-4 text-gray-400" />
+                )}
+                <span className="flex-1 truncate">{pendingAttachment.name}</span>
+                <button
+                  onClick={() => setPendingAttachment(null)}
+                  aria-label="Remove"
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            )}
+            <div className="flex items-center gap-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                hidden
+                accept="image/png,image/jpeg,image/gif,image/webp,application/pdf,text/plain,.doc,.docx"
+                onChange={handleFilePick}
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={!ready || uploading}
+                aria-label={s.attach}
+                title={s.attach}
+                className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600 disabled:opacity-40"
+              >
+                {uploading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Paperclip className="h-4 w-4" />
+                )}
+              </button>
+              <input
+                value={input}
+                onChange={(e) => {
+                  setInput(e.target.value);
+                  if (e.target.value.trim()) notifyTyping();
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    send();
+                  }
+                }}
+                disabled={!ready}
+                placeholder={s.placeholder}
+                className="flex-1 rounded-full border border-gray-200 px-4 py-2 text-sm outline-none focus:border-violet-400 disabled:bg-gray-50"
+              />
+              <button
+                onClick={send}
+                disabled={!ready || (!input.trim() && !pendingAttachment)}
+                aria-label="Send"
+                className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-violet-600 to-cyan-500 text-white disabled:opacity-40"
+              >
+                <Send className="h-4 w-4" />
+              </button>
+            </div>
           </div>
         </>
       )}

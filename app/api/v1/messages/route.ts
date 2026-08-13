@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createZernioClient } from "@/lib/zernio-client";
+import { parseAttachments } from "@/lib/attachments";
 
 /**
  * GET /api/v1/messages?conversationId=...
@@ -112,10 +113,11 @@ export async function POST(request: NextRequest) {
 
   const body = await request.json();
   const { conversationId, text } = body;
+  const attachments = parseAttachments(body?.attachments);
 
-  if (!conversationId || !text) {
+  if (!conversationId || (!text && attachments.length === 0)) {
     return NextResponse.json(
-      { error: "conversationId and text required" },
+      { error: "conversationId and text (or an attachment) required" },
       { status: 400 }
     );
   }
@@ -139,7 +141,8 @@ export async function POST(request: NextRequest) {
       .insert({
         conversation_id: conversationId,
         direction: "outbound",
-        text,
+        text: text || null,
+        attachments: attachments.length > 0 ? attachments : null,
         sent_by_user_id: user.id,
       })
       .select("*")
@@ -153,11 +156,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Replying marks the thread read; also refresh the inbox preview.
+    const preview = text || `📎 ${attachments[0]?.name ?? "Attachment"}`;
     await supabase
       .from("conversations")
       .update({
         last_message_at: new Date().toISOString(),
-        last_message_preview: text.slice(0, 100),
+        last_message_preview: preview.slice(0, 100),
         unread_count: 0,
       })
       .eq("id", conversationId);
