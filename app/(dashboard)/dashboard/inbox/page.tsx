@@ -33,11 +33,16 @@ export default async function InboxPage() {
       .order("created_at", { ascending: true }),
   ]);
 
+  const meta = (user.user_metadata ?? {}) as { full_name?: string; name?: string };
+  const currentUserName =
+    meta.full_name || meta.name || user.email?.split("@")[0] || "Agent";
+
   return (
     <InboxView
       conversations={conversations ?? []}
       workspaceId={workspace.id}
       currentUserId={user.id}
+      currentUserName={currentUserName}
       cannedResponses={cannedResponses ?? []}
       labels={labels ?? []}
       channels={channels ?? []}

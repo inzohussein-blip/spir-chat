@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Send, Paperclip, Bot, User, MessageSquare, MessageSquareText, CheckCircle, Clock, RotateCcw, Loader2, StickyNote, UserPlus, UserCheck } from "lucide-react";
+import { Send, Paperclip, Bot, User, MessageSquare, MessageSquareText, CheckCircle, Clock, RotateCcw, Loader2, StickyNote, UserPlus, UserCheck, PenLine } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { PlatformIcon } from "@/components/platform-icon";
@@ -135,6 +135,7 @@ export function MessageThread({
   workspaceId,
   labels = [],
   currentUserId,
+  currentUserName,
 }: {
   conversation: Conversation | null;
   messages: Message[];
@@ -142,6 +143,7 @@ export function MessageThread({
   workspaceId?: string;
   labels?: Label[];
   currentUserId?: string;
+  currentUserName?: string;
 }) {
   const router = useRouter();
   const [messages, setMessages] = useState<Message[]>(initialMessages);
@@ -156,6 +158,25 @@ export function MessageThread({
   const [visitorTyping, setVisitorTyping] = useState(false);
   const typingClear = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastMsgAt = useRef<string | null>(null);
+  const [signing, setSigning] = useState(false);
+  useEffect(() => {
+    try {
+      setSigning(localStorage.getItem("spirchat_sign") === "1");
+    } catch {
+      // ignore
+    }
+  }, []);
+  function toggleSigning() {
+    setSigning((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("spirchat_sign", next ? "1" : "0");
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  }
   const [assignedTo, setAssignedTo] = useState<string | null>(
     conversation?.assigned_to ?? null
   );
@@ -356,7 +377,10 @@ export function MessageThread({
   async function handleSend() {
     if (!input.trim() || !conversation || sending) return;
 
-    const text = input.trim();
+    const text =
+      signing && currentUserName
+        ? `${input.trim()}\n\n— ${currentUserName}`
+        : input.trim();
     setInput("");
     setSending(true);
 
@@ -650,6 +674,22 @@ export function MessageThread({
             <StickyNote className="h-3.5 w-3.5" />
             Note
           </button>
+          {mode === "reply" && currentUserName && (
+            <button
+              type="button"
+              onClick={toggleSigning}
+              title={signing ? `Signing replies as ${currentUserName}` : "Sign replies with your name"}
+              className={cn(
+                "ms-auto inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+                signing
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <PenLine className="h-3.5 w-3.5" />
+              Sign
+            </button>
+          )}
         </div>
 
         <div className="relative mx-auto flex max-w-2xl items-end gap-2">

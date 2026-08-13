@@ -29,6 +29,7 @@ export function InboxView({
   conversations,
   workspaceId,
   currentUserId,
+  currentUserName,
   cannedResponses,
   labels,
   channels,
@@ -36,6 +37,7 @@ export function InboxView({
   conversations: Conversation[];
   workspaceId: string;
   currentUserId: string;
+  currentUserName: string;
   cannedResponses: CannedResponse[];
   labels: Label[];
   channels: ChannelOption[];
@@ -215,6 +217,7 @@ export function InboxView({
               workspaceId={workspaceId}
               labels={labels}
               currentUserId={currentUserId}
+              currentUserName={currentUserName}
             />
           )}
         </div>
