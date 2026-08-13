@@ -34,7 +34,7 @@ export async function createWebsiteWidget(name: string) {
   return { data };
 }
 
-/** Update a widget's pre-chat form, greeting, and proactive message. */
+/** Update a widget's pre-chat form, greeting, proactive, starters & away state. */
 export async function setWidgetConfig(
   channelId: string,
   config: {
@@ -42,11 +42,19 @@ export async function setWidgetConfig(
     greeting: string;
     proactive?: string;
     proactiveDelay?: number;
+    starters?: string[];
+    away?: boolean;
+    awayMessage?: string;
   }
 ) {
   const { supabase } = await getWorkspace();
 
   const delay = Number(config.proactiveDelay);
+  const starters = (config.starters ?? [])
+    .map((s) => (typeof s === "string" ? s.trim() : ""))
+    .filter((s) => s.length > 0)
+    .map((s) => s.slice(0, 80))
+    .slice(0, 4);
   const { error } = await supabase
     .from("channels")
     .update({
@@ -55,6 +63,9 @@ export async function setWidgetConfig(
         greeting: config.greeting.trim().slice(0, 300),
         proactive: (config.proactive ?? "").trim().slice(0, 300),
         proactiveDelay: Number.isFinite(delay) && delay > 0 ? Math.round(delay) : 15,
+        starters,
+        away: config.away === true,
+        awayMessage: (config.awayMessage ?? "").trim().slice(0, 200),
       },
     })
     .eq("id", channelId)

@@ -59,9 +59,16 @@ export interface WidgetConfig {
   proactive: string | null;
   /** Seconds to wait before showing the proactive teaser. */
   proactiveDelay: number;
+  /** Clickable quick-reply prompts shown when the chat is empty (Tidio-style). */
+  starters: string[];
+  /** When on, the widget shows an "away" state instead of "online". */
+  away: boolean;
+  /** Message shown to visitors while away (falls back to a built-in default). */
+  awayMessage: string | null;
 }
 
 export const DEFAULT_PROACTIVE_DELAY = 15;
+export const MAX_STARTERS = 4;
 
 /** Safely read a channel's widget_config jsonb into a typed WidgetConfig. */
 export function parseWidgetConfig(raw: unknown): WidgetConfig {
@@ -79,7 +86,25 @@ export function parseWidgetConfig(raw: unknown): WidgetConfig {
     typeof o.proactiveDelay === "number" && o.proactiveDelay > 0
       ? Math.min(Math.round(o.proactiveDelay), 600)
       : DEFAULT_PROACTIVE_DELAY;
-  return { prechat: o.prechat === true, greeting, proactive, proactiveDelay };
+  const starters = Array.isArray(o.starters)
+    ? o.starters
+        .filter((x): x is string => typeof x === "string" && x.trim().length > 0)
+        .map((x) => x.trim().slice(0, 80))
+        .slice(0, MAX_STARTERS)
+    : [];
+  const awayMessage =
+    typeof o.awayMessage === "string" && o.awayMessage.trim()
+      ? o.awayMessage.trim().slice(0, 200)
+      : null;
+  return {
+    prechat: o.prechat === true,
+    greeting,
+    proactive,
+    proactiveDelay,
+    starters,
+    away: o.away === true,
+    awayMessage,
+  };
 }
 
 /** Basic email sanity check for the optional pre-chat email field. */

@@ -59,8 +59,26 @@ describe("parseWidgetConfig", () => {
       greeting: null,
       proactive: null,
       proactiveDelay: 15,
+      starters: [],
+      away: false,
+      awayMessage: null,
     });
     expect(parseWidgetConfig(null).prechat).toBe(false);
+  });
+
+  it("reads and caps conversation starters", () => {
+    const cfg = parseWidgetConfig({
+      starters: ["  Pricing?  ", "", 5, "Track order", "A", "B", "C"],
+    });
+    // Trimmed, empties/non-strings dropped, capped at 4.
+    expect(cfg.starters).toEqual(["Pricing?", "Track order", "A", "B"]);
+  });
+
+  it("reads the away state and message", () => {
+    const cfg = parseWidgetConfig({ away: true, awayMessage: "  Back at 9  " });
+    expect(cfg.away).toBe(true);
+    expect(cfg.awayMessage).toBe("Back at 9");
+    expect(parseWidgetConfig({ away: false }).awayMessage).toBeNull();
   });
 
   it("reads prechat and trims the greeting", () => {

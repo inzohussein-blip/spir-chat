@@ -50,6 +50,7 @@ const WIDGET_STRINGS = {
     email: "Email (optional)",
     start: "Start chat",
     attach: "Attach a file",
+    away: "We're away right now — leave a message.",
   },
   ar: {
     subtitle: "نردّ عادةً خلال وقت قصير",
@@ -61,6 +62,7 @@ const WIDGET_STRINGS = {
     email: "البريد الإلكتروني (اختياري)",
     start: "ابدأ المحادثة",
     attach: "إرفاق ملف",
+    away: "نحن غير متواجدين حالياً — اترك رسالة وسنعاود التواصل.",
   },
 } as const;
 
@@ -78,6 +80,9 @@ export function WidgetChat({
 
   const [phase, setPhase] = useState<Phase>("loading");
   const [greeting, setGreeting] = useState<string | null>(null);
+  const [starters, setStarters] = useState<string[]>([]);
+  const [away, setAway] = useState(false);
+  const [awayMessage, setAwayMessage] = useState<string | null>(null);
   const [messages, setMessages] = useState<WidgetMessage[]>([]);
   const [input, setInput] = useState("");
   const [ready, setReady] = useState(false);
@@ -178,6 +183,10 @@ export function WidgetChat({
           const cfg = await res.json();
           prechat = cfg?.prechat === true;
           if (typeof cfg?.greeting === "string") setGreeting(cfg.greeting);
+          if (Array.isArray(cfg?.starters)) setStarters(cfg.starters);
+          if (cfg?.away === true) setAway(true);
+          if (typeof cfg?.awayMessage === "string" && cfg.awayMessage)
+            setAwayMessage(cfg.awayMessage);
         }
       } catch {
         // config is best-effort; fall through to anonymous start
@@ -292,13 +301,15 @@ export function WidgetChat({
     }
   }
 
-  async function send() {
-    const text = input.trim();
-    const attachment = pendingAttachment;
+  async function send(override?: string) {
+    const text = (override ?? input).trim();
+    const attachment = override ? null : pendingAttachment;
     if ((!text && !attachment) || !conversationId.current || !visitorId.current)
       return;
-    setInput("");
-    setPendingAttachment(null);
+    if (!override) {
+      setInput("");
+      setPendingAttachment(null);
+    }
 
     const optimistic: WidgetMessage = {
       id: `optimistic-${Date.now()}`,
@@ -340,11 +351,18 @@ export function WidgetChat({
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 text-sm font-bold shadow-sm">
             S
           </div>
-          <span className="absolute -bottom-0.5 -end-0.5 h-3 w-3 rounded-full border-2 border-violet-600 bg-emerald-400" />
+          <span
+            className={
+              "absolute -bottom-0.5 -end-0.5 h-3 w-3 rounded-full border-2 border-violet-600 " +
+              (away ? "bg-amber-400" : "bg-emerald-400")
+            }
+          />
         </div>
         <div>
           <p className="text-sm font-semibold leading-tight">SpirChat</p>
-          <p className="text-xs text-white/80 leading-tight">{s.subtitle}</p>
+          <p className="text-xs text-white/80 leading-tight">
+            {away ? awayMessage ?? s.away : s.subtitle}
+          </p>
         </div>
       </div>
 
@@ -379,9 +397,25 @@ export function WidgetChat({
           {/* Messages */}
           <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto bg-gray-50 p-4">
             {messages.length === 0 && !error && (
-              <p className="mt-8 text-center text-sm text-gray-400">
-                {greeting ?? s.empty}
-              </p>
+              <div className="mt-6 flex flex-col items-center gap-3">
+                <p className="text-center text-sm text-gray-400">
+                  {away && awayMessage ? awayMessage : greeting ?? s.empty}
+                </p>
+                {starters.length > 0 && (
+                  <div className="flex w-full flex-col items-stretch gap-2 px-2">
+                    {starters.map((st, i) => (
+                      <button
+                        key={i}
+                        onClick={() => send(st)}
+                        disabled={!ready}
+                        className="rounded-full border border-violet-200 bg-white px-4 py-2 text-sm text-violet-700 shadow-sm transition-colors hover:bg-violet-50 disabled:opacity-50"
+                      >
+                        {st}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
             {error && (
               <p className="mt-8 text-center text-sm text-red-500">{s.unavailable}</p>
@@ -528,7 +562,7 @@ export function WidgetChat({
                 className="flex-1 rounded-full border border-gray-200 px-4 py-2 text-sm outline-none focus:border-violet-400 disabled:bg-gray-50"
               />
               <button
-                onClick={send}
+                onClick={() => send()}
                 disabled={!ready || (!input.trim() && !pendingAttachment)}
                 aria-label="Send"
                 className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-violet-600 to-cyan-500 text-white disabled:opacity-40"

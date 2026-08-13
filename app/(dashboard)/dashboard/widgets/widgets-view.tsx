@@ -27,13 +27,24 @@ function WidgetConfigEditor({ widget }: { widget: Widget }) {
   const [greeting, setGreeting] = useState(initial.greeting ?? "");
   const [proactive, setProactive] = useState(initial.proactive ?? "");
   const [proactiveDelay, setProactiveDelay] = useState(initial.proactiveDelay);
+  const [starters, setStarters] = useState(initial.starters.join("\n"));
+  const [away, setAway] = useState(initial.away);
+  const [awayMessage, setAwayMessage] = useState(initial.awayMessage ?? "");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
   async function save() {
     setSaving(true);
     setSaved(false);
-    await setWidgetConfig(widget.id, { prechat, greeting, proactive, proactiveDelay });
+    await setWidgetConfig(widget.id, {
+      prechat,
+      greeting,
+      proactive,
+      proactiveDelay,
+      starters: starters.split("\n"),
+      away,
+      awayMessage,
+    });
     setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -82,6 +93,39 @@ function WidgetConfigEditor({ widget }: { widget: Widget }) {
           <span className="text-xs text-muted-foreground">sec</span>
         </div>
       </div>
+
+      <p className="mb-2 mt-5 text-xs font-medium text-muted-foreground">
+        Conversation starters
+      </p>
+      <textarea
+        value={starters}
+        onChange={(e) => setStarters(e.target.value)}
+        placeholder={"One prompt per line (max 4), e.g.\nHow much does it cost?\nTrack my order\nTalk to sales"}
+        rows={3}
+        className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+      />
+      <p className="mt-1 text-[11px] text-muted-foreground">
+        Shown as tappable buttons when the chat is empty. First 4 lines are used.
+      </p>
+
+      <p className="mb-2 mt-5 text-xs font-medium text-muted-foreground">
+        Availability
+      </p>
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={away}
+          onChange={(e) => setAway(e.target.checked)}
+          className="h-4 w-4 rounded border-border"
+        />
+        Show an &ldquo;away&rdquo; status (agents currently offline)
+      </label>
+      <input
+        value={awayMessage}
+        onChange={(e) => setAwayMessage(e.target.value)}
+        placeholder="Away message, e.g. We're away — leave a message and we'll email you back."
+        className="mt-3 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+      />
 
       <div className="mt-3 flex justify-end">
         <button
