@@ -15,6 +15,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PageTitle } from "@/components/page-title";
 import { createClient } from "@/lib/supabase/client";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { PlatformIcon } from "@/components/platform-icon";
@@ -212,12 +213,11 @@ export function ChannelsView({
       {/* Header */}
       <div className="border-b border-border px-8 py-6">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">{t.dash.channels.title}</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {t.dash.channels.subtitle}
-            </p>
-          </div>
+          <PageTitle
+            icon={Plug}
+            title={t.dash.channels.title}
+            subtitle={t.dash.channels.subtitle}
+          />
           <div className="flex items-center gap-3">
             {syncMessage && (
               <span className="text-xs text-muted-foreground">

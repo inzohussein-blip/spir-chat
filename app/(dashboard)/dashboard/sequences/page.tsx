@@ -3,6 +3,7 @@ import { getDictionary } from "@/lib/i18n/server";
 import Link from "next/link";
 import { ListOrdered } from "lucide-react";
 import { CreateSequenceButton } from "@/components/sequences/create-sequence-button";
+import { PageTitle } from "@/components/page-title";
 import type { SequenceStatus, Json } from "@/lib/types/database";
 
 const statusConfig: Record<SequenceStatus, { label: string; classes: string }> = {
@@ -63,12 +64,11 @@ export default async function SequencesPage() {
     <div className="flex h-full flex-col">
       <div className="border-b border-border px-8 py-6">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">{dash.sequences.title}</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {dash.sequences.subtitle}
-            </p>
-          </div>
+          <PageTitle
+            icon={ListOrdered}
+            title={dash.sequences.title}
+            subtitle={dash.sequences.subtitle}
+          />
           <CreateSequenceButton />
         </div>
       </div>

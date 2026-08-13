@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { MessageSquareText, Plus, Trash2 } from "lucide-react";
 import { createCannedResponse, deleteCannedResponse } from "@/lib/actions/canned";
+import { PageTitle } from "@/components/page-title";
 
 interface Reply {
   id: string;
@@ -41,10 +42,11 @@ export function SavedRepliesView({ replies }: { replies: Reply[] }) {
   return (
     <div className="flex h-full flex-col">
       <div className="border-b border-border px-8 py-6">
-        <h1 className="text-2xl font-bold">Saved replies</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Reusable replies your team can insert in the inbox with one click.
-        </p>
+        <PageTitle
+          icon={MessageSquareText}
+          title="Saved replies"
+          subtitle="Reusable replies your team can insert in the inbox with one click."
+        />
       </div>
 
       <div className="flex-1 overflow-auto px-8 py-6">

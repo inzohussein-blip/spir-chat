@@ -15,6 +15,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PageTitle } from "@/components/page-title";
 import { createClient } from "@/lib/supabase/client";
 
 // --- Types ---
@@ -415,12 +416,11 @@ export function AnalyticsView({
       {/* Header */}
       <div className="border-b border-border px-8 py-6">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">{t.dash.analytics.title}</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {t.dash.analytics.subtitle}
-            </p>
-          </div>
+          <PageTitle
+            icon={BarChart3}
+            title={t.dash.analytics.title}
+            subtitle={t.dash.analytics.subtitle}
+          />
 
           {/* Time range selector */}
           <div className="flex items-center gap-2">

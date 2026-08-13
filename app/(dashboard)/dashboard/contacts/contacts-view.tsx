@@ -15,6 +15,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PageTitle } from "@/components/page-title";
 import {
   SegmentBuilder,
   createEmptyFilter,
@@ -94,12 +95,11 @@ export function ContactsView({
       {/* Header */}
       <div className="border-b border-border px-8 py-6">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">{t.dash.contacts.title}</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {contacts.length} {t.dash.contacts.subtitleSuffix}
-            </p>
-          </div>
+          <PageTitle
+            icon={Users}
+            title={t.dash.contacts.title}
+            subtitle={`${contacts.length} ${t.dash.contacts.subtitleSuffix}`}
+          />
         </div>
 
         {/* Search and filters */}

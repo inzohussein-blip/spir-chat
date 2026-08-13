@@ -15,8 +15,10 @@ import {
   TrendingUp,
   Send,
   Eye,
+  Sprout,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PageTitle } from "@/components/page-title";
 import { createClient } from "@/lib/supabase/client";
 import type { Database, Json, Platform } from "@/lib/types/database";
 
@@ -301,14 +303,11 @@ export function GrowthView({
       {/* Header */}
       <div className="border-b border-border px-8 py-6">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">
-              {t.dash.growth.title}
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {t.dash.growth.subtitle}
-            </p>
-          </div>
+          <PageTitle
+            icon={Sprout}
+            title={t.dash.growth.title}
+            subtitle={t.dash.growth.subtitle}
+          />
           <button
             onClick={() => { setEditingId(null); setShowCreate(true); }}
             disabled={channels.length === 0 || flows.length === 0}

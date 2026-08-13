@@ -21,6 +21,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import Link from "next/link";
+import { PageTitle } from "@/components/page-title";
 import { createClient } from "@/lib/supabase/client";
 
 interface WorkspaceSettings {
@@ -164,10 +165,11 @@ export function SettingsView({
     <div className="flex h-full flex-col">
       {/* Header */}
       <div className="border-b border-border px-8 py-6">
-        <h1 className="text-2xl font-bold">{t.dash.settings.title}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {t.dash.settings.subtitle}
-        </p>
+        <PageTitle
+          icon={Settings}
+          title={t.dash.settings.title}
+          subtitle={t.dash.settings.subtitle}
+        />
       </div>
 
       {/* Settings form */}

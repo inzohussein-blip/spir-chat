@@ -19,6 +19,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PageTitle } from "@/components/page-title";
 import { createClient } from "@/lib/supabase/client";
 import {
   SegmentBuilder,
@@ -147,12 +148,11 @@ export function BroadcastsView({
       {/* Header */}
       <div className="border-b border-border px-8 py-6">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">{t.dash.broadcasts.title}</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {t.dash.broadcasts.subtitle}
-            </p>
-          </div>
+          <PageTitle
+            icon={Radio}
+            title={t.dash.broadcasts.title}
+            subtitle={t.dash.broadcasts.subtitle}
+          />
           <button
             onClick={() => setShowCreate(true)}
             className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"

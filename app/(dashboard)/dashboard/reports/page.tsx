@@ -7,7 +7,9 @@ import {
   Send,
   Timer,
   Inbox,
+  LineChart,
 } from "lucide-react";
+import { PageTitle } from "@/components/page-title";
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -100,10 +102,11 @@ export default async function ReportsPage() {
   return (
     <div className="flex h-full flex-col">
       <div className="border-b border-border px-8 py-6">
-        <h1 className="text-2xl font-bold">{dash.reports.title}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {dash.reports.subtitle}
-        </p>
+        <PageTitle
+          icon={LineChart}
+          title={dash.reports.title}
+          subtitle={dash.reports.subtitle}
+        />
       </div>
 
       <div className="flex-1 overflow-auto px-8 py-6">
