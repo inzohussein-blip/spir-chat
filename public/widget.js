@@ -70,6 +70,10 @@
     "box-shadow:0 12px 40px rgba(0,0,0,0.18)",
     "z-index:2147483646",
     "display:none",
+    "opacity:0",
+    "transform:translateY(8px) scale(0.98)",
+    "transform-origin:bottom " + side,
+    "transition:opacity 0.18s ease, transform 0.18s ease",
     "background:#fff",
   ].join(";");
 
@@ -130,15 +134,33 @@
     }
   }
 
+  var closeTimer = null;
+
   function setOpen(state) {
     open = state;
-    iframe.style.display = open ? "block" : "none";
     button.innerHTML = open ? closeIcon : chatIcon;
     button.appendChild(badge);
     button.setAttribute("aria-label", open ? "Close chat" : "Open chat");
     if (open) {
+      if (closeTimer) {
+        clearTimeout(closeTimer);
+        closeTimer = null;
+      }
+      iframe.style.display = "block";
+      // Next frame: animate in from the collapsed state.
+      requestAnimationFrame(function () {
+        iframe.style.opacity = "1";
+        iframe.style.transform = "translateY(0) scale(1)";
+      });
       unread = 0;
       hideTeaser();
+    } else {
+      iframe.style.opacity = "0";
+      iframe.style.transform = "translateY(8px) scale(0.98)";
+      closeTimer = setTimeout(function () {
+        iframe.style.display = "none";
+        closeTimer = null;
+      }, 180);
     }
     updateBadge();
   }
