@@ -153,6 +153,9 @@ export function MessageThread({
   const [mode, setMode] = useState<"reply" | "note">("reply");
   const [showUndo, setShowUndo] = useState(false);
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [visitorTyping, setVisitorTyping] = useState(false);
+  const typingClear = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastMsgAt = useRef<string | null>(null);
   const [assignedTo, setAssignedTo] = useState<string | null>(
     conversation?.assigned_to ?? null
   );
@@ -296,23 +299,41 @@ export function MessageThread({
   // and re-fetch messages from Zernio API.
   useEffect(() => {
     if (!conversation) return;
+    const convId = conversation.id;
+    lastMsgAt.current = conversation.last_message_at;
+    setVisitorTyping(false);
 
     const supabase = createClient();
     const channel = supabase
-      .channel(`conversation-${conversation.id}`)
+      .channel(`conversation-${convId}`)
       .on(
         "postgres_changes",
         {
           event: "UPDATE",
           schema: "public",
           table: "conversations",
-          filter: `id=eq.${conversation.id}`,
+          filter: `id=eq.${convId}`,
         },
-        async () => {
+        async (payload) => {
+          const conv = payload.new as
+            | Database["public"]["Tables"]["conversations"]["Row"]
+            | undefined;
+
+          // Live "visitor is typing…" — show for a few seconds after each ping.
+          if (conv?.visitor_typing_at) {
+            setVisitorTyping(true);
+            if (typingClear.current) clearTimeout(typingClear.current);
+            typingClear.current = setTimeout(() => setVisitorTyping(false), 4000);
+          }
+
+          // Only refetch the thread when a new message actually arrived — not on
+          // presence/typing heartbeats, which also update the conversation row.
+          if (conv?.last_message_at && conv.last_message_at === lastMsgAt.current) {
+            return;
+          }
+          if (conv?.last_message_at) lastMsgAt.current = conv.last_message_at;
           try {
-            const res = await fetch(
-              `/api/v1/messages?conversationId=${conversation.id}`
-            );
+            const res = await fetch(`/api/v1/messages?conversationId=${convId}`);
             if (res.ok) {
               const freshMessages = await res.json();
               setMessages((prev) => {
@@ -330,7 +351,7 @@ export function MessageThread({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [conversation?.id]);
+  }, [conversation?.id, conversation?.last_message_at]);
 
   async function handleSend() {
     if (!input.trim() || !conversation || sending) return;
@@ -583,6 +604,18 @@ export function MessageThread({
           <div ref={messagesEndRef} />
         </div>
       </div>
+
+      {/* Visitor typing indicator */}
+      {visitorTyping && (
+        <div className="flex items-center gap-1.5 px-4 pb-1 text-xs text-muted-foreground">
+          <span className="flex gap-0.5">
+            <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:-0.3s]" />
+            <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:-0.15s]" />
+            <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground" />
+          </span>
+          typing…
+        </div>
+      )}
 
       {/* Composer */}
       <div

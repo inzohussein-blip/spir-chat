@@ -71,13 +71,18 @@ export function ConversationList({
   // their heartbeats stop, even without a new realtime event.
   const [, setNowTick] = useState(0);
   useEffect(() => {
-    const id = setInterval(() => setNowTick((t) => t + 1), 20000);
+    const id = setInterval(() => setNowTick((t) => t + 1), 3000);
     return () => clearInterval(id);
   }, []);
 
   function isOnline(c: Conversation): boolean {
     if (!c.visitor_last_seen_at) return false;
     return Date.now() - new Date(c.visitor_last_seen_at).getTime() < 45000;
+  }
+
+  function isTyping(c: Conversation): boolean {
+    if (!c.visitor_typing_at) return false;
+    return Date.now() - new Date(c.visitor_typing_at).getTime() < 4000;
   }
 
   useEffect(() => {
@@ -288,9 +293,15 @@ export function ConversationList({
                   </p>
                 )}
                 <div className="flex items-center justify-between">
-                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                    {conversation.last_message_preview ?? "No messages yet"}
-                  </p>
+                  {isTyping(conversation) ? (
+                    <p className="mt-0.5 truncate text-xs font-medium text-green-600">
+                      typing…
+                    </p>
+                  ) : (
+                    <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                      {conversation.last_message_preview ?? "No messages yet"}
+                    </p>
+                  )}
                   {conversation.unread_count > 0 && (
                     <span className="ms-2 flex h-5 min-w-5 flex-shrink-0 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground">
                       {conversation.unread_count}

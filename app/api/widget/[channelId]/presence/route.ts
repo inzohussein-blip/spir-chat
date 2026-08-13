@@ -45,14 +45,16 @@ export async function POST(
 
   const page =
     typeof body?.page === "string" ? body.page.slice(0, 500) : null;
+  const now = new Date().toISOString();
 
-  await supabase
-    .from("conversations")
-    .update({
-      visitor_last_seen_at: new Date().toISOString(),
-      visitor_current_page: page,
-    })
-    .eq("id", conversationId);
+  const update: {
+    visitor_last_seen_at: string;
+    visitor_current_page: string | null;
+    visitor_typing_at?: string;
+  } = { visitor_last_seen_at: now, visitor_current_page: page };
+  if (body?.typing === true) update.visitor_typing_at = now;
+
+  await supabase.from("conversations").update(update).eq("id", conversationId);
 
   return NextResponse.json({ ok: true }, { headers: WIDGET_CORS_HEADERS });
 }

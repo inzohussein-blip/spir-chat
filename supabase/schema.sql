@@ -1197,3 +1197,12 @@ alter table conversations
   add column if not exists visitor_last_seen_at timestamptz,
   add column if not exists visitor_current_page text;
 
+
+-- ============================================================
+-- 00023_widget_typing.sql
+-- ============================================================
+-- Website visitor "is typing" signal (Tidio-style). Set on each typing ping;
+-- the inbox treats the visitor as typing only within a few seconds of it.
+alter table conversations
+  add column if not exists visitor_typing_at timestamptz;
+

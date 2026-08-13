@@ -65,7 +65,26 @@ export function WidgetChat({
   const visitorId = useRef<string | null>(null);
   const conversationId = useRef<string | null>(null);
   const lastAt = useRef<string | null>(null);
+  const lastTypingPing = useRef(0);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Tell the agent inbox the visitor is typing (throttled to once per ~2s).
+  function notifyTyping() {
+    if (!conversationId.current || !visitorId.current) return;
+    const now = Date.now();
+    if (now - lastTypingPing.current < 2000) return;
+    lastTypingPing.current = now;
+    fetch(`/api/widget/${channelId}/presence`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        conversationId: conversationId.current,
+        visitorId: visitorId.current,
+        page: document.referrer || null,
+        typing: true,
+      }),
+    }).catch(() => {});
+  }
 
   const storageKey = `spirchat_visitor_${channelId}`;
 
@@ -329,7 +348,10 @@ export function WidgetChat({
           <div className="flex items-center gap-2 border-t border-gray-100 p-3">
             <input
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={(e) => {
+                setInput(e.target.value);
+                if (e.target.value.trim()) notifyTyping();
+              }}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();

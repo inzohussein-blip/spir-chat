@@ -740,6 +740,7 @@ export interface Database {
           is_automation_paused: boolean;
           visitor_last_seen_at: string | null;
           visitor_current_page: string | null;
+          visitor_typing_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -758,6 +759,7 @@ export interface Database {
           is_automation_paused?: boolean;
           visitor_last_seen_at?: string | null;
           visitor_current_page?: string | null;
+          visitor_typing_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -771,6 +773,7 @@ export interface Database {
           is_automation_paused?: boolean;
           visitor_last_seen_at?: string | null;
           visitor_current_page?: string | null;
+          visitor_typing_at?: string | null;
           updated_at?: string;
         };
         Relationships: [
