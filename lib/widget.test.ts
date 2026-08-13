@@ -53,20 +53,33 @@ describe("visitorSenderId", () => {
 });
 
 describe("parseWidgetConfig", () => {
-  it("defaults to prechat off and no greeting", () => {
-    expect(parseWidgetConfig({})).toEqual({ prechat: false, greeting: null });
-    expect(parseWidgetConfig(null)).toEqual({ prechat: false, greeting: null });
+  it("defaults to prechat off, no greeting/proactive, default delay", () => {
+    expect(parseWidgetConfig({})).toEqual({
+      prechat: false,
+      greeting: null,
+      proactive: null,
+      proactiveDelay: 15,
+    });
+    expect(parseWidgetConfig(null).prechat).toBe(false);
   });
 
   it("reads prechat and trims the greeting", () => {
-    expect(parseWidgetConfig({ prechat: true, greeting: "  Hi!  " })).toEqual({
-      prechat: true,
-      greeting: "Hi!",
-    });
+    const cfg = parseWidgetConfig({ prechat: true, greeting: "  Hi!  " });
+    expect(cfg.prechat).toBe(true);
+    expect(cfg.greeting).toBe("Hi!");
   });
 
   it("ignores an empty greeting", () => {
     expect(parseWidgetConfig({ greeting: "   " }).greeting).toBeNull();
+  });
+
+  it("reads the proactive message and clamps the delay", () => {
+    expect(parseWidgetConfig({ proactive: "  Need help? ", proactiveDelay: 5 })).toMatchObject({
+      proactive: "Need help?",
+      proactiveDelay: 5,
+    });
+    expect(parseWidgetConfig({ proactiveDelay: 99999 }).proactiveDelay).toBe(600);
+    expect(parseWidgetConfig({ proactiveDelay: 0 }).proactiveDelay).toBe(15);
   });
 });
 

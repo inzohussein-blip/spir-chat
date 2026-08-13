@@ -34,19 +34,27 @@ export async function createWebsiteWidget(name: string) {
   return { data };
 }
 
-/** Update a widget's pre-chat form + greeting configuration. */
+/** Update a widget's pre-chat form, greeting, and proactive message. */
 export async function setWidgetConfig(
   channelId: string,
-  config: { prechat: boolean; greeting: string }
+  config: {
+    prechat: boolean;
+    greeting: string;
+    proactive?: string;
+    proactiveDelay?: number;
+  }
 ) {
   const { supabase } = await getWorkspace();
 
+  const delay = Number(config.proactiveDelay);
   const { error } = await supabase
     .from("channels")
     .update({
       widget_config: {
         prechat: config.prechat === true,
         greeting: config.greeting.trim().slice(0, 300),
+        proactive: (config.proactive ?? "").trim().slice(0, 300),
+        proactiveDelay: Number.isFinite(delay) && delay > 0 ? Math.round(delay) : 15,
       },
     })
     .eq("id", channelId)

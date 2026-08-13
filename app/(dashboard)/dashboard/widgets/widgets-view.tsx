@@ -25,13 +25,15 @@ function WidgetConfigEditor({ widget }: { widget: Widget }) {
   const initial = parseWidgetConfig(widget.widget_config);
   const [prechat, setPrechat] = useState(initial.prechat);
   const [greeting, setGreeting] = useState(initial.greeting ?? "");
+  const [proactive, setProactive] = useState(initial.proactive ?? "");
+  const [proactiveDelay, setProactiveDelay] = useState(initial.proactiveDelay);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
   async function save() {
     setSaving(true);
     setSaved(false);
-    await setWidgetConfig(widget.id, { prechat, greeting });
+    await setWidgetConfig(widget.id, { prechat, greeting, proactive, proactiveDelay });
     setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -58,6 +60,29 @@ function WidgetConfigEditor({ widget }: { widget: Widget }) {
         placeholder="Greeting shown to visitors (optional)"
         className="mt-3 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
       />
+
+      <p className="mb-2 mt-5 text-xs font-medium text-muted-foreground">
+        Proactive message
+      </p>
+      <div className="flex items-start gap-2">
+        <input
+          value={proactive}
+          onChange={(e) => setProactive(e.target.value)}
+          placeholder="e.g. Hi! Need any help? 👋 (leave empty to disable)"
+          className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+        />
+        <div className="flex items-center gap-1">
+          <input
+            type="number"
+            min={1}
+            value={proactiveDelay}
+            onChange={(e) => setProactiveDelay(Number(e.target.value))}
+            className="w-16 rounded-lg border border-border bg-background px-2 py-2 text-sm outline-none focus:border-primary"
+          />
+          <span className="text-xs text-muted-foreground">sec</span>
+        </div>
+      </div>
+
       <div className="mt-3 flex justify-end">
         <button
           onClick={save}

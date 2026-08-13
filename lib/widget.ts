@@ -49,11 +49,17 @@ export function visitorSenderId(visitorId: string): string {
   return `web:${visitorId}`;
 }
 
-/** Per-widget configuration (pre-chat form + greeting), Chatwoot-style. */
+/** Per-widget configuration (pre-chat form, greeting, proactive message). */
 export interface WidgetConfig {
   prechat: boolean;
   greeting: string | null;
+  /** Proactive teaser shown after a delay to prompt the visitor (Tidio-style). */
+  proactive: string | null;
+  /** Seconds to wait before showing the proactive teaser. */
+  proactiveDelay: number;
 }
+
+export const DEFAULT_PROACTIVE_DELAY = 15;
 
 /** Safely read a channel's widget_config jsonb into a typed WidgetConfig. */
 export function parseWidgetConfig(raw: unknown): WidgetConfig {
@@ -63,7 +69,15 @@ export function parseWidgetConfig(raw: unknown): WidgetConfig {
     typeof o.greeting === "string" && o.greeting.trim()
       ? o.greeting.trim().slice(0, 300)
       : null;
-  return { prechat: o.prechat === true, greeting };
+  const proactive =
+    typeof o.proactive === "string" && o.proactive.trim()
+      ? o.proactive.trim().slice(0, 300)
+      : null;
+  const proactiveDelay =
+    typeof o.proactiveDelay === "number" && o.proactiveDelay > 0
+      ? Math.min(Math.round(o.proactiveDelay), 600)
+      : DEFAULT_PROACTIVE_DELAY;
+  return { prechat: o.prechat === true, greeting, proactive, proactiveDelay };
 }
 
 /** Basic email sanity check for the optional pre-chat email field. */

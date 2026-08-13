@@ -99,11 +99,16 @@
     '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18 6L6 18M6 6l12 12" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>';
   button.innerHTML = chatIcon;
 
-  button.addEventListener("click", function () {
-    open = !open;
+  function setOpen(state) {
+    open = state;
     iframe.style.display = open ? "block" : "none";
     button.innerHTML = open ? closeIcon : chatIcon;
     button.setAttribute("aria-label", open ? "Close chat" : "Open chat");
+    if (open) hideTeaser();
+  }
+
+  button.addEventListener("click", function () {
+    setOpen(!open);
   });
   button.addEventListener("mouseenter", function () {
     button.style.transform = "scale(1.06)";
@@ -112,9 +117,82 @@
     button.style.transform = "scale(1)";
   });
 
+  // Proactive teaser bubble (shown after a delay to prompt the visitor).
+  var teaser = null;
+  var teaserKey = "spirchat_teaser_" + channelId;
+
+  function hideTeaser() {
+    if (teaser && teaser.parentNode) teaser.parentNode.removeChild(teaser);
+    teaser = null;
+  }
+
+  function showTeaser(text) {
+    if (open || teaser) return;
+    try {
+      if (sessionStorage.getItem(teaserKey)) return;
+    } catch (e) {}
+
+    teaser = document.createElement("div");
+    teaser.setAttribute("dir", rtl ? "rtl" : "ltr");
+    teaser.style.cssText = [
+      "position:fixed",
+      "bottom:92px",
+      side + ":20px",
+      "max-width:260px",
+      "background:#fff",
+      "color:#111827",
+      "font:14px/1.4 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif",
+      "padding:12px 30px 12px 14px",
+      "border-radius:14px",
+      "box-shadow:0 10px 30px rgba(0,0,0,0.16)",
+      "z-index:2147483646",
+      "cursor:pointer",
+    ].join(";");
+    teaser.textContent = text;
+
+    var close = document.createElement("span");
+    close.textContent = "×";
+    close.setAttribute("aria-label", "Dismiss");
+    close.style.cssText = [
+      "position:absolute",
+      "top:6px",
+      (rtl ? "left" : "right") + ":8px",
+      "cursor:pointer",
+      "color:#9ca3af",
+      "font-size:16px",
+      "line-height:1",
+    ].join(";");
+    close.addEventListener("click", function (e) {
+      e.stopPropagation();
+      try { sessionStorage.setItem(teaserKey, "1"); } catch (er) {}
+      hideTeaser();
+    });
+
+    teaser.addEventListener("click", function () {
+      try { sessionStorage.setItem(teaserKey, "1"); } catch (er) {}
+      setOpen(true);
+    });
+
+    teaser.appendChild(close);
+    document.body.appendChild(teaser);
+  }
+
+  function loadConfigAndSchedule() {
+    fetch(origin + "/api/widget/" + encodeURIComponent(channelId) + "/config")
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (cfg) {
+        if (cfg && cfg.proactive) {
+          var delay = (cfg.proactiveDelay || 15) * 1000;
+          setTimeout(function () { showTeaser(cfg.proactive); }, delay);
+        }
+      })
+      .catch(function () {});
+  }
+
   function mount() {
     document.body.appendChild(iframe);
     document.body.appendChild(button);
+    loadConfigAndSchedule();
   }
   if (document.body) mount();
   else document.addEventListener("DOMContentLoaded", mount);
