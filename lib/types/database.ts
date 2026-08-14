@@ -256,6 +256,47 @@ export interface Database {
         };
         Relationships: [];
       };
+      campaigns: {
+        Row: {
+          id: string;
+          workspace_id: string;
+          name: string;
+          channel: string;
+          subject: string | null;
+          body: string;
+          status: string;
+          sent_count: number;
+          failed_count: number;
+          created_by: string | null;
+          created_at: string;
+          sent_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          workspace_id: string;
+          name: string;
+          channel?: string;
+          subject?: string | null;
+          body?: string;
+          status?: string;
+          sent_count?: number;
+          failed_count?: number;
+          created_by?: string | null;
+          created_at?: string;
+          sent_at?: string | null;
+        };
+        Update: {
+          name?: string;
+          channel?: string;
+          subject?: string | null;
+          body?: string;
+          status?: string;
+          sent_count?: number;
+          failed_count?: number;
+          sent_at?: string | null;
+        };
+        Relationships: [];
+      };
       forms: {
         Row: {
           id: string;
@@ -375,6 +416,7 @@ export interface Database {
           workspace_id: string;
           display_name: string | null;
           email: string | null;
+          phone: string | null;
           avatar_url: string | null;
           is_subscribed: boolean;
           last_interaction_at: string | null;
@@ -387,6 +429,7 @@ export interface Database {
           workspace_id: string;
           display_name?: string | null;
           email?: string | null;
+          phone?: string | null;
           avatar_url?: string | null;
           is_subscribed?: boolean;
           last_interaction_at?: string | null;
@@ -397,6 +440,7 @@ export interface Database {
         Update: {
           display_name?: string | null;
           email?: string | null;
+          phone?: string | null;
           avatar_url?: string | null;
           is_subscribed?: boolean;
           last_interaction_at?: string | null;
