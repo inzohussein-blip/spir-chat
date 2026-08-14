@@ -47,6 +47,7 @@ export function ConversationList({
   onPrefetch,
   channels = [],
   currentUserId,
+  slaMinutes = 0,
 }: {
   conversations: Conversation[];
   workspaceId: string;
@@ -55,6 +56,7 @@ export function ConversationList({
   onPrefetch?: (conversationId: string) => void;
   channels?: ChannelOption[];
   currentUserId?: string;
+  slaMinutes?: number;
 }) {
   const [conversations, setConversations] = useState(initialConversations);
   const [search, setSearch] = useState("");
@@ -84,6 +86,14 @@ export function ConversationList({
   function isTyping(c: Conversation): boolean {
     if (!c.visitor_typing_at) return false;
     return Date.now() - new Date(c.visitor_typing_at).getTime() < 4000;
+  }
+
+  // SLA breach: an open conversation with an unanswered visitor message whose
+  // last activity is older than the workspace's first-response target.
+  function slaBreached(c: Conversation): boolean {
+    if (slaMinutes <= 0 || c.status !== "open" || c.unread_count <= 0) return false;
+    const at = c.last_message_at ?? c.created_at;
+    return Date.now() - new Date(at).getTime() > slaMinutes * 60000;
   }
 
   useEffect(() => {
@@ -291,16 +301,26 @@ export function ConversationList({
 
               {/* Content */}
               <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-2">
                   <p className={cn("truncate text-sm", unread ? "font-bold" : "font-medium")}>
                     {name}
                   </p>
-                  <span
-                    suppressHydrationWarning
-                    className="flex-shrink-0 text-[11px] text-muted-foreground"
-                  >
-                    {mounted ? formatTime(conversation.last_message_at) : ""}
-                  </span>
+                  <div className="flex flex-shrink-0 items-center gap-1.5">
+                    {mounted && slaBreached(conversation) && (
+                      <span
+                        title="First-response SLA exceeded"
+                        className="rounded bg-red-100 px-1.5 py-0.5 text-[9px] font-bold uppercase text-red-700 dark:bg-red-950/50 dark:text-red-300"
+                      >
+                        SLA
+                      </span>
+                    )}
+                    <span
+                      suppressHydrationWarning
+                      className="text-[11px] text-muted-foreground"
+                    >
+                      {mounted ? formatTime(conversation.last_message_at) : ""}
+                    </span>
+                  </div>
                 </div>
                 {channels.length > 1 && conversation.channel_id && channelMap.get(conversation.channel_id) && (
                   <p className="truncate text-[10px] text-muted-foreground/80">

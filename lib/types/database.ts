@@ -83,6 +83,8 @@ export interface Database {
           ai_provider: string;
           global_keywords: Json | null;
           business_hours: Json;
+          auto_assign: string;
+          sla_minutes: number;
           created_at: string;
           updated_at: string;
         };
@@ -95,6 +97,8 @@ export interface Database {
           ai_provider?: string;
           global_keywords?: Json | null;
           business_hours?: Json;
+          auto_assign?: string;
+          sla_minutes?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -107,6 +111,8 @@ export interface Database {
           ai_provider?: string;
           global_keywords?: Json | null;
           business_hours?: Json;
+          auto_assign?: string;
+          sla_minutes?: number;
           updated_at?: string;
         };
         Relationships: [];

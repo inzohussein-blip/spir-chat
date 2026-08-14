@@ -46,6 +46,7 @@ export default async function InboxPage() {
       cannedResponses={cannedResponses ?? []}
       labels={labels ?? []}
       channels={channels ?? []}
+      slaMinutes={(workspace as { sla_minutes?: number }).sla_minutes ?? 0}
     />
   );
 }

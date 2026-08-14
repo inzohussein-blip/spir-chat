@@ -23,6 +23,7 @@ import {
 import Link from "next/link";
 import { PageTitle } from "@/components/page-title";
 import { BusinessHoursSection } from "@/components/settings/business-hours-section";
+import { RoutingSection } from "@/components/settings/routing-section";
 import type { BusinessHours } from "@/lib/business-hours";
 import { createClient } from "@/lib/supabase/client";
 
@@ -33,6 +34,8 @@ interface WorkspaceSettings {
   hasAiKey: boolean;
   globalKeywords: string[];
   businessHours: BusinessHours;
+  autoAssign: string;
+  slaMinutes: number;
 }
 
 interface TestResult {
@@ -202,6 +205,14 @@ export function SettingsView({
           <BusinessHoursSection
             workspaceId={workspace.id}
             initial={workspace.businessHours}
+          />
+
+          <hr className="border-border" />
+
+          <RoutingSection
+            workspaceId={workspace.id}
+            initialAutoAssign={workspace.autoAssign}
+            initialSlaMinutes={workspace.slaMinutes}
           />
 
           <hr className="border-border" />

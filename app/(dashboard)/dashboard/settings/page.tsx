@@ -16,6 +16,9 @@ export default async function SettingsPage() {
         businessHours: parseBusinessHours(
           (workspace as { business_hours?: unknown }).business_hours
         ),
+        autoAssign:
+          (workspace as { auto_assign?: string }).auto_assign ?? "off",
+        slaMinutes: (workspace as { sla_minutes?: number }).sla_minutes ?? 0,
       }}
     />
   );

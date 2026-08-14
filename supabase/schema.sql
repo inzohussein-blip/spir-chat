@@ -1335,3 +1335,15 @@ create policy "Members manage KB articles in their workspaces"
   on kb_articles for all
   using (is_workspace_member(workspace_id));
 
+
+-- ============================================================
+-- 00028_routing_sla.sql
+-- ============================================================
+-- Auto-assignment + SLA (feature 13).
+-- auto_assign: 'off' | 'round_robin' (least-loaded agent).
+-- sla_minutes: first-response target; 0 disables the SLA indicator.
+
+ALTER TABLE workspaces
+  ADD COLUMN IF NOT EXISTS auto_assign text NOT NULL DEFAULT 'off',
+  ADD COLUMN IF NOT EXISTS sla_minutes integer NOT NULL DEFAULT 0;
+

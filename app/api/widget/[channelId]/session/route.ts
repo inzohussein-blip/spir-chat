@@ -7,6 +7,8 @@ import {
   visitorSenderId,
 } from "@/lib/widget";
 import { randomUUID } from "crypto";
+import { autoAssignConversation } from "@/lib/routing";
+import { dispatchWebhook } from "@/lib/api-keys";
 
 // Public endpoint embedded on third-party sites — never require auth here.
 // Uses the service role and scopes strictly by channel + visitor.
@@ -121,6 +123,17 @@ export async function POST(
       );
     }
     conversationId = conversation.id;
+
+    // Auto-assign (round-robin) + conversation.created webhook — best-effort.
+    const newConvId = conversationId;
+    void (async () => {
+      await autoAssignConversation(supabase, channel.workspace_id, newConvId);
+      await dispatchWebhook(channel.workspace_id, "conversation.created", {
+        conversation_id: newConvId,
+        contact_id: contactId,
+        platform: "website",
+      });
+    })();
   }
 
   return NextResponse.json(

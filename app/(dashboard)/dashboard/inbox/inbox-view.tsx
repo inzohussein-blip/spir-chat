@@ -33,6 +33,7 @@ export function InboxView({
   cannedResponses,
   labels,
   channels,
+  slaMinutes,
 }: {
   conversations: Conversation[];
   workspaceId: string;
@@ -41,6 +42,7 @@ export function InboxView({
   cannedResponses: CannedResponse[];
   labels: Label[];
   channels: ChannelOption[];
+  slaMinutes: number;
 }) {
   const { t } = useI18n();
   const router = useRouter();
@@ -165,6 +167,7 @@ export function InboxView({
           onPrefetch={prefetch}
           channels={channels}
           currentUserId={currentUserId}
+          slaMinutes={slaMinutes}
         />
       </div>
 
