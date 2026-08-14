@@ -9,6 +9,7 @@ import { authorizeWidgetConversation } from "@/lib/widget-server";
 import { parseAttachments } from "@/lib/attachments";
 import { parseBusinessHours, isOpenAt } from "@/lib/business-hours";
 import { dispatchWebhook } from "@/lib/api-keys";
+import { sendPushToWorkspace } from "@/lib/push";
 
 export async function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: WIDGET_CORS_HEADERS });
@@ -141,6 +142,12 @@ export async function POST(
         direction: "inbound",
         text: message.text,
         created_at: message.created_at,
+      });
+      await sendPushToWorkspace(ch.workspace_id, {
+        title: "New website message",
+        body: (message.text || "📎 Attachment").slice(0, 120),
+        url: "/dashboard/inbox",
+        tag: `conv-${conversationId}`,
       });
     }
   })();

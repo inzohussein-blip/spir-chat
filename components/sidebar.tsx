@@ -25,6 +25,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { WorkspaceSwitcher } from "@/components/workspace-switcher";
+import { PushToggle } from "@/components/push-toggle";
 import { useI18n } from "@/components/i18n-provider";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import type { Database } from "@/lib/types/database";
@@ -137,6 +138,7 @@ export function Sidebar({
       </nav>
 
       <div className="border-t border-sidebar-border p-3 space-y-1">
+        <PushToggle />
         <div className="px-1 pb-1">
           <LanguageSwitcher />
         </div>

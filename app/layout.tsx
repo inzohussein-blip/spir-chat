@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { getDictionary, getLocale } from "@/lib/i18n/server";
@@ -38,6 +38,16 @@ export const metadata: Metadata = {
     ],
     apple: "/apple-touch-icon.png",
   },
+  manifest: "/site.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: "SpirChat",
+    statusBarStyle: "default",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#7C3AED",
 };
 
 export default async function RootLayout({

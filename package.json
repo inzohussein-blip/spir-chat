@@ -11,24 +11,26 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@zernio/node": "^0.2.0",
     "@icons-pack/react-simple-icons": "^13.11.2",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.95.3",
     "@xyflow/react": "^12.10.0",
+    "@zernio/node": "^0.2.0",
     "ai": "^6.0.85",
     "clsx": "^2.1.1",
     "lucide-react": "^0.563.0",
     "next": "^16.1.6",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
-    "tailwind-merge": "^3.4.0"
+    "tailwind-merge": "^3.4.0",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.18",
     "@types/node": "^25.2.3",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@types/web-push": "^3.6.4",
     "eslint": "^9.39.2",
     "eslint-config-next": "^16.1.6",
     "pg": "^8.18.0",
