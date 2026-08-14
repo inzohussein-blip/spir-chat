@@ -15,6 +15,7 @@ import {
   Globe,
   MessageSquareText,
   Plug,
+  Code2,
   Settings,
   LogOut,
   Moon,
@@ -60,6 +61,7 @@ const navigation: {
   { key: "website", href: "/dashboard/widgets", icon: Globe },
   { key: "savedReplies", href: "/dashboard/saved-replies", icon: MessageSquareText },
   { key: "channels", href: "/dashboard/channels", icon: Plug },
+  { key: "developers", href: "/dashboard/developers", icon: Code2 },
   { key: "settings", href: "/dashboard/settings", icon: Settings },
 ];
 

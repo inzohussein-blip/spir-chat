@@ -8,6 +8,7 @@ import {
 import { authorizeWidgetConversation } from "@/lib/widget-server";
 import { parseAttachments } from "@/lib/attachments";
 import { parseBusinessHours, isOpenAt } from "@/lib/business-hours";
+import { dispatchWebhook } from "@/lib/api-keys";
 
 export async function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: WIDGET_CORS_HEADERS });
@@ -126,6 +127,23 @@ export async function POST(
   // Offline auto-reply (business hours): on a visitor's first message, if the
   // workspace is currently closed, post the offline auto-reply once.
   await maybeSendOfflineAutoReply(supabase, channelId, conversationId);
+
+  // Fire the message.created webhook (fire-and-forget).
+  void (async () => {
+    const { data: ch } = await supabase
+      .from("channels")
+      .select("workspace_id")
+      .eq("id", channelId)
+      .single();
+    if (ch?.workspace_id) {
+      await dispatchWebhook(ch.workspace_id, "message.created", {
+        conversation_id: conversationId,
+        direction: "inbound",
+        text: message.text,
+        created_at: message.created_at,
+      });
+    }
+  })();
 
   return NextResponse.json(
     { message: mapDbMessageToWidget(message) },

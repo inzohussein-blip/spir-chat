@@ -196,6 +196,60 @@ export interface Database {
           },
         ];
       };
+      api_keys: {
+        Row: {
+          id: string;
+          workspace_id: string;
+          name: string;
+          key_prefix: string;
+          key_hash: string;
+          last_used_at: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          workspace_id: string;
+          name: string;
+          key_prefix: string;
+          key_hash: string;
+          last_used_at?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          name?: string;
+          last_used_at?: string | null;
+        };
+        Relationships: [];
+      };
+      webhook_endpoints: {
+        Row: {
+          id: string;
+          workspace_id: string;
+          url: string;
+          secret: string;
+          events: Json;
+          is_active: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          workspace_id: string;
+          url: string;
+          secret: string;
+          events?: Json;
+          is_active?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          url?: string;
+          secret?: string;
+          events?: Json;
+          is_active?: boolean;
+        };
+        Relationships: [];
+      };
       contacts: {
         Row: {
           id: string;
