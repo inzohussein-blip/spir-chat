@@ -35,12 +35,17 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const { supabase } = await getWorkspace();
+  const { user, supabase } = await getWorkspace();
   const body = await request.json().catch(() => ({}));
   const endpoint = body?.endpoint;
   if (typeof endpoint !== "string") {
     return NextResponse.json({ error: "endpoint required" }, { status: 400 });
   }
-  await supabase.from("push_subscriptions").delete().eq("endpoint", endpoint);
+  // Only remove the caller's own subscription (RLS also enforces this).
+  await supabase
+    .from("push_subscriptions")
+    .delete()
+    .eq("endpoint", endpoint)
+    .eq("user_id", user.id);
   return NextResponse.json({ success: true });
 }

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { WIDGET_CORS_HEADERS, parseWidgetConfig } from "@/lib/widget";
 import { authorizeWidgetConversation } from "@/lib/widget-server";
-import { parseFormFields } from "@/lib/forms";
+import { parseFormFields, validateAnswer } from "@/lib/forms";
 
 export async function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: WIDGET_CORS_HEADERS });
@@ -84,22 +84,34 @@ export async function POST(
     );
   }
 
-  const formId = typeof body?.formId === "string" ? body.formId : null;
   const answers =
     body?.answers && typeof body.answers === "object" ? body.answers : {};
-  if (!formId) {
+
+  // Resolve the form from the channel's own config — never trust a client-
+  // supplied formId — so a submission can't target another workspace's form or
+  // a deactivated one.
+  const { data: channel } = await supabase
+    .from("channels")
+    .select("workspace_id, widget_config")
+    .eq("id", channelId)
+    .single();
+  const configuredFormId = channel
+    ? parseWidgetConfig(channel.widget_config).formId
+    : null;
+  if (!channel || !configuredFormId) {
     return NextResponse.json(
-      { error: "formId required" },
-      { status: 400, headers: WIDGET_CORS_HEADERS }
+      { error: "No form configured" },
+      { status: 404, headers: WIDGET_CORS_HEADERS }
     );
   }
 
   const { data: form } = await supabase
     .from("forms")
-    .select("id, workspace_id, fields")
-    .eq("id", formId)
+    .select("id, workspace_id, fields, is_active")
+    .eq("id", configuredFormId)
+    .eq("workspace_id", channel.workspace_id)
     .single();
-  if (!form) {
+  if (!form || !form.is_active) {
     return NextResponse.json(
       { error: "Form not found" },
       { status: 404, headers: WIDGET_CORS_HEADERS }
@@ -107,11 +119,20 @@ export async function POST(
   }
 
   const fields = parseFormFields(form.fields);
-  // Keep only known keys, coerced to strings.
+  // Keep only known keys (coerced to strings) and validate server-side, since a
+  // direct POST bypasses the widget's client-side checks.
   const clean: Record<string, string> = {};
   for (const f of fields) {
     const v = answers[f.key];
-    if (typeof v === "string" && v.trim()) clean[f.key] = v.trim().slice(0, 500);
+    const str = typeof v === "string" ? v.trim().slice(0, 500) : "";
+    const err = validateAnswer(f, str);
+    if (err) {
+      return NextResponse.json(
+        { error: `${f.label}: ${err}` },
+        { status: 400, headers: WIDGET_CORS_HEADERS }
+      );
+    }
+    if (str) clean[f.key] = str;
   }
 
   await supabase.from("form_responses").insert({

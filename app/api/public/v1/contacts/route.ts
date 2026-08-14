@@ -24,7 +24,11 @@ export async function GET(request: NextRequest) {
     .order("last_interaction_at", { ascending: false, nullsFirst: false })
     .limit(limit);
 
-  if (search) query = query.ilike("display_name", `%${search}%`);
+  if (search) {
+    // Escape LIKE metacharacters so % and _ match literally.
+    const escaped = search.replace(/[\\%_]/g, (c) => `\\${c}`);
+    query = query.ilike("display_name", `%${escaped}%`);
+  }
 
   const { data, error } = await query;
   if (error) {

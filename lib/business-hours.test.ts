@@ -55,6 +55,17 @@ describe("isOpenAt", () => {
     expect(isOpenAt(bh, new Date("2026-01-01T08:00:00Z"))).toBe(false);
   });
 
+  it("treats a zero-length window (from === to) as closed", () => {
+    const days = Array.from({ length: 7 }, () => ({
+      open: true,
+      from: "09:00",
+      to: "09:00",
+    }));
+    const bh = parseBusinessHours({ enabled: true, timezone: "UTC", days });
+    expect(isOpenAt(bh, new Date("2026-01-01T09:00:00Z"))).toBe(false);
+    expect(isOpenAt(bh, new Date("2026-01-01T12:00:00Z"))).toBe(false);
+  });
+
   it("handles overnight windows that wrap past midnight", () => {
     const days = Array.from({ length: 7 }, () => ({
       open: true,

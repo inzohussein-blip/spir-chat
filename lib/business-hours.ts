@@ -111,7 +111,9 @@ export function isOpenAt(config: BusinessHours, date: Date = new Date()): boolea
   if (!today || !today.open) return false;
   const from = toMinutes(today.from);
   const to = toMinutes(today.to);
-  if (to <= from) {
+  // Zero-length window (from === to) means the day isn't really open.
+  if (to === from) return false;
+  if (to < from) {
     // Overnight window, e.g. 22:00–06:00.
     return minutes >= from || minutes < to;
   }
