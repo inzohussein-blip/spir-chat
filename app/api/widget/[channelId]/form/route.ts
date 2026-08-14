@@ -124,13 +124,17 @@ export async function POST(
 
   // Enrich the contact from common fields.
   const contactPatch: Record<string, string> = {};
-  const nameField = fields.find((f) => f.key === "name" || f.type === "text");
-  if (nameField && clean[nameField.key] && nameField.key === "name") {
+  const nameField = fields.find((f) => f.key === "name");
+  if (nameField && clean[nameField.key]) {
     contactPatch.display_name = clean[nameField.key];
   }
   const emailField = fields.find((f) => f.type === "email");
   if (emailField && clean[emailField.key]) {
     contactPatch.email = clean[emailField.key];
+  }
+  const phoneField = fields.find((f) => f.type === "phone" || f.key === "phone");
+  if (phoneField && clean[phoneField.key]) {
+    contactPatch.phone = clean[phoneField.key];
   }
   if (Object.keys(contactPatch).length > 0) {
     await supabase.from("contacts").update(contactPatch).eq("id", auth.contactId);
