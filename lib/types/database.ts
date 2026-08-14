@@ -250,6 +250,39 @@ export interface Database {
         };
         Relationships: [];
       };
+      kb_articles: {
+        Row: {
+          id: string;
+          workspace_id: string;
+          title: string;
+          slug: string;
+          category: string | null;
+          body: string;
+          is_published: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          workspace_id: string;
+          title: string;
+          slug: string;
+          category?: string | null;
+          body?: string;
+          is_published?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          title?: string;
+          slug?: string;
+          category?: string | null;
+          body?: string;
+          is_published?: boolean;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       push_subscriptions: {
         Row: {
           id: string;
