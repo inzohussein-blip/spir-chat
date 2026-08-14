@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import {
   WIDGET_CORS_HEADERS,
@@ -130,8 +130,9 @@ export async function POST(
   // workspace is currently closed, post the offline auto-reply once.
   await maybeSendOfflineAutoReply(supabase, channelId, conversationId);
 
-  // Fire the message.created webhook (fire-and-forget).
-  void (async () => {
+  // Post-response work (webhook, push, AI classification). `after` keeps it
+  // running past the response without being killed by the serverless freeze.
+  after(async () => {
     const { data: ch } = await supabase
       .from("channels")
       .select("workspace_id")
@@ -168,7 +169,7 @@ export async function POST(
         }
       }
     }
-  })();
+  });
 
   return NextResponse.json(
     { message: mapDbMessageToWidget(message) },

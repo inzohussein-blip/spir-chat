@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import {
   WIDGET_CORS_HEADERS,
@@ -124,16 +124,17 @@ export async function POST(
     }
     conversationId = conversation.id;
 
-    // Auto-assign (round-robin) + conversation.created webhook — best-effort.
+    // Auto-assign (round-robin) + conversation.created webhook — best-effort,
+    // deferred past the response via `after`.
     const newConvId = conversationId;
-    void (async () => {
+    after(async () => {
       await autoAssignConversation(supabase, channel.workspace_id, newConvId);
       await dispatchWebhook(channel.workspace_id, "conversation.created", {
         conversation_id: newConvId,
         contact_id: contactId,
         platform: "website",
       });
-    })();
+    });
   }
 
   return NextResponse.json(

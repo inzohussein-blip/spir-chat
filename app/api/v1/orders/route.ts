@@ -28,21 +28,30 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ orders: [], reason: "no-email" });
   }
 
-  const { data: integration } = await supabase
+  const { data: integrations } = await supabase
     .from("integrations")
-    .select("provider, config, is_active")
+    .select("provider, config")
     .eq("workspace_id", contact.workspace_id)
     .eq("is_active", true)
-    .limit(1)
-    .maybeSingle();
-  if (!integration) {
+    .order("provider", { ascending: true });
+  if (!integrations || integrations.length === 0) {
     return NextResponse.json({ orders: [], reason: "no-integration" });
   }
 
-  const orders = await fetchOrdersForEmail(
-    integration.provider as IntegrationProvider,
-    (integration.config as Record<string, unknown>) ?? {},
-    contact.email
+  // Merge orders across every connected store, newest first, capped.
+  const results = await Promise.all(
+    integrations.map((i) =>
+      fetchOrdersForEmail(
+        i.provider as IntegrationProvider,
+        (i.config as Record<string, unknown>) ?? {},
+        contact.email as string
+      )
+    )
   );
-  return NextResponse.json({ orders, provider: integration.provider });
+  const orders = results
+    .flat()
+    .sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""))
+    .slice(0, 10);
+
+  return NextResponse.json({ orders });
 }

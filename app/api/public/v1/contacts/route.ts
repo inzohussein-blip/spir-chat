@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { authenticateApiKey, dispatchWebhook } from "@/lib/api-keys";
 
@@ -65,6 +65,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Could not create contact" }, { status: 500 });
   }
 
-  void dispatchWebhook(auth.workspaceId, "contact.created", data);
+  after(() => dispatchWebhook(auth.workspaceId, "contact.created", data));
   return NextResponse.json({ data }, { status: 201 });
 }
