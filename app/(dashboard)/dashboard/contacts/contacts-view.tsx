@@ -15,6 +15,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { avatarGradient } from "@/lib/avatar";
 import { PageTitle } from "@/components/page-title";
 import {
   SegmentBuilder,
@@ -238,18 +239,23 @@ export function ContactsView({
                         href={`/dashboard/contacts/${contact.id}`}
                         className="flex items-center gap-3"
                       >
-                        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium">
-                          {contact.avatar_url ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={contact.avatar_url}
-                              alt={contact.display_name || "Contact"}
-                              className="h-8 w-8 rounded-full object-cover"
-                            />
-                          ) : (
-                            contact.display_name?.[0]?.toUpperCase() ?? "?"
-                          )}
-                        </div>
+                        {contact.avatar_url ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={contact.avatar_url}
+                            alt={contact.display_name || "Contact"}
+                            className="h-8 w-8 flex-shrink-0 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div
+                            className={cn(
+                              "flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-xs font-semibold text-white shadow-sm",
+                              avatarGradient(contact.display_name ?? "Unknown")
+                            )}
+                          >
+                            {contact.display_name?.[0]?.toUpperCase() ?? "?"}
+                          </div>
+                        )}
                         <span className="text-sm font-medium hover:underline">
                           {contact.display_name ?? "Unknown"}
                         </span>
