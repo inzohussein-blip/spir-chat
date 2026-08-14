@@ -191,7 +191,9 @@ export function ContactsView({
       <div className="flex-1 overflow-auto">
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20">
-            <Users className="h-10 w-10 text-muted-foreground/40" />
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
+              <Users className="h-8 w-8 text-primary" />
+            </div>
             <p className="mt-3 text-sm font-medium text-muted-foreground">
               No contacts found
             </p>

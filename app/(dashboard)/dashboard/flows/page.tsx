@@ -98,7 +98,9 @@ export default async function FlowsPage() {
 
       {!flows || flows.length === 0 ? (
         <div className="mt-12 rounded-xl border border-dashed border-border p-12 text-center">
-          <GitBranch className="mx-auto h-10 w-10 text-muted-foreground" />
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
+            <GitBranch className="h-8 w-8 text-primary" />
+          </div>
           <h2 className="mt-4 text-lg font-semibold">No flows yet</h2>
           <p className="mt-2 text-sm text-muted-foreground">
             Create your first flow to start automating conversations.

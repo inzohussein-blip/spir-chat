@@ -186,7 +186,9 @@ export function InboxView({
         <div className="min-h-0 flex-1">
           {conversations.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center px-6 text-center">
-              <MessageSquare className="h-10 w-10 text-muted-foreground/40" />
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
+                <MessageSquare className="h-8 w-8 text-primary" />
+              </div>
               <p className="mt-3 text-sm font-medium text-muted-foreground">
                 {t.inbox.noConversations}
               </p>

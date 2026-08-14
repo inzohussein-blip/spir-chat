@@ -238,7 +238,9 @@ export function WidgetsView({
         {/* List */}
         {widgets.length === 0 ? (
           <div className="mt-12 rounded-xl border border-dashed border-border p-12 text-center">
-            <Globe className="mx-auto h-10 w-10 text-muted-foreground" />
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
+            <Globe className="h-8 w-8 text-primary" />
+          </div>
             <h2 className="mt-4 text-lg font-semibold">No widgets yet</h2>
             <p className="mt-2 text-sm text-muted-foreground">
               Create a widget above, then paste its snippet into your site.

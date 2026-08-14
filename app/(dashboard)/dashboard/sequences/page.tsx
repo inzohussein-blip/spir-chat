@@ -76,7 +76,9 @@ export default async function SequencesPage() {
       <div className="flex-1 overflow-auto px-8 py-6">
       {!sequences || sequences.length === 0 ? (
         <div className="mt-12 rounded-xl border border-dashed border-border p-12 text-center">
-          <ListOrdered className="mx-auto h-10 w-10 text-muted-foreground" />
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
+            <ListOrdered className="h-8 w-8 text-primary" />
+          </div>
           <h2 className="mt-4 text-lg font-semibold">No sequences yet</h2>
           <p className="mt-2 text-sm text-muted-foreground">
             Create your first sequence to start nurturing contacts automatically.

@@ -521,7 +521,9 @@ export function GrowthView({
         {/* Empty state */}
         {channels.length === 0 && (
           <div className="mt-8 rounded-xl border border-dashed border-input p-8 text-center">
-            <MessageCircle className="mx-auto h-10 w-10 text-muted-foreground/50" />
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
+              <MessageCircle className="h-8 w-8 text-primary" />
+            </div>
             <h2 className="mt-3 text-lg font-semibold text-foreground">
               Connect a channel first
             </h2>
@@ -539,7 +541,9 @@ export function GrowthView({
 
         {flows.length === 0 && channels.length > 0 && (
           <div className="mt-8 rounded-xl border border-dashed border-input p-8 text-center">
-            <MessageCircle className="mx-auto h-10 w-10 text-muted-foreground/50" />
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
+              <MessageCircle className="h-8 w-8 text-primary" />
+            </div>
             <h2 className="mt-3 text-lg font-semibold text-foreground">
               Create a flow first
             </h2>
