@@ -6,6 +6,7 @@
 
 import type { MessageDirection } from "@/lib/types/database";
 import { parseAttachments, type MessageAttachment } from "@/lib/attachments";
+import { parseRichContent, type RichContent } from "@/lib/rich-content";
 
 export const WIDGET_MAX_TEXT_LENGTH = 4000;
 
@@ -23,6 +24,7 @@ export interface WidgetMessage {
   direction: MessageDirection;
   text: string | null;
   attachments: MessageAttachment[];
+  richContent: RichContent | null;
   created_at: string;
 }
 
@@ -118,6 +120,7 @@ export function mapDbMessageToWidget(row: {
   direction: MessageDirection;
   text: string | null;
   attachments?: unknown;
+  rich_content?: unknown;
   created_at: string;
 }): WidgetMessage {
   return {
@@ -125,6 +128,7 @@ export function mapDbMessageToWidget(row: {
     direction: row.direction,
     text: row.text,
     attachments: parseAttachments(row.attachments),
+    richContent: parseRichContent(row.rich_content),
     created_at: row.created_at,
   };
 }

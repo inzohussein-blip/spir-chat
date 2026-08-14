@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Send, Paperclip, Loader2, X, Smile } from "lucide-react";
+import type { RichContent } from "@/lib/rich-content";
 
 // A small, dependency-free set of common emojis for the composer picker.
 const EMOJIS = [
@@ -21,7 +22,63 @@ interface WidgetMessage {
   direction: "inbound" | "outbound";
   text: string | null;
   attachments?: WidgetAttachment[];
+  richContent?: RichContent | null;
   created_at: string;
+}
+
+// Renders link buttons / product-card carousels attached to an agent message.
+function RichContentView({ rich }: { rich: RichContent }) {
+  if (rich.type === "buttons") {
+    return (
+      <div className="mt-2 flex flex-col gap-1.5">
+        {rich.buttons.map((b, i) => (
+          <a
+            key={i}
+            href={b.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded-lg border border-violet-200 bg-white px-3 py-2 text-center text-sm font-medium text-violet-700 transition-colors hover:bg-violet-50"
+          >
+            {b.label}
+          </a>
+        ))}
+      </div>
+    );
+  }
+  return (
+    <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
+      {rich.cards.map((c, i) => (
+        <div
+          key={i}
+          className="w-44 flex-shrink-0 overflow-hidden rounded-xl border border-gray-200 bg-white"
+        >
+          {c.imageUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={c.imageUrl} alt={c.title} className="h-24 w-full object-cover" />
+          )}
+          <div className="p-2">
+            <p className="text-sm font-semibold text-gray-900">{c.title}</p>
+            {c.subtitle && (
+              <p className="mt-0.5 line-clamp-2 text-xs text-gray-500">{c.subtitle}</p>
+            )}
+            <div className="mt-2 flex flex-col gap-1">
+              {c.buttons.map((b, j) => (
+                <a
+                  key={j}
+                  href={b.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded-md bg-violet-600 px-2 py-1 text-center text-xs font-medium text-white hover:bg-violet-700"
+                >
+                  {b.label}
+                </a>
+              ))}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 function isImage(type: string): boolean {
@@ -552,6 +609,7 @@ export function WidgetChat({
                           </a>
                         )
                       )}
+                      {m.richContent && <RichContentView rich={m.richContent} />}
                     </div>
                     {!nextSame && (
                       <span className="mt-1 px-1 text-[10px] text-gray-400">

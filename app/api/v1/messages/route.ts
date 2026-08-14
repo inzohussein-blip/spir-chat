@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createZernioClient } from "@/lib/zernio-client";
 import { parseAttachments } from "@/lib/attachments";
+import { parseRichContent } from "@/lib/rich-content";
 
 /**
  * GET /api/v1/messages?conversationId=...
@@ -114,8 +115,9 @@ export async function POST(request: NextRequest) {
   const body = await request.json();
   const { conversationId, text } = body;
   const attachments = parseAttachments(body?.attachments);
+  const richContent = parseRichContent(body?.rich_content);
 
-  if (!conversationId || (!text && attachments.length === 0)) {
+  if (!conversationId || (!text && attachments.length === 0 && !richContent)) {
     return NextResponse.json(
       { error: "conversationId and text (or an attachment) required" },
       { status: 400 }
@@ -143,6 +145,7 @@ export async function POST(request: NextRequest) {
         direction: "outbound",
         text: text || null,
         attachments: attachments.length > 0 ? attachments : null,
+        rich_content: richContent as never,
         sent_by_user_id: user.id,
       })
       .select("*")
@@ -156,7 +159,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Replying marks the thread read; also refresh the inbox preview.
-    const preview = text || `📎 ${attachments[0]?.name ?? "Attachment"}`;
+    const preview =
+      text ||
+      (attachments.length > 0
+        ? `📎 ${attachments[0]?.name ?? "Attachment"}`
+        : richContent
+        ? "🔘 Interactive message"
+        : "");
     await supabase
       .from("conversations")
       .update({

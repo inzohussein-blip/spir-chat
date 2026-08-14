@@ -929,6 +929,7 @@ export interface Database {
           direction: MessageDirection;
           text: string | null;
           attachments: Json | null;
+          rich_content: Json | null;
           quick_reply_payload: string | null;
           postback_payload: string | null;
           callback_data: string | null;
@@ -945,6 +946,7 @@ export interface Database {
           direction: MessageDirection;
           text?: string | null;
           attachments?: Json | null;
+          rich_content?: Json | null;
           quick_reply_payload?: string | null;
           postback_payload?: string | null;
           callback_data?: string | null;

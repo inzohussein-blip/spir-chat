@@ -2,13 +2,14 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Send, Paperclip, Bot, User, MessageSquare, MessageSquareText, CheckCircle, Clock, RotateCcw, Loader2, StickyNote, UserPlus, UserCheck, PenLine, Smile } from "lucide-react";
+import { Send, Paperclip, Bot, User, MessageSquare, MessageSquareText, CheckCircle, Clock, RotateCcw, Loader2, StickyNote, UserPlus, UserCheck, PenLine, Smile, MousePointerClick } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { PlatformIcon } from "@/components/platform-icon";
 import { filterCannedResponses, isCannedShortcut, type CannedResponseItem } from "@/lib/canned";
 import { LabelPicker } from "@/components/inbox/label-picker";
 import { parseAttachments, isImageType, type MessageAttachment } from "@/lib/attachments";
+import { parseRichContent, type RichButton } from "@/lib/rich-content";
 import { avatarGradient } from "@/lib/avatar";
 import type { Database, ConversationStatus } from "@/lib/types/database";
 
@@ -126,6 +127,48 @@ function MessageBubble({ message }: { message: Message }) {
               </a>
             )
           )}
+          {(() => {
+            const rich = parseRichContent(message.rich_content);
+            if (!rich) return null;
+            if (rich.type === "buttons") {
+              return (
+                <div className={cn("flex flex-col gap-1.5", message.text && "mt-2")}>
+                  {rich.buttons.map((b, i) => (
+                    <a
+                      key={i}
+                      href={b.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="rounded-lg bg-white/15 px-3 py-1.5 text-center text-xs font-medium hover:bg-white/25"
+                    >
+                      {b.label}
+                    </a>
+                  ))}
+                </div>
+              );
+            }
+            return (
+              <div className={cn("flex gap-2 overflow-x-auto pb-1", message.text && "mt-2")}>
+                {rich.cards.map((c, i) => (
+                  <div
+                    key={i}
+                    className="w-40 flex-shrink-0 overflow-hidden rounded-lg border border-white/20 bg-white/10"
+                  >
+                    {c.imageUrl && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={c.imageUrl} alt={c.title} className="h-20 w-full object-cover" />
+                    )}
+                    <div className="p-2">
+                      <p className="text-xs font-semibold">{c.title}</p>
+                      {c.subtitle && (
+                        <p className="mt-0.5 line-clamp-2 text-[11px] opacity-80">{c.subtitle}</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
         </div>
         <div
           className={cn(
@@ -225,6 +268,21 @@ export function MessageThread({
   >([]);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Link buttons the agent can attach to a website reply (feature 12).
+  const [pendingButtons, setPendingButtons] = useState<RichButton[]>([]);
+  const [showButtonBuilder, setShowButtonBuilder] = useState(false);
+  const [btnLabel, setBtnLabel] = useState("");
+  const [btnUrl, setBtnUrl] = useState("");
+
+  function addButton() {
+    const label = btnLabel.trim();
+    const url = btnUrl.trim();
+    if (!label || !/^https?:\/\/.+/.test(url) || pendingButtons.length >= 3) return;
+    setPendingButtons((prev) => [...prev, { label, url }]);
+    setBtnLabel("");
+    setBtnUrl("");
+  }
 
   async function handleFilePick(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -461,7 +519,10 @@ export function MessageThread({
     if (!conversation || sending) return;
     const hasText = input.trim().length > 0;
     const attachments = pendingAttachments;
-    if (!hasText && attachments.length === 0) return;
+    const buttons = pendingButtons;
+    const richContent =
+      buttons.length > 0 ? { type: "buttons" as const, buttons } : null;
+    if (!hasText && attachments.length === 0 && !richContent) return;
 
     const text = hasText
       ? signing && currentUserName
@@ -470,6 +531,8 @@ export function MessageThread({
       : "";
     setInput("");
     setPendingAttachments([]);
+    setPendingButtons([]);
+    setShowButtonBuilder(false);
     setSending(true);
 
     // Optimistic update: add a temporary message immediately
@@ -480,6 +543,7 @@ export function MessageThread({
       direction: "outbound",
       text: text || null,
       attachments: attachments.length > 0 ? attachments : null,
+      rich_content: richContent as never,
       quick_reply_payload: null,
       postback_payload: null,
       callback_data: null,
@@ -500,6 +564,7 @@ export function MessageThread({
           conversationId: conversation.id,
           text,
           attachments: attachments.length > 0 ? attachments : undefined,
+          rich_content: richContent ?? undefined,
         }),
       });
 
@@ -771,6 +836,21 @@ export function MessageThread({
             <StickyNote className="h-3.5 w-3.5" />
             Note
           </button>
+          {mode === "reply" && isWebsite && (
+            <button
+              type="button"
+              onClick={() => setShowButtonBuilder((s) => !s)}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+                showButtonBuilder || pendingButtons.length > 0
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <MousePointerClick className="h-3.5 w-3.5" />
+              Buttons{pendingButtons.length > 0 ? ` (${pendingButtons.length})` : ""}
+            </button>
+          )}
           {mode === "reply" && currentUserName && (
             <button
               type="button"
@@ -788,6 +868,58 @@ export function MessageThread({
             </button>
           )}
         </div>
+
+        {/* Button builder (website reply mode) */}
+        {mode === "reply" && isWebsite && showButtonBuilder && (
+          <div className="mx-auto mb-2 max-w-2xl rounded-lg border border-border bg-muted/40 p-3">
+            {pendingButtons.length > 0 && (
+              <div className="mb-2 flex flex-wrap gap-1.5">
+                {pendingButtons.map((b, i) => (
+                  <span
+                    key={i}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2 py-1 text-xs"
+                  >
+                    {b.label}
+                    <button
+                      type="button"
+                      aria-label="Remove button"
+                      onClick={() =>
+                        setPendingButtons((prev) => prev.filter((_, j) => j !== i))
+                      }
+                      className="text-muted-foreground hover:text-foreground"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+            {pendingButtons.length < 3 && (
+              <div className="flex items-center gap-2">
+                <input
+                  value={btnLabel}
+                  onChange={(e) => setBtnLabel(e.target.value)}
+                  placeholder="Button label"
+                  className="w-32 rounded-md border border-input bg-background px-2 py-1.5 text-xs outline-none focus:ring-1 focus:ring-ring"
+                />
+                <input
+                  value={btnUrl}
+                  onChange={(e) => setBtnUrl(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addButton())}
+                  placeholder="https://…"
+                  className="flex-1 rounded-md border border-input bg-background px-2 py-1.5 text-xs outline-none focus:ring-1 focus:ring-ring"
+                />
+                <button
+                  type="button"
+                  onClick={addButton}
+                  className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground"
+                >
+                  Add
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Staged attachments (website reply mode) */}
         {mode === "reply" && isWebsite && pendingAttachments.length > 0 && (
@@ -942,7 +1074,10 @@ export function MessageThread({
             disabled={
               sending ||
               (!input.trim() &&
-                !(mode === "reply" && pendingAttachments.length > 0))
+                !(
+                  mode === "reply" &&
+                  (pendingAttachments.length > 0 || pendingButtons.length > 0)
+                ))
             }
             aria-label={mode === "note" ? "Save note" : "Send message"}
             className={cn(

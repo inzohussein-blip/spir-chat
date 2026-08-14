@@ -125,6 +125,7 @@ describe("mapDbMessageToWidget", () => {
       direction: "outbound",
       text: "hello",
       attachments: [],
+      richContent: null,
       created_at: "2026-01-01T00:00:00Z",
     });
     expect(mapped).not.toHaveProperty("sent_by_user_id");

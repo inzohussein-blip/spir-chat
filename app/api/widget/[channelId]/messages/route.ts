@@ -43,7 +43,7 @@ export async function GET(
 
   let query = supabase
     .from("messages")
-    .select("id, direction, text, attachments, created_at")
+    .select("id, direction, text, attachments, rich_content, created_at")
     .eq("conversation_id", q.get("conversationId") as string)
     .order("created_at", { ascending: true })
     .limit(200);
