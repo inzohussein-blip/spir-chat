@@ -62,6 +62,7 @@ describe("parseWidgetConfig", () => {
       starters: [],
       away: false,
       awayMessage: null,
+      formId: null,
     });
     expect(parseWidgetConfig(null).prechat).toBe(false);
   });
