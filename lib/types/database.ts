@@ -256,6 +256,33 @@ export interface Database {
         };
         Relationships: [];
       };
+      integrations: {
+        Row: {
+          id: string;
+          workspace_id: string;
+          provider: string;
+          config: Json;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          workspace_id: string;
+          provider: string;
+          config?: Json;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          provider?: string;
+          config?: Json;
+          is_active?: boolean;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       campaigns: {
         Row: {
           id: string;

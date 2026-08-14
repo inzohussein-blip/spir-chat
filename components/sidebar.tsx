@@ -18,6 +18,7 @@ import {
   ClipboardList,
   BookOpen,
   Plug,
+  Blocks,
   Code2,
   Settings,
   LogOut,
@@ -68,6 +69,7 @@ const navigation: {
   { key: "forms", href: "/dashboard/forms", icon: ClipboardList },
   { key: "helpCenter", href: "/dashboard/help-center", icon: BookOpen },
   { key: "channels", href: "/dashboard/channels", icon: Plug },
+  { key: "integrations", href: "/dashboard/integrations", icon: Blocks },
   { key: "developers", href: "/dashboard/developers", icon: Code2 },
   { key: "settings", href: "/dashboard/settings", icon: Settings },
 ];

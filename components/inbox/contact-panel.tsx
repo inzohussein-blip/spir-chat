@@ -8,6 +8,7 @@ import {
   Tag,
   User,
   Hash,
+  ShoppingBag,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
@@ -54,6 +55,25 @@ export function ContactPanel({
 }) {
   const [loadedDetails, setDetails] = useState<ContactDetails | null>(null);
   const [loading, setLoading] = useState(false);
+  const [orders, setOrders] = useState<
+    { id: string; number: string; status: string; total: string; currency: string }[]
+  >([]);
+
+  // Recent store orders (feature 17) — only shows when an integration is set up.
+  useEffect(() => {
+    if (!contactId) return;
+    let cancelled = false;
+    setOrders([]);
+    fetch(`/api/v1/orders?contactId=${contactId}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!cancelled && d?.orders) setOrders(d.orders);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [contactId]);
 
   useEffect(() => {
     if (!contactId) return;
@@ -212,6 +232,32 @@ export function ContactPanel({
                   Email
                 </h4>
                 <p className="mt-1 text-sm">{details.contact.email}</p>
+              </div>
+            )}
+
+            {/* Recent store orders (store integration) */}
+            {orders.length > 0 && (
+              <div>
+                <h4 className="flex items-center gap-1.5 text-xs font-medium uppercase text-muted-foreground">
+                  <ShoppingBag className="h-3 w-3" />
+                  Recent Orders
+                </h4>
+                <div className="mt-2 space-y-1.5">
+                  {orders.map((o) => (
+                    <div
+                      key={o.id}
+                      className="flex items-center justify-between rounded-lg border border-border px-2.5 py-1.5 text-sm"
+                    >
+                      <span className="font-medium">{o.number}</span>
+                      <span className="text-xs capitalize text-muted-foreground">
+                        {o.status}
+                      </span>
+                      <span className="text-xs font-medium">
+                        {o.total} {o.currency}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
