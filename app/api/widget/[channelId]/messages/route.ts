@@ -183,15 +183,6 @@ async function maybeSendOfflineAutoReply(
   conversationId: string
 ): Promise<void> {
   try {
-    // Only auto-reply on the visitor's first inbound (no outbound yet), so we
-    // never spam an ongoing thread.
-    const { count } = await supabase
-      .from("messages")
-      .select("id", { count: "exact", head: true })
-      .eq("conversation_id", conversationId)
-      .eq("direction", "outbound");
-    if ((count ?? 0) > 0) return;
-
     const { data: channel } = await supabase
       .from("channels")
       .select("workspaces(business_hours)")
@@ -201,6 +192,18 @@ async function maybeSendOfflineAutoReply(
       (channel?.workspaces as { business_hours?: unknown } | null)?.business_hours
     );
     if (!bh.enabled || !bh.replyOffline || isOpenAt(bh)) return;
+
+    // Atomically claim the one-time auto-reply: only the request that flips
+    // auto_reply_sent_at from NULL proceeds, so concurrent first messages can't
+    // both send. `select` returns the affected rows — empty means someone else
+    // already claimed (or already sent) it.
+    const { data: claimed } = await supabase
+      .from("conversations")
+      .update({ auto_reply_sent_at: new Date().toISOString() })
+      .eq("id", conversationId)
+      .is("auto_reply_sent_at", null)
+      .select("id");
+    if (!claimed || claimed.length === 0) return;
 
     await supabase.from("messages").insert({
       conversation_id: conversationId,

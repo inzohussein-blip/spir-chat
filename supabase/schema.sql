@@ -1478,3 +1478,14 @@ create policy "Members manage integrations in their workspaces"
   on integrations for all
   using (is_workspace_member(workspace_id));
 
+
+-- ============================================================
+-- 00033_auto_reply_flag.sql
+-- ============================================================
+-- Race-safe offline auto-reply guard (review follow-up).
+-- Set atomically the first time we post the business-hours offline auto-reply
+-- into a conversation, so two near-simultaneous first messages can't both send.
+
+alter table conversations
+  add column if not exists auto_reply_sent_at timestamptz;
+

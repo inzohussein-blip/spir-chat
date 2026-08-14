@@ -988,6 +988,7 @@ export interface Database {
           visitor_last_seen_at: string | null;
           visitor_current_page: string | null;
           visitor_typing_at: string | null;
+          auto_reply_sent_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -1007,6 +1008,7 @@ export interface Database {
           visitor_last_seen_at?: string | null;
           visitor_current_page?: string | null;
           visitor_typing_at?: string | null;
+          auto_reply_sent_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -1021,6 +1023,7 @@ export interface Database {
           visitor_last_seen_at?: string | null;
           visitor_current_page?: string | null;
           visitor_typing_at?: string | null;
+          auto_reply_sent_at?: string | null;
           updated_at?: string;
         };
         Relationships: [
