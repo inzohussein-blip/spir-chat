@@ -10,6 +10,7 @@ import { parseAttachments } from "@/lib/attachments";
 import { parseBusinessHours, isOpenAt } from "@/lib/business-hours";
 import { dispatchWebhook } from "@/lib/api-keys";
 import { sendPushToWorkspace } from "@/lib/push";
+import { applyAiClassification } from "@/lib/ai/classify";
 
 export async function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: WIDGET_CORS_HEADERS });
@@ -149,6 +150,23 @@ export async function POST(
         url: "/dashboard/inbox",
         tag: `conv-${conversationId}`,
       });
+
+      // AI intent classification on the visitor's first message only.
+      if (message.text) {
+        const { count: inboundCount } = await supabase
+          .from("messages")
+          .select("id", { count: "exact", head: true })
+          .eq("conversation_id", conversationId)
+          .eq("direction", "inbound");
+        if ((inboundCount ?? 0) === 1) {
+          await applyAiClassification(
+            supabase,
+            ch.workspace_id,
+            conversationId,
+            message.text
+          );
+        }
+      }
     }
   })();
 
