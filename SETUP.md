@@ -66,6 +66,7 @@ project run the new files in order in the SQL Editor. Summary:
 | `00030_forms` | Conversational forms |
 | `00031_campaigns` | Email/SMS/WhatsApp campaigns (+ `contacts.phone`) |
 | `00032_integrations` | Shopify / WooCommerce order lookup |
+| `00033_auto_reply_flag` | Race-safe offline auto-reply guard |
 
 Optional environment variables (each feature degrades to a safe no-op when its
 keys are absent):
