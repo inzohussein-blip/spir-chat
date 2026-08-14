@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { WIDGET_CORS_HEADERS, parseWidgetConfig } from "@/lib/widget";
+import { parseBusinessHours, isOpenAt } from "@/lib/business-hours";
 
 // Public: the widget fetches its own display config (pre-chat form + greeting)
 // before starting a session, so it can decide whether to show the form.
@@ -18,7 +19,7 @@ export async function GET(
 
   const { data: channel } = await supabase
     .from("channels")
-    .select("platform, is_active, widget_config")
+    .select("platform, is_active, widget_config, workspaces(business_hours)")
     .eq("id", channelId)
     .single();
 
@@ -29,7 +30,22 @@ export async function GET(
     );
   }
 
-  return NextResponse.json(parseWidgetConfig(channel.widget_config), {
+  const config = parseWidgetConfig(channel.widget_config);
+
+  // Fold business hours into the widget's away state: when the workspace is
+  // closed now, present as away (with the offline message) even if the manual
+  // away toggle is off.
+  const bh = parseBusinessHours(
+    (channel.workspaces as { business_hours?: unknown } | null)?.business_hours
+  );
+  if (bh.enabled && !isOpenAt(bh)) {
+    config.away = true;
+    if (!config.awayMessage && bh.replyOffline) {
+      config.awayMessage = bh.replyOffline;
+    }
+  }
+
+  return NextResponse.json(config, {
     headers: WIDGET_CORS_HEADERS,
   });
 }

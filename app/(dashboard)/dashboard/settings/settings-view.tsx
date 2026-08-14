@@ -22,6 +22,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { PageTitle } from "@/components/page-title";
+import { BusinessHoursSection } from "@/components/settings/business-hours-section";
+import type { BusinessHours } from "@/lib/business-hours";
 import { createClient } from "@/lib/supabase/client";
 
 interface WorkspaceSettings {
@@ -30,6 +32,7 @@ interface WorkspaceSettings {
   hasApiKey: boolean;
   hasAiKey: boolean;
   globalKeywords: string[];
+  businessHours: BusinessHours;
 }
 
 interface TestResult {
@@ -193,6 +196,13 @@ export function SettingsView({
               />
             </div>
           </section>
+
+          <hr className="border-border" />
+
+          <BusinessHoursSection
+            workspaceId={workspace.id}
+            initial={workspace.businessHours}
+          />
 
           <hr className="border-border" />
 

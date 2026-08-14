@@ -7,6 +7,7 @@ import {
 } from "@/lib/widget";
 import { authorizeWidgetConversation } from "@/lib/widget-server";
 import { parseAttachments } from "@/lib/attachments";
+import { parseBusinessHours, isOpenAt } from "@/lib/business-hours";
 
 export async function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: WIDGET_CORS_HEADERS });
@@ -122,8 +123,54 @@ export async function POST(
     .update({ last_interaction_at: new Date().toISOString() })
     .eq("id", auth.contactId);
 
+  // Offline auto-reply (business hours): on a visitor's first message, if the
+  // workspace is currently closed, post the offline auto-reply once.
+  await maybeSendOfflineAutoReply(supabase, channelId, conversationId);
+
   return NextResponse.json(
     { message: mapDbMessageToWidget(message) },
     { status: 201, headers: WIDGET_CORS_HEADERS }
   );
+}
+
+async function maybeSendOfflineAutoReply(
+  supabase: Awaited<ReturnType<typeof createServiceClient>>,
+  channelId: string,
+  conversationId: string
+): Promise<void> {
+  try {
+    // Only auto-reply on the visitor's first inbound (no outbound yet), so we
+    // never spam an ongoing thread.
+    const { count } = await supabase
+      .from("messages")
+      .select("id", { count: "exact", head: true })
+      .eq("conversation_id", conversationId)
+      .eq("direction", "outbound");
+    if ((count ?? 0) > 0) return;
+
+    const { data: channel } = await supabase
+      .from("channels")
+      .select("workspaces(business_hours)")
+      .eq("id", channelId)
+      .single();
+    const bh = parseBusinessHours(
+      (channel?.workspaces as { business_hours?: unknown } | null)?.business_hours
+    );
+    if (!bh.enabled || !bh.replyOffline || isOpenAt(bh)) return;
+
+    await supabase.from("messages").insert({
+      conversation_id: conversationId,
+      direction: "outbound",
+      text: bh.replyOffline,
+    });
+    await supabase
+      .from("conversations")
+      .update({
+        last_message_at: new Date().toISOString(),
+        last_message_preview: bh.replyOffline.slice(0, 100),
+      })
+      .eq("id", conversationId);
+  } catch {
+    // Auto-reply is best-effort; never fail the visitor's send because of it.
+  }
 }
