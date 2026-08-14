@@ -49,6 +49,51 @@ Works the same for a brand-new project or when switching to a different one.
 
 That's all a project switch needs — no code edits.
 
+### Advanced features — migrations & environment
+
+The advanced features add migrations `00024`–`00032`. On a fresh project the
+consolidated `supabase/schema.sql` already includes them; on an existing
+project run the new files in order in the SQL Editor. Summary:
+
+| Migration | Feature |
+|-----------|---------|
+| `00024_business_hours` | Business hours + offline auto-reply |
+| `00025_api_keys_webhooks` | Public API keys + webhooks |
+| `00026_push_subscriptions` | Web Push notifications |
+| `00027_help_center` | Help Center / knowledge base |
+| `00028_routing_sla` | Auto-assignment + SLA |
+| `00029_rich_messages` | Buttons / product-card carousels |
+| `00030_forms` | Conversational forms |
+| `00031_campaigns` | Email/SMS/WhatsApp campaigns (+ `contacts.phone`) |
+| `00032_integrations` | Shopify / WooCommerce order lookup |
+
+Optional environment variables (each feature degrades to a safe no-op when its
+keys are absent):
+
+```
+# Web Push (npx web-push generate-vapid-keys)
+VAPID_PUBLIC_KEY=...
+VAPID_PRIVATE_KEY=...
+VAPID_SUBJECT=mailto:you@yourdomain.com
+NEXT_PUBLIC_VAPID_PUBLIC_KEY=...        # same as VAPID_PUBLIC_KEY
+
+# AI intent classification (Vercel AI Gateway) — or set per-workspace AI key
+AI_GATEWAY_API_KEY=...
+
+# Email campaigns (Resend)
+RESEND_API_KEY=...
+CAMPAIGN_FROM_EMAIL=hello@yourdomain.com
+
+# SMS / WhatsApp campaigns (Twilio)
+TWILIO_ACCOUNT_SID=...
+TWILIO_AUTH_TOKEN=...
+TWILIO_SMS_FROM=+1234567890
+TWILIO_WHATSAPP_FROM=+1234567890
+```
+
+Store credentials (Shopify token, WooCommerce keys) are entered in the app on
+the **Integrations** page, not via environment variables.
+
 ## 2. Free tier notes
 
 Running on the free Vercel + Supabase plans is fully supported:
