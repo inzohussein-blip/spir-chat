@@ -10,6 +10,8 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { PlatformIcon } from "@/components/platform-icon";
+import { avatarGradient } from "@/lib/avatar";
+import { cn } from "@/lib/utils";
 
 export default async function ContactDetailPage({
   params,
@@ -76,18 +78,23 @@ export default async function ContactDetailPage({
           Back to contacts
         </Link>
         <div className="flex items-center gap-4">
-          <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-muted text-lg font-semibold">
-            {contact.avatar_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={contact.avatar_url}
-                alt={contact.display_name || "Contact"}
-                className="h-12 w-12 rounded-full object-cover"
-              />
-            ) : (
-              contact.display_name?.[0]?.toUpperCase() ?? "?"
-            )}
-          </div>
+          {contact.avatar_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={contact.avatar_url}
+              alt={contact.display_name || "Contact"}
+              className="h-12 w-12 flex-shrink-0 rounded-full object-cover shadow-sm"
+            />
+          ) : (
+            <div
+              className={cn(
+                "flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-lg font-semibold text-white shadow-sm",
+                avatarGradient(contact.display_name ?? "Unknown")
+              )}
+            >
+              {contact.display_name?.[0]?.toUpperCase() ?? "?"}
+            </div>
+          )}
           <div>
             <h1 className="text-xl font-bold">
               {contact.display_name ?? "Unknown"}
@@ -163,7 +170,7 @@ export default async function ContactDetailPage({
                   return (
                     <div
                       key={cc.id}
-                      className="flex items-center gap-3 rounded-lg border border-border p-3"
+                      className="flex items-center gap-3 rounded-lg border border-border bg-card p-3 shadow-card"
                     >
                       <PlatformIcon
                         platform={ch?.platform ?? ""}
@@ -203,7 +210,7 @@ export default async function ContactDetailPage({
                   <Link
                     key={conv.id}
                     href="/dashboard/inbox"
-                    className="flex items-start gap-3 rounded-lg border border-border p-3 transition-colors hover:bg-accent/50"
+                    className="flex items-start gap-3 rounded-lg border border-border bg-card p-3 shadow-card transition-colors hover:bg-accent/50"
                   >
                     <PlatformIcon
                       platform={conv.platform}
@@ -239,7 +246,7 @@ export default async function ContactDetailPage({
                 {customFields.map((cf, i) => (
                   <div
                     key={i}
-                    className="flex items-center justify-between rounded-lg border border-border p-3"
+                    className="flex items-center justify-between rounded-lg border border-border bg-card p-3 shadow-card"
                   >
                     <span className="text-sm text-muted-foreground">
                       {(

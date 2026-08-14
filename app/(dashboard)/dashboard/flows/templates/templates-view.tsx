@@ -15,6 +15,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PageTitle } from "@/components/page-title";
 import Link from "next/link";
 
 // --- Template types ---
@@ -319,19 +320,18 @@ export function TemplatesView({ workspaceId }: { workspaceId: string }) {
       <div className="border-b border-border px-8 py-6">
         <div className="flex items-center justify-between">
           <div>
-            <div className="flex items-center gap-3 mb-1">
-              <Link
-                href="/dashboard/flows"
-                className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Flows
-              </Link>
-            </div>
-            <h1 className="text-2xl font-bold">{t.dash.templates.title}</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {t.dash.templates.subtitle}
-            </p>
+            <Link
+              href="/dashboard/flows"
+              className="mb-2 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Flows
+            </Link>
+            <PageTitle
+              icon={Sparkles}
+              title={t.dash.templates.title}
+              subtitle={t.dash.templates.subtitle}
+            />
           </div>
           <button
             disabled
