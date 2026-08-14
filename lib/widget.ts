@@ -67,6 +67,8 @@ export interface WidgetConfig {
   away: boolean;
   /** Message shown to visitors while away (falls back to a built-in default). */
   awayMessage: string | null;
+  /** Optional conversational form the widget runs before free chat. */
+  formId: string | null;
 }
 
 export const DEFAULT_PROACTIVE_DELAY = 15;
@@ -98,6 +100,8 @@ export function parseWidgetConfig(raw: unknown): WidgetConfig {
     typeof o.awayMessage === "string" && o.awayMessage.trim()
       ? o.awayMessage.trim().slice(0, 200)
       : null;
+  const formId =
+    typeof o.formId === "string" && o.formId.trim() ? o.formId.trim() : null;
   return {
     prechat: o.prechat === true,
     greeting,
@@ -106,6 +110,7 @@ export function parseWidgetConfig(raw: unknown): WidgetConfig {
     starters,
     away: o.away === true,
     awayMessage,
+    formId,
   };
 }
 

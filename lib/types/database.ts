@@ -256,6 +256,60 @@ export interface Database {
         };
         Relationships: [];
       };
+      forms: {
+        Row: {
+          id: string;
+          workspace_id: string;
+          name: string;
+          fields: Json;
+          success_message: string | null;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          workspace_id: string;
+          name: string;
+          fields?: Json;
+          success_message?: string | null;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          name?: string;
+          fields?: Json;
+          success_message?: string | null;
+          is_active?: boolean;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      form_responses: {
+        Row: {
+          id: string;
+          form_id: string;
+          workspace_id: string;
+          conversation_id: string | null;
+          contact_id: string | null;
+          answers: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          form_id: string;
+          workspace_id: string;
+          conversation_id?: string | null;
+          contact_id?: string | null;
+          answers?: Json;
+          created_at?: string;
+        };
+        Update: {
+          answers?: Json;
+        };
+        Relationships: [];
+      };
       kb_articles: {
         Row: {
           id: string;

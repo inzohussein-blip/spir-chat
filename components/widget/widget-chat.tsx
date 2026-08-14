@@ -3,6 +3,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Send, Paperclip, Loader2, X, Smile } from "lucide-react";
 import type { RichContent } from "@/lib/rich-content";
+import { validateAnswer, type FormField } from "@/lib/forms";
+
+interface WidgetForm {
+  id: string;
+  fields: FormField[];
+  successMessage: string | null;
+}
 
 // A small, dependency-free set of common emojis for the composer picker.
 const EMOJIS = [
@@ -148,6 +155,14 @@ export function WidgetChat({
   const [starters, setStarters] = useState<string[]>([]);
   const [away, setAway] = useState(false);
   const [awayMessage, setAwayMessage] = useState<string | null>(null);
+
+  // Conversational form flow (feature 5).
+  const formRef = useRef<WidgetForm | null>(null);
+  const [formActive, setFormActive] = useState(false);
+  const [pendingForm, setPendingForm] = useState<WidgetForm | null>(null);
+  const formIndex = useRef(0);
+  const formAnswers = useRef<Record<string, string>>({});
+  const formStarted = useRef(false);
   const [messages, setMessages] = useState<WidgetMessage[]>([]);
   const [input, setInput] = useState("");
   const [ready, setReady] = useState(false);
@@ -281,6 +296,24 @@ export function WidgetChat({
       } catch {
         // config is best-effort; fall through to anonymous start
       }
+
+      // Load a conversational form for this widget, if any (only when the
+      // visitor hasn't already completed it in this browser).
+      try {
+        let doneFlag = false;
+        try {
+          doneFlag = localStorage.getItem(`spirchat_form_${channelId}`) === "1";
+        } catch {}
+        if (!doneFlag) {
+          const fr = await fetch(`/api/widget/${channelId}/form`);
+          if (fr.ok) {
+            const fd = await fr.json();
+            if (fd?.form?.fields?.length) setPendingForm(fd.form);
+          }
+        }
+      } catch {
+        // config is best-effort; fall through to anonymous start
+      }
       if (cancelled) return;
 
       if (visitorId.current || !prechat) {
@@ -357,6 +390,22 @@ export function WidgetChat({
     };
   }, [ready, channelId]);
 
+  // Start the conversational form once the session is live (chat phase).
+  useEffect(() => {
+    if (
+      ready &&
+      phase === "chat" &&
+      pendingForm &&
+      !formStarted.current &&
+      !error
+    ) {
+      formStarted.current = true;
+      startForm(pendingForm);
+      setPendingForm(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, phase, pendingForm, error]);
+
   // Keep the view pinned to the latest message.
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
@@ -404,6 +453,69 @@ export function WidgetChat({
     }
   }
 
+  // Append a local-only chat bubble (used to drive the form flow client-side).
+  function pushLocal(direction: "inbound" | "outbound", text: string) {
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: `local-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        direction,
+        text,
+        created_at: new Date().toISOString(),
+      },
+    ]);
+  }
+
+  function startForm(form: WidgetForm) {
+    if (form.fields.length === 0) return;
+    formRef.current = form;
+    formIndex.current = 0;
+    formAnswers.current = {};
+    setFormActive(true);
+    pushLocal("outbound", form.fields[0].label);
+  }
+
+  async function handleFormAnswer(value: string) {
+    const form = formRef.current;
+    if (!form) return;
+    const field = form.fields[formIndex.current];
+    const err = validateAnswer(field, value);
+    pushLocal("inbound", value);
+    if (err) {
+      pushLocal("outbound", err);
+      return; // re-ask the same field
+    }
+    formAnswers.current[field.key] = value.trim();
+    formIndex.current += 1;
+
+    if (formIndex.current < form.fields.length) {
+      pushLocal("outbound", form.fields[formIndex.current].label);
+      return;
+    }
+
+    // Completed — submit and leave form mode.
+    setFormActive(false);
+    try {
+      localStorage.setItem(`spirchat_form_${channelId}`, "1");
+    } catch {}
+    if (form.successMessage) pushLocal("outbound", form.successMessage);
+    try {
+      await fetch(`/api/widget/${channelId}/form`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          conversationId: conversationId.current,
+          visitorId: visitorId.current,
+          formId: form.id,
+          answers: formAnswers.current,
+        }),
+      });
+    } catch {
+      // best-effort; the visitor can still chat
+    }
+    formRef.current = null;
+  }
+
   function insertEmoji(emoji: string) {
     const el = textInputRef.current;
     if (el) {
@@ -424,6 +536,15 @@ export function WidgetChat({
 
   async function send(override?: string) {
     const text = (override ?? input).trim();
+
+    // In form mode, the composer captures the answer to the current question.
+    if (formActive) {
+      if (!text) return;
+      setInput("");
+      await handleFormAnswer(text);
+      return;
+    }
+
     const attachment = override ? null : pendingAttachment;
     if ((!text && !attachment) || !conversationId.current || !visitorId.current)
       return;

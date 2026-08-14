@@ -21,7 +21,13 @@ interface Widget {
   widget_config: unknown;
 }
 
-function WidgetConfigEditor({ widget }: { widget: Widget }) {
+function WidgetConfigEditor({
+  widget,
+  forms,
+}: {
+  widget: Widget;
+  forms: { id: string; name: string }[];
+}) {
   const router = useRouter();
   const initial = parseWidgetConfig(widget.widget_config);
   const [prechat, setPrechat] = useState(initial.prechat);
@@ -31,6 +37,7 @@ function WidgetConfigEditor({ widget }: { widget: Widget }) {
   const [starters, setStarters] = useState(initial.starters.join("\n"));
   const [away, setAway] = useState(initial.away);
   const [awayMessage, setAwayMessage] = useState(initial.awayMessage ?? "");
+  const [formId, setFormId] = useState(initial.formId ?? "");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -45,6 +52,7 @@ function WidgetConfigEditor({ widget }: { widget: Widget }) {
       starters: starters.split("\n"),
       away,
       awayMessage,
+      formId: formId || null,
     });
     setSaving(false);
     setSaved(true);
@@ -110,6 +118,26 @@ function WidgetConfigEditor({ widget }: { widget: Widget }) {
       </p>
 
       <p className="mb-2 mt-5 text-xs font-medium text-muted-foreground">
+        Conversational form
+      </p>
+      <select
+        value={formId}
+        onChange={(e) => setFormId(e.target.value)}
+        className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+      >
+        <option value="">None</option>
+        {forms.map((f) => (
+          <option key={f.id} value={f.id}>
+            {f.name}
+          </option>
+        ))}
+      </select>
+      <p className="mt-1 text-[11px] text-muted-foreground">
+        The widget asks these questions before free chat. Manage forms on the
+        Forms page.
+      </p>
+
+      <p className="mb-2 mt-5 text-xs font-medium text-muted-foreground">
         Availability
       </p>
       <label className="flex items-center gap-2 text-sm">
@@ -152,9 +180,11 @@ function WidgetConfigEditor({ widget }: { widget: Widget }) {
 export function WidgetsView({
   widgets,
   appUrl,
+  forms,
 }: {
   widgets: Widget[];
   appUrl: string;
+  forms: { id: string; name: string }[];
 }) {
   const { t } = useI18n();
   const router = useRouter();
@@ -301,7 +331,7 @@ export function WidgetsView({
                   </div>
                 </div>
 
-                <WidgetConfigEditor widget={w} />
+                <WidgetConfigEditor widget={w} forms={forms} />
               </div>
             ))}
           </div>

@@ -45,6 +45,7 @@ export async function setWidgetConfig(
     starters?: string[];
     away?: boolean;
     awayMessage?: string;
+    formId?: string | null;
   }
 ) {
   const { supabase } = await getWorkspace();
@@ -66,6 +67,7 @@ export async function setWidgetConfig(
         starters,
         away: config.away === true,
         awayMessage: (config.awayMessage ?? "").trim().slice(0, 200),
+        formId: config.formId || null,
       },
     })
     .eq("id", channelId)
