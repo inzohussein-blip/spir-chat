@@ -769,22 +769,7 @@ export function GrowthView({
                         )}
                       </td>
                       <td className="px-4 py-3">
-                        {log.dm_sent ? (
-                          <span className="inline-flex rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700">
-                            Sent
-                          </span>
-                        ) : log.error ? (
-                          <span
-                            className="inline-flex rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-medium text-red-700"
-                            title={log.error}
-                          >
-                            Error
-                          </span>
-                        ) : (
-                          <span className="text-xs text-muted-foreground/60">
-                            --
-                          </span>
-                        )}
+                        <CommentStatusBadge log={log} />
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 text-xs text-muted-foreground/60">
                         {formatRelativeTime(log.created_at)}
@@ -798,6 +783,41 @@ export function GrowthView({
         )}
       </div>
     </div>
+  );
+}
+
+// Renders the outcome of a comment-automation attempt. Prefers the structured
+// status column (added in migration 00035); falls back to dm_sent/error for
+// rows logged before it existed.
+function CommentStatusBadge({ log }: { log: CommentLog }) {
+  const badge = "inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium";
+  const status = (log as CommentLog & { status?: string | null }).status;
+
+  const map: Record<string, { label: string; className: string }> = {
+    sent: { label: "Sent", className: "bg-blue-100 text-blue-700" },
+    reply_only: { label: "Reply only", className: "bg-indigo-100 text-indigo-700" },
+    skipped_rate_limit: {
+      label: "Rate limited",
+      className: "bg-amber-100 text-amber-700",
+    },
+    failed: { label: "Failed", className: "bg-red-100 text-red-700" },
+    no_match: { label: "No match", className: "bg-muted text-muted-foreground" },
+    processing: { label: "Processing", className: "bg-muted text-muted-foreground" },
+  };
+
+  const resolved =
+    (status && map[status]) ??
+    (log.dm_sent
+      ? map.sent
+      : log.error
+      ? map.failed
+      : null);
+
+  if (!resolved) return <span className="text-xs text-muted-foreground/60">--</span>;
+  return (
+    <span className={`${badge} ${resolved.className}`} title={log.error ?? undefined}>
+      {resolved.label}
+    </span>
   );
 }
 
