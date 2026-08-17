@@ -15,6 +15,7 @@ import {
 import { renderMessageWithTracking } from "@/lib/tracking";
 import {
   sendPrivateReply,
+  sendPrivateReplyWithButtons,
   sendCommentReply,
   getUserFollowStatus,
   MetaRateLimitError,
@@ -26,6 +27,8 @@ interface MetaCommentConfig {
   replyText?: string;
   /** DM body sent as the private reply; supports {username} and {link}. */
   dmMessage?: string;
+  /** Up to 3 tappable link buttons (urls are already tracked /r/<slug>). */
+  dmButtons?: Array<{ label: string; url: string }>;
   /** Require the commenter to follow before the DM (the follow gate). */
   requireFollow?: boolean;
   /** DM shown when the follow gate blocks (defaults to a follow prompt). */
@@ -131,12 +134,24 @@ export async function processMetaComment({
       }
     }
 
-    // Send the DM (private reply to the comment).
+    // Send the DM (private reply to the comment) — as a button template when
+    // link buttons are configured, else plain text.
     const message = renderMessageWithTracking({
       message: config.dmMessage,
       recipientName: commenterName,
     });
-    await sendPrivateReply(credential.accessToken, credential.igUserId, comment.id, message);
+    const buttons = (config.dmButtons ?? []).filter((b) => b.label && b.url);
+    if (buttons.length > 0) {
+      await sendPrivateReplyWithButtons(
+        credential.accessToken,
+        credential.igUserId,
+        comment.id,
+        message,
+        buttons.map((b) => ({ title: b.label, url: b.url }))
+      );
+    } else {
+      await sendPrivateReply(credential.accessToken, credential.igUserId, comment.id, message);
+    }
 
     await finalizeComment({
       supabase, channel, comment, triggerId: trigger.id, dmSent: true, replySent,
