@@ -67,6 +67,9 @@ project run the new files in order in the SQL Editor. Summary:
 | `00031_campaigns` | Email/SMS/WhatsApp campaigns (+ `contacts.phone`) |
 | `00032_integrations` | Shopify / WooCommerce order lookup |
 | `00033_auto_reply_flag` | Race-safe offline auto-reply guard |
+| `00034_tracked_links` | Tracked links + click analytics |
+| `00035_comment_log_status` | Structured comment-automation statuses |
+| `00036_meta_credentials` | Direct Meta (Instagram) connection + DM retry queue |
 
 Optional environment variables (each feature degrades to a safe no-op when its
 keys are absent):
@@ -94,6 +97,31 @@ TWILIO_WHATSAPP_FROM=+1234567890
 
 Store credentials (Shopify token, WooCommerce keys) are entered in the app on
 the **Integrations** page, not via environment variables.
+
+### Direct Meta / Instagram (comment-to-DM + follow gate)
+
+Optional path that connects an Instagram professional account straight to the
+Instagram Graph API (alongside Zernio), enabling the follow gate. Create a Meta
+app with Instagram added, then set:
+
+```
+META_APP_ID=...                 # Instagram app ID
+META_APP_SECRET=...             # Instagram app secret
+META_WEBHOOK_VERIFY_TOKEN=...   # any random string; match it in the Meta webhook config
+META_TOKEN_KEY=...              # optional: 64 hex chars (32 bytes) to encrypt tokens at rest
+```
+
+In the Meta app:
+- OAuth redirect URI: `<your public URL>/api/meta/callback`
+- Webhook callback URL: `<your public URL>/api/webhooks/meta`, verify token =
+  `META_WEBHOOK_VERIFY_TOKEN`, subscribe to `comments` and `messages`.
+
+Then a **Connect Instagram (direct)** button appears on the Channels page. A
+Meta-connected account is a normal `instagram` channel, so comment-keyword
+triggers work as usual. To send a DM (and use the follow gate), the trigger's
+config carries: `dmMessage` (supports `{username}`/`{link}`), `requireFollow`
+(bool), `followMessage`, and `replyText` (public reply). Tokens auto-refresh
+and the DM retry queue drains via the daily `/api/cron/meta` job.
 
 ## 2. Free tier notes
 
