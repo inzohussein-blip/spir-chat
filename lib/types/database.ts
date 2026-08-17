@@ -256,6 +256,56 @@ export interface Database {
         };
         Relationships: [];
       };
+      tracked_links: {
+        Row: {
+          id: string;
+          workspace_id: string;
+          campaign_id: string | null;
+          slug: string;
+          label: string | null;
+          destination_url: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          workspace_id: string;
+          campaign_id?: string | null;
+          slug: string;
+          label?: string | null;
+          destination_url: string;
+          created_at?: string;
+        };
+        Update: {
+          campaign_id?: string | null;
+          label?: string | null;
+          destination_url?: string;
+        };
+        Relationships: [];
+      };
+      link_clicks: {
+        Row: {
+          id: string;
+          workspace_id: string;
+          tracked_link_id: string;
+          ip_hash: string | null;
+          user_agent: string | null;
+          referrer: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          workspace_id: string;
+          tracked_link_id: string;
+          ip_hash?: string | null;
+          user_agent?: string | null;
+          referrer?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          ip_hash?: string | null;
+        };
+        Relationships: [];
+      };
       integrations: {
         Row: {
           id: string;

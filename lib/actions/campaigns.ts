@@ -7,6 +7,7 @@ import {
   channelConfigured,
   type CampaignChannel,
 } from "@/lib/campaigns/providers";
+import { renderMessageWithTracking } from "@/lib/tracking";
 
 const CHANNELS: CampaignChannel[] = ["email", "sms", "whatsapp"];
 // Cap per-send so the server action stays within request limits (baseline).
@@ -72,7 +73,7 @@ export async function sendCampaign(id: string) {
   const field = channel === "email" ? "email" : "phone";
   const { data: contacts } = await supabase
     .from("contacts")
-    .select(`id, ${field}`)
+    .select(`id, display_name, ${field}`)
     .eq("workspace_id", workspace.id)
     .eq("is_subscribed", true)
     .not(field, "is", null)
@@ -81,13 +82,19 @@ export async function sendCampaign(id: string) {
   let sent = 0;
   let failed = 0;
   for (const c of contacts ?? []) {
-    const recipient = (c as Record<string, string | null>)[field];
+    const row = c as Record<string, string | null>;
+    const recipient = row[field];
     if (!recipient) continue;
+    // Personalize {username}; strip any leftover {link} token.
+    const body = renderMessageWithTracking({
+      message: campaign.body,
+      recipientName: row.display_name,
+    });
     const res = await sendCampaignMessage(
       channel,
       recipient,
       campaign.subject ?? "",
-      campaign.body
+      body
     );
     if (res.ok) sent++;
     else failed++;
