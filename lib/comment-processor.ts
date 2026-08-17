@@ -18,10 +18,18 @@ export type CommentForMatching = Pick<IncomingComment, "postId"> & { text: strin
 interface CommentKeywordConfig {
   keywords?: Array<{
     value: string;
-    matchType?: "exact" | "contains" | "startsWith";
+    matchType?: "exact" | "contains" | "startsWith" | "word";
   }>;
   postIds?: string[];
   replyText?: string;
+}
+
+/** Whole-word match: keyword appears bounded by non-word chars (LINK ≠ LINKED). */
+function matchesWholeWord(text: string, keyword: string): boolean {
+  if (!keyword) return false;
+  const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  // Unicode-aware boundaries so Arabic keywords match too.
+  return new RegExp(`(^|[^\\p{L}\\p{N}])${escaped}([^\\p{L}\\p{N}]|$)`, "iu").test(text);
 }
 
 /**
@@ -47,6 +55,7 @@ export function matchCommentTrigger(
       if (matchType === "exact" && text === keyword) return trigger;
       if (matchType === "contains" && text.includes(keyword)) return trigger;
       if (matchType === "startsWith" && text.startsWith(keyword)) return trigger;
+      if (matchType === "word" && matchesWholeWord(text, keyword)) return trigger;
     }
   }
 
@@ -74,9 +83,29 @@ export async function getActiveCommentTriggers(
 
 export interface ProcessCommentResult {
   matched: boolean;
-  skipped?: "already_processed";
+  skipped?: "already_processed" | "rate_limited";
   triggerId?: string;
   error?: string;
+}
+
+// Meta caps private replies at 750/hour per professional account. We approximate
+// per-channel throttling from the DM send log rather than a Redis counter.
+const DM_RATE_LIMIT_MAX = 750;
+const DM_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
+
+/** Whether this channel has already hit its hourly DM cap. */
+async function isChannelDmRateLimited(
+  supabase: SupabaseClient<Database>,
+  channelId: string,
+): Promise<boolean> {
+  const since = new Date(Date.now() - DM_RATE_LIMIT_WINDOW_MS).toISOString();
+  const { count } = await supabase
+    .from("comment_logs")
+    .select("id", { count: "exact", head: true })
+    .eq("channel_id", channelId)
+    .eq("dm_sent", true)
+    .gte("created_at", since);
+  return (count ?? 0) >= DM_RATE_LIMIT_MAX;
 }
 
 /**
@@ -95,14 +124,13 @@ export async function processComment({
   channel: Channel;
   comment: IncomingComment;
 }): Promise<ProcessCommentResult> {
-  const { data: alreadyLogged } = await supabase
-    .from("comment_logs")
-    .select("id")
-    .eq("channel_id", channel.id)
-    .eq("platform_comment_id", comment.id)
-    .maybeSingle();
-
-  if (alreadyLogged) return { matched: false, skipped: "already_processed" };
+  // Race-safe idempotency: claim the comment by inserting its log row up front.
+  // The (channel_id, platform_comment_id) unique index rejects a concurrent
+  // redelivery, so only one worker ever proceeds to send the DM.
+  const claim = await claimComment({ supabase, channel, comment });
+  if (claim === "duplicate") {
+    return { matched: false, skipped: "already_processed" };
+  }
 
   const triggers = await getActiveCommentTriggers(supabase, {
     channelId: channel.id,
@@ -111,7 +139,7 @@ export async function processComment({
   const matchedTrigger = matchCommentTrigger(triggers, comment);
 
   if (!matchedTrigger) {
-    await logComment({ supabase, channel, comment, triggerId: null });
+    await finalizeComment({ supabase, channel, comment, triggerId: null, status: "no_match" });
     return { matched: false };
   }
 
@@ -213,6 +241,20 @@ export async function processComment({
       .select("id")
       .single();
 
+    // Throttle DMs per channel to stay under Meta's hourly cap: skip the send
+    // (but keep the public reply) when over the limit.
+    if (await isChannelDmRateLimited(supabase, channel.id)) {
+      await finalizeComment({
+        supabase,
+        channel,
+        comment,
+        triggerId: matchedTrigger.id,
+        replySent,
+        status: "skipped_rate_limit",
+      });
+      return { matched: true, triggerId: matchedTrigger.id, skipped: "rate_limited" };
+    }
+
     let dmSent = false;
     if (conversation) {
       try {
@@ -259,36 +301,72 @@ export async function processComment({
       } as unknown as Json,
     });
 
-    await logComment({
+    await finalizeComment({
       supabase,
       channel,
       comment,
       triggerId: matchedTrigger.id,
       dmSent,
       replySent,
+      status: dmSent ? "sent" : replySent ? "reply_only" : "failed",
     });
 
     return { matched: true, triggerId: matchedTrigger.id };
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err);
-    await logComment({
+    await finalizeComment({
       supabase,
       channel,
       comment,
       triggerId: matchedTrigger.id,
+      status: "failed",
       error: errorMessage,
     });
     return { matched: true, triggerId: matchedTrigger.id, error: errorMessage };
   }
 }
 
-async function logComment({
+/**
+ * Claim a comment by inserting its log row. Returns "duplicate" when the unique
+ * (channel_id, platform_comment_id) index rejects it (already processed / being
+ * processed concurrently), "claimed" on success, or "error" for other failures
+ * (finalizeComment upserts, so processing can still continue safely).
+ */
+async function claimComment({
+  supabase,
+  channel,
+  comment,
+}: {
+  supabase: SupabaseClient<Database>;
+  channel: Channel;
+  comment: IncomingComment;
+}): Promise<"claimed" | "duplicate" | "error"> {
+  const { error } = await supabase.from("comment_logs").insert({
+    channel_id: channel.id,
+    workspace_id: channel.workspace_id,
+    post_id: comment.postId,
+    platform_comment_id: comment.id,
+    author_id: comment.author.id || null,
+    author_name: comment.author.name || null,
+    author_username: comment.author.username || null,
+    comment_text: comment.text,
+    status: "processing",
+  });
+  if (!error) return "claimed";
+  // 23505 = unique_violation → another delivery already claimed it.
+  if ((error as { code?: string }).code === "23505") return "duplicate";
+  return "error";
+}
+
+/** Write the final outcome for a claimed comment (upsert so it's robust). */
+async function finalizeComment({
   supabase,
   channel,
   comment,
   triggerId,
   dmSent = false,
   replySent = false,
+  status,
   error,
 }: {
   supabase: SupabaseClient<Database>;
@@ -297,6 +375,7 @@ async function logComment({
   triggerId: string | null;
   dmSent?: boolean;
   replySent?: boolean;
+  status: string;
   error?: string;
 }): Promise<void> {
   await supabase.from("comment_logs").upsert(
@@ -312,6 +391,7 @@ async function logComment({
       matched_trigger_id: triggerId,
       dm_sent: dmSent,
       reply_sent: replySent,
+      status,
       ...(error ? { error } : {}),
     },
     { onConflict: "channel_id,platform_comment_id" },

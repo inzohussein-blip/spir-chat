@@ -40,6 +40,13 @@ describe("matchCommentTrigger", () => {
     expect(matchCommentTrigger([t], comment("more info"))).toBeNull();
   });
 
+  it("matches whole-word only (LINK ≠ LINKED)", () => {
+    const t = trigger("t1", { keywords: [{ value: "link", matchType: "word" }] });
+    expect(matchCommentTrigger([t], comment("send me the LINK please"))?.id).toBe("t1");
+    expect(matchCommentTrigger([t], comment("I just LINKED it"))).toBeNull();
+    expect(matchCommentTrigger([t], comment("link"))?.id).toBe("t1");
+  });
+
   it("returns the first matching trigger in array order (caller pre-sorts by priority)", () => {
     const low = trigger("low", { keywords: [{ value: "deal" }] });
     const high = trigger("high", { keywords: [{ value: "deal" }] });

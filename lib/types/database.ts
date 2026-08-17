@@ -1368,6 +1368,7 @@ export interface Database {
           matched_trigger_id: string | null;
           dm_sent: boolean;
           reply_sent: boolean;
+          status: string | null;
           error: string | null;
           created_at: string;
         };
@@ -1384,6 +1385,7 @@ export interface Database {
           matched_trigger_id?: string | null;
           dm_sent?: boolean;
           reply_sent?: boolean;
+          status?: string | null;
           error?: string | null;
           created_at?: string;
         };
@@ -1391,6 +1393,7 @@ export interface Database {
           matched_trigger_id?: string | null;
           dm_sent?: boolean;
           reply_sent?: boolean;
+          status?: string | null;
           error?: string | null;
         };
         Relationships: [
