@@ -87,5 +87,14 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  return NextResponse.json({ ok: true, refreshed, sent, failed });
+  // 3) Purge settled DM jobs older than 7 days so message text isn't retained
+  //    past its purpose.
+  const cutoff = new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const { count: purged } = await supabase
+    .from("dm_jobs")
+    .delete({ count: "exact" })
+    .in("status", ["done", "failed"])
+    .lt("created_at", cutoff);
+
+  return NextResponse.json({ ok: true, refreshed, sent, failed, purged: purged ?? 0 });
 }
