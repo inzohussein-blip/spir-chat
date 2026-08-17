@@ -256,6 +256,73 @@ export interface Database {
         };
         Relationships: [];
       };
+      meta_credentials: {
+        Row: {
+          channel_id: string;
+          workspace_id: string;
+          ig_user_id: string;
+          page_id: string | null;
+          username: string | null;
+          access_token: string;
+          token_expires_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          channel_id: string;
+          workspace_id: string;
+          ig_user_id: string;
+          page_id?: string | null;
+          username?: string | null;
+          access_token: string;
+          token_expires_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          page_id?: string | null;
+          username?: string | null;
+          access_token?: string;
+          token_expires_at?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      dm_jobs: {
+        Row: {
+          id: string;
+          channel_id: string;
+          workspace_id: string;
+          comment_id: string | null;
+          recipient_id: string;
+          message: string;
+          status: string;
+          attempts: number;
+          last_error: string | null;
+          run_after: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          channel_id: string;
+          workspace_id: string;
+          comment_id?: string | null;
+          recipient_id: string;
+          message: string;
+          status?: string;
+          attempts?: number;
+          last_error?: string | null;
+          run_after?: string;
+          created_at?: string;
+        };
+        Update: {
+          status?: string;
+          attempts?: number;
+          last_error?: string | null;
+          run_after?: string;
+        };
+        Relationships: [];
+      };
       tracked_links: {
         Row: {
           id: string;

@@ -13,6 +13,7 @@ import {
   RefreshCw,
   Loader2,
   Trash2,
+  Instagram,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PageTitle } from "@/components/page-title";
@@ -73,9 +74,11 @@ function getDmLink(platform: Platform, username: string | null): { url: string |
 
 export function ChannelsView({
   channels: initialChannels,
+  metaEnabled = false,
 }: {
   channels: Channel[];
   workspaceId: string;
+  metaEnabled?: boolean;
 }) {
   const { t } = useI18n();
   const [channels, setChannels] = useState(initialChannels);
@@ -234,6 +237,15 @@ export function ChannelsView({
               />
               {syncing ? "Syncing..." : "Sync"}
             </button>
+            {metaEnabled && (
+              <a
+                href="/api/meta/connect"
+                className="inline-flex items-center gap-2 rounded-lg border border-border bg-gradient-to-r from-violet-600 to-pink-500 px-4 py-2 text-sm font-medium text-white hover:opacity-90"
+              >
+                <Instagram className="h-4 w-4" />
+                Connect Instagram (direct)
+              </a>
+            )}
             <div className="relative" ref={pickerRef}>
               <button
                 onClick={() => setShowPlatformPicker(!showPlatformPicker)}

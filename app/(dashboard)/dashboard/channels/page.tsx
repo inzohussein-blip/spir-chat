@@ -14,6 +14,7 @@ export default async function ChannelsPage() {
     <ChannelsView
       channels={channels ?? []}
       workspaceId={workspace.id}
+      metaEnabled={!!process.env.META_APP_ID && !!process.env.META_APP_SECRET}
     />
   );
 }

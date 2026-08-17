@@ -800,6 +800,10 @@ function CommentStatusBadge({ log }: { log: CommentLog }) {
       label: "Rate limited",
       className: "bg-amber-100 text-amber-700",
     },
+    skipped_follow_gate: {
+      label: "Awaiting follow",
+      className: "bg-purple-100 text-purple-700",
+    },
     failed: { label: "Failed", className: "bg-red-100 text-red-700" },
     no_match: { label: "No match", className: "bg-muted text-muted-foreground" },
     processing: { label: "Processing", className: "bg-muted text-muted-foreground" },

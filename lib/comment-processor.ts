@@ -94,7 +94,7 @@ const DM_RATE_LIMIT_MAX = 750;
 const DM_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
 
 /** Whether this channel has already hit its hourly DM cap. */
-async function isChannelDmRateLimited(
+export async function isChannelDmRateLimited(
   supabase: SupabaseClient<Database>,
   channelId: string,
 ): Promise<boolean> {
@@ -332,7 +332,7 @@ export async function processComment({
  * processed concurrently), "claimed" on success, or "error" for other failures
  * (finalizeComment upserts, so processing can still continue safely).
  */
-async function claimComment({
+export async function claimComment({
   supabase,
   channel,
   comment,
@@ -359,7 +359,7 @@ async function claimComment({
 }
 
 /** Write the final outcome for a claimed comment (upsert so it's robust). */
-async function finalizeComment({
+export async function finalizeComment({
   supabase,
   channel,
   comment,
