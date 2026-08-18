@@ -5,7 +5,7 @@ import { LinksView } from "./links-view";
 export default async function LinksPage() {
   const { workspace, supabase } = await getWorkspace();
 
-  const [{ data: links }, { data: clicks }, { data: campaigns }] = await Promise.all([
+  const [{ data: links }, { data: clicks }, { data: campaigns }, { data: shares }] = await Promise.all([
     supabase
       .from("tracked_links")
       .select("id, slug, label, destination_url, campaign_id, created_at")
@@ -22,6 +22,11 @@ export default async function LinksPage() {
       .from("campaigns")
       .select("id, name, sent_count")
       .eq("workspace_id", workspace.id),
+    supabase
+      .from("report_shares")
+      .select("id, slug, title, created_at")
+      .eq("workspace_id", workspace.id)
+      .order("created_at", { ascending: false }),
   ]);
 
   const sentByCampaign = new Map(
@@ -60,5 +65,15 @@ export default async function LinksPage() {
     };
   });
 
-  return <LinksView links={rows} baseUrl={SITE_URL} />;
+  return (
+    <LinksView
+      links={rows}
+      baseUrl={SITE_URL}
+      shares={(shares ?? []).map((s) => ({
+        id: s.id,
+        slug: s.slug,
+        title: s.title,
+      }))}
+    />
+  );
 }

@@ -11,6 +11,7 @@ import {
   type MetaAutomationInput,
 } from "@/lib/actions/meta-automations";
 import { PageTitle } from "@/components/page-title";
+import { AUTOMATION_TEMPLATES } from "@/lib/meta/automation-templates";
 import { cn } from "@/lib/utils";
 
 interface Channel {
@@ -248,6 +249,35 @@ function AutomationForm({
       </div>
 
       <div className="space-y-3">
+        {!initial && (
+          <div>
+            <p className="mb-1.5 text-xs font-medium text-muted-foreground">
+              Start from a template
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {AUTOMATION_TEMPLATES.map((t) => (
+                <button
+                  key={t.slug}
+                  type="button"
+                  title={t.summary}
+                  onClick={() => {
+                    if (!name) setName(t.title);
+                    setKeywords(t.keywords.join(", "));
+                    setMatchType(t.matchType);
+                    setDmMessage(t.dmMessage);
+                    if (t.replyText) setReplyText(t.replyText);
+                    if (t.buttonLabel)
+                      setButtons([{ label: t.buttonLabel, destinationUrl: "" }]);
+                  }}
+                  className="rounded-full border border-border px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:border-primary hover:bg-primary/10 hover:text-primary"
+                >
+                  {t.title}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {!initial && (
           <select
             value={channelId}

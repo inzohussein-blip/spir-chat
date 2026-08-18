@@ -256,6 +256,26 @@ export interface Database {
         };
         Relationships: [];
       };
+      report_shares: {
+        Row: {
+          id: string;
+          workspace_id: string;
+          slug: string;
+          title: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          workspace_id: string;
+          slug: string;
+          title?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          title?: string | null;
+        };
+        Relationships: [];
+      };
       meta_credentials: {
         Row: {
           channel_id: string;

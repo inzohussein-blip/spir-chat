@@ -79,7 +79,12 @@ export async function processMetaComment({
   try {
     // Upsert the contact + channel link so the DM shows up in the inbox too.
     const senderId = comment.author.id || `comment_${comment.id}`;
-    await upsertCommentContact(supabase, channel, senderId, commenterName);
+    const contactId = await upsertCommentContact(
+      supabase,
+      channel,
+      senderId,
+      commenterName
+    );
 
     // Public reply (best-effort).
     let replySent = false;
@@ -153,6 +158,10 @@ export async function processMetaComment({
       await sendPrivateReply(credential.accessToken, credential.igUserId, comment.id, message);
     }
 
+    // Mirror the sent DM into the inbox so Instagram automations are visible
+    // there like website chat.
+    if (contactId) await recordDmInInbox(supabase, channel, contactId, message);
+
     await finalizeComment({
       supabase, channel, comment, triggerId: trigger.id, dmSent: true, replySent,
       status: "sent",
@@ -181,14 +190,20 @@ async function upsertCommentContact(
   channel: Channel,
   senderId: string,
   name: string | null
-): Promise<void> {
+): Promise<string | null> {
   const { data: link } = await supabase
     .from("contact_channels")
     .select("contact_id")
     .eq("channel_id", channel.id)
     .eq("platform_sender_id", senderId)
     .maybeSingle();
-  if (link) return;
+  if (link) {
+    await supabase
+      .from("contacts")
+      .update({ last_interaction_at: new Date().toISOString() })
+      .eq("id", link.contact_id);
+    return link.contact_id;
+  }
 
   const { data: contact } = await supabase
     .from("contacts")
@@ -199,13 +214,46 @@ async function upsertCommentContact(
     })
     .select("id")
     .single();
-  if (!contact) return;
+  if (!contact) return null;
 
   await supabase.from("contact_channels").insert({
     contact_id: contact.id,
     channel_id: channel.id,
     platform_sender_id: senderId,
     platform_username: name,
+  });
+  return contact.id;
+}
+
+/** Mirror a sent automation DM into the inbox (conversation + outbound message). */
+async function recordDmInInbox(
+  supabase: SupabaseClient<Database>,
+  channel: Channel,
+  contactId: string,
+  text: string
+): Promise<void> {
+  const { data: conversation } = await supabase
+    .from("conversations")
+    .upsert(
+      {
+        workspace_id: channel.workspace_id,
+        channel_id: channel.id,
+        contact_id: contactId,
+        platform: channel.platform,
+        status: "open",
+        last_message_at: new Date().toISOString(),
+        last_message_preview: text.slice(0, 100),
+      },
+      { onConflict: "channel_id,contact_id" }
+    )
+    .select("id")
+    .single();
+  if (!conversation) return;
+
+  await supabase.from("messages").insert({
+    conversation_id: conversation.id,
+    direction: "outbound",
+    text,
   });
 }
 
