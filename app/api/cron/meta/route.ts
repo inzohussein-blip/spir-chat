@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { decryptToken, encryptToken } from "@/lib/meta/oauth";
-import { refreshLongLivedToken, sendDirectMessage } from "@/lib/meta/client";
+import {
+  refreshLongLivedToken,
+  sendDirectMessage,
+  sendPrivateReply,
+} from "@/lib/meta/client";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -47,7 +51,7 @@ export async function GET(request: NextRequest) {
   // 2) Drain due DM retry jobs (best-effort, capped per run).
   const { data: jobs } = await supabase
     .from("dm_jobs")
-    .select("id, channel_id, recipient_id, message, attempts")
+    .select("id, channel_id, comment_id, recipient_id, message, attempts")
     .eq("status", "pending")
     .lte("run_after", new Date(now).toISOString())
     .order("run_after", { ascending: true })
@@ -68,7 +72,13 @@ export async function GET(request: NextRequest) {
     }
     try {
       const token = decryptToken(cred.access_token);
-      await sendDirectMessage(token, cred.ig_user_id, job.recipient_id, job.message);
+      // Comment-originated DMs must go out as a private reply to the comment
+      // (a bare DM needs an open 24h messaging window, which won't exist).
+      if (job.comment_id) {
+        await sendPrivateReply(token, cred.ig_user_id, job.comment_id, job.message);
+      } else {
+        await sendDirectMessage(token, cred.ig_user_id, job.recipient_id, job.message);
+      }
       await supabase.from("dm_jobs").update({ status: "done" }).eq("id", job.id);
       sent++;
     } catch (err) {

@@ -71,6 +71,15 @@ export async function createMetaAutomation(input: MetaAutomationInput) {
     return { error: "Name, at least one keyword, and a DM message are required" };
   }
 
+  // The channel must belong to this workspace (RLS-scoped read confirms it).
+  const { data: channel } = await supabase
+    .from("channels")
+    .select("id")
+    .eq("id", input.channelId)
+    .eq("workspace_id", workspace.id)
+    .maybeSingle();
+  if (!channel) return { error: "Channel not found" };
+
   // Placeholder published flow so the comment-trigger query matches it.
   const { data: flow, error: flowError } = await supabase
     .from("flows")

@@ -46,7 +46,12 @@ export default async function PublicReportPage({
     s.clicks += 1;
     if (c.ip_hash) s.uniques.add(c.ip_hash);
     perLink.set(c.tracked_link_id, s);
-    const dayIdx = days - 1 - Math.floor((startOfToday.getTime() - new Date(c.created_at).getTime()) / DAY);
+    // Compare day-starts so a click earlier *today* lands in today's bucket
+    // (not a negative offset that would be dropped).
+    const clickDay = new Date(c.created_at);
+    clickDay.setHours(0, 0, 0, 0);
+    const daysAgo = Math.round((startOfToday.getTime() - clickDay.getTime()) / DAY);
+    const dayIdx = days - 1 - daysAgo;
     if (dayIdx >= 0 && dayIdx < days) series[dayIdx] += 1;
   }
 
