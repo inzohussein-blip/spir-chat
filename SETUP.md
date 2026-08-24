@@ -71,6 +71,7 @@ project run the new files in order in the SQL Editor. Summary:
 | `00035_comment_log_status` | Structured comment-automation statuses |
 | `00036_meta_credentials` | Direct Meta (Instagram) connection + DM retry queue |
 | `00037_report_shares` | Shareable public link-performance reports |
+| `00038_dm_jobs_buttons` | Carry link buttons through the DM retry queue |
 
 Optional environment variables (each feature degrades to a safe no-op when its
 keys are absent):

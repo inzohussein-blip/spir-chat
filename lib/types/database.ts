@@ -316,6 +316,7 @@ export interface Database {
           comment_id: string | null;
           recipient_id: string;
           message: string;
+          buttons: Json | null;
           status: string;
           attempts: number;
           last_error: string | null;
@@ -329,6 +330,7 @@ export interface Database {
           comment_id?: string | null;
           recipient_id: string;
           message: string;
+          buttons?: Json | null;
           status?: string;
           attempts?: number;
           last_error?: string | null;

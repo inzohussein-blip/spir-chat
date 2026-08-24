@@ -12,7 +12,6 @@ import {
   isChannelDmRateLimited,
   type IncomingComment,
 } from "@/lib/comment-processor";
-import { renderMessageWithTracking } from "@/lib/tracking";
 import {
   sendPrivateReply,
   sendPrivateReplyWithButtons,
@@ -37,6 +36,21 @@ interface MetaCommentConfig {
 
 const DEFAULT_FOLLOW_MESSAGE =
   "Thanks! Give us a follow and comment again and we'll send it right over. 💛";
+
+/**
+ * Render a Meta DM: personalize {username} and resolve {link} to the first
+ * (tracked) button URL, or strip it when there's no button/link.
+ */
+function renderMetaDm(
+  message: string,
+  name: string | null,
+  buttons: { label: string; url: string }[]
+): string {
+  let r = message.replace(/\{username\}/gi, name ?? "there");
+  const primary = buttons[0]?.url;
+  r = primary ? r.replace(/\{link\}/gi, primary) : r.replace(/\s*\{link\}\s*/gi, " ");
+  return r.trim();
+}
 
 export interface MetaCredential {
   igUserId: string;
@@ -141,11 +155,8 @@ export async function processMetaComment({
 
     // Send the DM (private reply to the comment) — as a button template when
     // link buttons are configured, else plain text.
-    const message = renderMessageWithTracking({
-      message: config.dmMessage,
-      recipientName: commenterName,
-    });
     const buttons = (config.dmButtons ?? []).filter((b) => b.label && b.url);
+    const message = renderMetaDm(config.dmMessage, commenterName, buttons);
     if (buttons.length > 0) {
       await sendPrivateReplyWithButtons(
         credential.accessToken,
@@ -266,16 +277,15 @@ async function enqueueRetry(
   commenterName: string | null
 ): Promise<void> {
   if (!config.dmMessage) return;
-  const message = renderMessageWithTracking({
-    message: config.dmMessage,
-    recipientName: commenterName,
-  });
+  const buttons = (config.dmButtons ?? []).filter((b) => b.label && b.url);
+  const message = renderMetaDm(config.dmMessage, commenterName, buttons);
   await supabase.from("dm_jobs").insert({
     channel_id: channel.id,
     workspace_id: channel.workspace_id,
     comment_id: comment.id,
     recipient_id: recipientId,
     message,
+    buttons: buttons.length ? (buttons as unknown as Database["public"]["Tables"]["dm_jobs"]["Insert"]["buttons"]) : null,
     run_after: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
   });
 }

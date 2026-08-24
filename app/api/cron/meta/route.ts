@@ -5,6 +5,7 @@ import {
   refreshLongLivedToken,
   sendDirectMessage,
   sendPrivateReply,
+  sendPrivateReplyWithButtons,
 } from "@/lib/meta/client";
 
 export const dynamic = "force-dynamic";
@@ -51,7 +52,7 @@ export async function GET(request: NextRequest) {
   // 2) Drain due DM retry jobs (best-effort, capped per run).
   const { data: jobs } = await supabase
     .from("dm_jobs")
-    .select("id, channel_id, comment_id, recipient_id, message, attempts")
+    .select("id, channel_id, comment_id, recipient_id, message, buttons, attempts")
     .eq("status", "pending")
     .lte("run_after", new Date(now).toISOString())
     .order("run_after", { ascending: true })
@@ -72,10 +73,20 @@ export async function GET(request: NextRequest) {
     }
     try {
       const token = decryptToken(cred.access_token);
+      const buttons = Array.isArray(job.buttons)
+        ? (job.buttons as { label: string; url: string }[]).map((b) => ({
+            title: b.label,
+            url: b.url,
+          }))
+        : [];
       // Comment-originated DMs must go out as a private reply to the comment
       // (a bare DM needs an open 24h messaging window, which won't exist).
       if (job.comment_id) {
-        await sendPrivateReply(token, cred.ig_user_id, job.comment_id, job.message);
+        if (buttons.length) {
+          await sendPrivateReplyWithButtons(token, cred.ig_user_id, job.comment_id, job.message, buttons);
+        } else {
+          await sendPrivateReply(token, cred.ig_user_id, job.comment_id, job.message);
+        }
       } else {
         await sendDirectMessage(token, cred.ig_user_id, job.recipient_id, job.message);
       }
