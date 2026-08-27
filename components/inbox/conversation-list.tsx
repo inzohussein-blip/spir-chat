@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { avatarGradient } from "@/lib/avatar";
 import { PlatformIcon } from "@/components/platform-icon";
+import { useI18n } from "@/components/i18n-provider";
 import type { Database, Platform, ConversationStatus } from "@/lib/types/database";
 
 type Conversation = Database["public"]["Tables"]["conversations"]["Row"] & {
@@ -22,7 +23,7 @@ function channelLabel(c: ChannelOption): string {
   return c.display_name || c.username || c.platform;
 }
 
-function formatTime(dateStr: string | null): string {
+function formatTime(dateStr: string | null, yesterdayLabel: string): string {
   if (!dateStr) return "";
   const date = new Date(dateStr);
   const now = new Date();
@@ -32,7 +33,7 @@ function formatTime(dateStr: string | null): string {
   if (diffDays === 0) {
     return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   }
-  if (diffDays === 1) return "Yesterday";
+  if (diffDays === 1) return yesterdayLabel;
   if (diffDays < 7) {
     return date.toLocaleDateString([], { weekday: "short" });
   }
@@ -58,6 +59,7 @@ export function ConversationList({
   currentUserId?: string;
   slaMinutes?: number;
 }) {
+  const { t } = useI18n();
   const [conversations, setConversations] = useState(initialConversations);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<ConversationStatus | "all">("open");
@@ -166,7 +168,7 @@ export function ConversationList({
     <div className="flex h-full flex-col border-e border-border bg-card">
       {/* Header */}
       <div className="flex h-14 items-center justify-between border-b border-border px-4">
-        <h2 className="text-base font-bold tracking-tight">Inbox</h2>
+        <h2 className="text-base font-bold tracking-tight">{t.inbox.title}</h2>
         <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
           {filtered.length}
         </span>
@@ -178,7 +180,7 @@ export function ConversationList({
           <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input
             type="text"
-            placeholder="Search conversations..."
+            placeholder={t.inbox.searchConversations}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full rounded-lg border border-input bg-background py-2 ps-9 pe-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
@@ -193,13 +195,19 @@ export function ConversationList({
             key={status}
             onClick={() => setStatusFilter(status)}
             className={cn(
-              "rounded-md px-2.5 py-1 text-xs font-medium capitalize transition-colors",
+              "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
               statusFilter === status
                 ? "bg-primary text-primary-foreground"
                 : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
             )}
           >
-            {status === "closed" ? "Resolved" : status}
+            {status === "all"
+              ? t.inbox.filterAll
+              : status === "open"
+              ? t.inbox.filterOpen
+              : status === "closed"
+              ? t.inbox.filterResolved
+              : t.inbox.filterSnoozed}
           </button>
         ))}
         {currentUserId && (
@@ -212,7 +220,7 @@ export function ConversationList({
                 : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
             )}
           >
-            Mine
+            {t.inbox.mine}
           </button>
         )}
       </div>
@@ -227,7 +235,7 @@ export function ConversationList({
               onChange={(e) => setChannelFilter(e.target.value)}
               className="w-full appearance-none rounded-lg border border-input bg-background py-2 ps-9 pe-3 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-ring"
             >
-              <option value="all">All channels</option>
+              <option value="all">{t.inbox.allChannels}</option>
               {channels.map((c) => (
                 <option key={c.id} value={c.id}>
                   {channelLabel(c)}
@@ -243,11 +251,11 @@ export function ConversationList({
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <MessageSquare className="h-8 w-8 text-muted-foreground/50" />
-            <p className="mt-2 text-sm text-muted-foreground">No conversations found</p>
+            <p className="mt-2 text-sm text-muted-foreground">{t.inbox.noResults}</p>
           </div>
         ) : (
           filtered.map((conversation) => {
-            const name = conversation.contacts?.display_name ?? "Unknown";
+            const name = conversation.contacts?.display_name ?? t.inbox.unknown;
             const unread = conversation.unread_count > 0;
             const selected = selectedId === conversation.id;
             return (
@@ -318,7 +326,7 @@ export function ConversationList({
                       suppressHydrationWarning
                       className="text-[11px] text-muted-foreground"
                     >
-                      {mounted ? formatTime(conversation.last_message_at) : ""}
+                      {mounted ? formatTime(conversation.last_message_at, t.inbox.yesterday) : ""}
                     </span>
                   </div>
                 </div>
@@ -330,7 +338,7 @@ export function ConversationList({
                 <div className="flex items-center justify-between gap-2">
                   {isTyping(conversation) ? (
                     <p className="mt-0.5 truncate text-xs font-medium text-green-600">
-                      typing…
+                      {t.inbox.typing}
                     </p>
                   ) : (
                     <p
@@ -339,7 +347,7 @@ export function ConversationList({
                         unread ? "font-medium text-foreground" : "text-muted-foreground"
                       )}
                     >
-                      {conversation.last_message_preview ?? "No messages yet"}
+                      {conversation.last_message_preview ?? t.inbox.noMessages}
                     </p>
                   )}
                   {unread && (

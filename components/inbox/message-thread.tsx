@@ -14,6 +14,7 @@ import { LabelPicker } from "@/components/inbox/label-picker";
 import { parseAttachments, isImageType, type MessageAttachment } from "@/lib/attachments";
 import { parseRichContent, type RichButton } from "@/lib/rich-content";
 import { avatarGradient } from "@/lib/avatar";
+import { useI18n } from "@/components/i18n-provider";
 import type { Database, ConversationStatus } from "@/lib/types/database";
 
 type Message = Database["public"]["Tables"]["messages"]["Row"];
@@ -226,6 +227,7 @@ export function MessageThread({
   currentUserId?: string;
   currentUserName?: string;
 }) {
+  const { t } = useI18n();
   const router = useRouter();
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
@@ -614,10 +616,10 @@ export function MessageThread({
       <div className="flex h-full flex-col items-center justify-center bg-background text-center">
         <MessageSquare className="h-12 w-12 text-muted-foreground/30" />
         <h3 className="mt-4 text-sm font-medium text-muted-foreground">
-          Select a conversation
+          {t.inbox.selectConversation}
         </h3>
         <p className="mt-1 text-xs text-muted-foreground/70">
-          Choose a conversation from the list to view messages
+          {t.inbox.selectConversationHint}
         </p>
       </div>
     );
