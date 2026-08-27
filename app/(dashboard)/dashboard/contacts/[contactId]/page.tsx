@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { PlatformIcon } from "@/components/platform-icon";
 import { CustomFieldsEditor } from "@/components/contacts/custom-fields-editor";
+import { ContactTimeline, type TimelineEvent } from "@/components/contacts/contact-timeline";
 import { avatarGradient } from "@/lib/avatar";
 import { cn } from "@/lib/utils";
 
@@ -61,6 +62,65 @@ export default async function ContactDetailPage({
   for (const cf of customFieldsRes.data ?? []) {
     fieldValues[cf.field_id] = cf.value;
   }
+
+  // Activity timeline sources.
+  const [campaignRcptsRes, enrollmentsRes, surveysRes] = await Promise.all([
+    supabase
+      .from("campaign_recipients")
+      .select("status, created_at, campaigns(name)")
+      .eq("contact_id", contactId)
+      .order("created_at", { ascending: false })
+      .limit(50),
+    supabase
+      .from("sequence_enrollments")
+      .select("enrolled_at, status, sequences(name)")
+      .eq("contact_id", contactId)
+      .order("enrolled_at", { ascending: false })
+      .limit(50),
+    supabase
+      .from("csat_surveys")
+      .select("status, rating, created_at, responded_at")
+      .eq("contact_id", contactId)
+      .order("created_at", { ascending: false })
+      .limit(50),
+  ]);
+
+  const events: TimelineEvent[] = [];
+  events.push({ at: contact.created_at, kind: "created", title: "Contact created" });
+  for (const c of conversations) {
+    events.push({
+      at: c.last_message_at ?? contact.created_at,
+      kind: "conversation",
+      title: `Conversation on ${c.platform}`,
+      detail: c.last_message_preview ?? undefined,
+    });
+  }
+  for (const r of campaignRcptsRes.data ?? []) {
+    const name = (r.campaigns as unknown as { name?: string } | null)?.name ?? "a campaign";
+    events.push({
+      at: r.created_at,
+      kind: "campaign",
+      title: `Campaign: ${name}`,
+      detail: r.status === "sent" ? "Delivered" : "Failed",
+    });
+  }
+  for (const en of enrollmentsRes.data ?? []) {
+    const name = (en.sequences as unknown as { name?: string } | null)?.name ?? "a sequence";
+    events.push({
+      at: en.enrolled_at ?? contact.created_at,
+      kind: "sequence",
+      title: `Enrolled in ${name}`,
+      detail: en.status,
+    });
+  }
+  for (const s of surveysRes.data ?? []) {
+    events.push({
+      at: s.responded_at ?? s.created_at,
+      kind: "csat",
+      title: s.status === "responded" ? `Rated ${s.rating}/5` : "Survey sent",
+    });
+  }
+  events.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
   const tags = contact.contact_tags
     .map((ct: { tags: unknown }) => ct.tags)
     .filter(Boolean) as { id: string; name: string; color: string | null }[];
@@ -252,6 +312,9 @@ export default async function ContactDetailPage({
             definitions={fieldDefs}
             values={fieldValues}
           />
+
+          {/* Activity timeline */}
+          <ContactTimeline events={events} />
         </div>
       </div>
     </div>
