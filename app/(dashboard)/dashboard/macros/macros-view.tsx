@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Zap, Plus, Trash2, Save, X, GripVertical } from "lucide-react";
+import { Zap, Plus, Trash2, Save, X, GripVertical, Sparkles } from "lucide-react";
 import { createMacro, updateMacro, deleteMacro } from "@/lib/actions/macros";
+import { MACRO_TEMPLATES } from "@/lib/macro-templates";
 import {
   ACTION_TYPES,
   ACTION_LABELS,
@@ -47,6 +48,19 @@ export function MacrosView({
   const router = useRouter();
   const [editing, setEditing] = useState<Macro | null>(null);
   const [creating, setCreating] = useState(false);
+  const [seed, setSeed] = useState<{ name: string; actions: MacroAction[] } | null>(null);
+
+  function openBlank() {
+    setEditing(null);
+    setSeed(null);
+    setCreating(true);
+  }
+
+  function openTemplate(name: string, actions: MacroAction[]) {
+    setEditing(null);
+    setSeed({ name, actions });
+    setCreating(true);
+  }
 
   return (
     <div className="flex h-full flex-col">
@@ -58,10 +72,7 @@ export function MacrosView({
             subtitle="One-click action bundles your agents run on a conversation."
           />
           <button
-            onClick={() => {
-              setEditing(null);
-              setCreating(true);
-            }}
+            onClick={openBlank}
             className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
           >
             <Plus className="h-4 w-4" /> New macro
@@ -74,18 +85,46 @@ export function MacrosView({
           {(creating || editing) && (
             <MacroBuilder
               initial={editing}
+              seed={seed}
               labels={labels}
               agents={agents}
               onClose={() => {
                 setCreating(false);
                 setEditing(null);
+                setSeed(null);
               }}
               onSaved={() => {
                 setCreating(false);
                 setEditing(null);
+                setSeed(null);
                 router.refresh();
               }}
             />
+          )}
+
+          {/* Templates */}
+          {!creating && !editing && (
+            <div className="rounded-xl border border-border bg-card p-5 shadow-card">
+              <h2 className="mb-1 flex items-center gap-2 text-sm font-semibold">
+                <Sparkles className="h-4 w-4 text-primary" />
+                Start from a template
+              </h2>
+              <p className="mb-3 text-xs text-muted-foreground">
+                Prefill a macro you can tweak before saving.
+              </p>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {MACRO_TEMPLATES.map((tpl) => (
+                  <button
+                    key={tpl.id}
+                    onClick={() => openTemplate(tpl.name, tpl.actions)}
+                    className="rounded-lg border border-border p-3 text-start transition-colors hover:border-primary/40 hover:bg-accent/50"
+                  >
+                    <p className="text-sm font-medium">{tpl.name}</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">{tpl.description}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
           )}
 
           {macros.length === 0 && !creating ? (
@@ -139,20 +178,26 @@ export function MacrosView({
 
 function MacroBuilder({
   initial,
+  seed,
   labels,
   agents,
   onClose,
   onSaved,
 }: {
   initial: Macro | null;
+  seed?: { name: string; actions: MacroAction[] } | null;
   labels: Label[];
   agents: Agent[];
   onClose: () => void;
   onSaved: () => void;
 }) {
-  const [name, setName] = useState(initial?.name ?? "");
+  const [name, setName] = useState(initial?.name ?? seed?.name ?? "");
   const [actions, setActions] = useState<MacroAction[]>(
-    initial?.actions.length ? initial.actions : [{ type: "send_message", value: "" }]
+    initial?.actions.length
+      ? initial.actions
+      : seed?.actions.length
+      ? seed.actions
+      : [{ type: "send_message", value: "" }]
   );
   const [saving, setSaving] = useState(false);
 
