@@ -484,7 +484,7 @@ export function AnalyticsView({
               {statCards.map((card) => (
                 <div
                   key={card.label}
-                  className="rounded-xl border border-border bg-card shadow-card p-6"
+                  className="rounded-xl border border-border bg-card p-5 shadow-card transition-shadow hover:shadow-card-hover"
                 >
                   <div className="flex items-center gap-3">
                     <div
