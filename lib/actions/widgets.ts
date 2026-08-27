@@ -42,6 +42,7 @@ export async function setWidgetConfig(
     greeting: string;
     proactive?: string;
     proactiveDelay?: number;
+    proactivePaths?: string[];
     starters?: string[];
     away?: boolean;
     awayMessage?: string;
@@ -56,6 +57,11 @@ export async function setWidgetConfig(
     .filter((s) => s.length > 0)
     .map((s) => s.slice(0, 80))
     .slice(0, 4);
+  const proactivePaths = (config.proactivePaths ?? [])
+    .map((s) => (typeof s === "string" ? s.trim() : ""))
+    .filter((s) => s.length > 0)
+    .map((s) => s.slice(0, 200))
+    .slice(0, 20);
   const { error } = await supabase
     .from("channels")
     .update({
@@ -64,6 +70,7 @@ export async function setWidgetConfig(
         greeting: config.greeting.trim().slice(0, 300),
         proactive: (config.proactive ?? "").trim().slice(0, 300),
         proactiveDelay: Number.isFinite(delay) && delay > 0 ? Math.round(delay) : 15,
+        proactivePaths,
         starters,
         away: config.away === true,
         awayMessage: (config.awayMessage ?? "").trim().slice(0, 200),

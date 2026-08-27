@@ -59,12 +59,20 @@ describe("parseWidgetConfig", () => {
       greeting: null,
       proactive: null,
       proactiveDelay: 15,
+      proactivePaths: [],
       starters: [],
       away: false,
       awayMessage: null,
       formId: null,
     });
     expect(parseWidgetConfig(null).prechat).toBe(false);
+  });
+
+  it("reads and cleans proactive page paths", () => {
+    const cfg = parseWidgetConfig({
+      proactivePaths: ["  /pricing ", "", 7, "/checkout"],
+    });
+    expect(cfg.proactivePaths).toEqual(["/pricing", "/checkout"]);
   });
 
   it("reads and caps conversation starters", () => {

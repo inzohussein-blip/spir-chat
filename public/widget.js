@@ -246,11 +246,24 @@
     document.body.appendChild(teaser);
   }
 
+  // The teaser shows on every page unless proactivePaths is set, in which case
+  // the current page URL must contain one of the given path fragments.
+  function pageMatches(paths) {
+    if (!paths || !paths.length) return true;
+    var url = "";
+    try { url = (window.location.pathname + window.location.search).toLowerCase(); }
+    catch (e) { return true; }
+    for (var i = 0; i < paths.length; i++) {
+      if (typeof paths[i] === "string" && url.indexOf(paths[i].toLowerCase()) !== -1) return true;
+    }
+    return false;
+  }
+
   function loadConfigAndSchedule() {
     fetch(origin + "/api/widget/" + encodeURIComponent(channelId) + "/config")
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (cfg) {
-        if (cfg && cfg.proactive) {
+        if (cfg && cfg.proactive && pageMatches(cfg.proactivePaths)) {
           var delay = (cfg.proactiveDelay || 15) * 1000;
           setTimeout(function () { showTeaser(cfg.proactive); }, delay);
         }

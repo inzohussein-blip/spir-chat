@@ -61,6 +61,9 @@ export interface WidgetConfig {
   proactive: string | null;
   /** Seconds to wait before showing the proactive teaser. */
   proactiveDelay: number;
+  /** Show the proactive teaser only when the host page path contains one of
+   *  these (empty = every page). Matched against the embedding page URL. */
+  proactivePaths: string[];
   /** Clickable quick-reply prompts shown when the chat is empty (Tidio-style). */
   starters: string[];
   /** When on, the widget shows an "away" state instead of "online". */
@@ -96,6 +99,12 @@ export function parseWidgetConfig(raw: unknown): WidgetConfig {
         .map((x) => x.trim().slice(0, 80))
         .slice(0, MAX_STARTERS)
     : [];
+  const proactivePaths = Array.isArray(o.proactivePaths)
+    ? o.proactivePaths
+        .filter((x): x is string => typeof x === "string" && x.trim().length > 0)
+        .map((x) => x.trim().slice(0, 200))
+        .slice(0, 20)
+    : [];
   const awayMessage =
     typeof o.awayMessage === "string" && o.awayMessage.trim()
       ? o.awayMessage.trim().slice(0, 200)
@@ -107,6 +116,7 @@ export function parseWidgetConfig(raw: unknown): WidgetConfig {
     greeting,
     proactive,
     proactiveDelay,
+    proactivePaths,
     starters,
     away: o.away === true,
     awayMessage,

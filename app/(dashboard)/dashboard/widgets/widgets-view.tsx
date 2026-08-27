@@ -34,6 +34,7 @@ function WidgetConfigEditor({
   const [greeting, setGreeting] = useState(initial.greeting ?? "");
   const [proactive, setProactive] = useState(initial.proactive ?? "");
   const [proactiveDelay, setProactiveDelay] = useState(initial.proactiveDelay);
+  const [proactivePaths, setProactivePaths] = useState(initial.proactivePaths.join("\n"));
   const [starters, setStarters] = useState(initial.starters.join("\n"));
   const [away, setAway] = useState(initial.away);
   const [awayMessage, setAwayMessage] = useState(initial.awayMessage ?? "");
@@ -49,6 +50,7 @@ function WidgetConfigEditor({
       greeting,
       proactive,
       proactiveDelay,
+      proactivePaths: proactivePaths.split("\n"),
       starters: starters.split("\n"),
       away,
       awayMessage,
@@ -102,6 +104,19 @@ function WidgetConfigEditor({
           <span className="text-xs text-muted-foreground">sec</span>
         </div>
       </div>
+      <p className="mb-2 mt-3 text-xs font-medium text-muted-foreground">
+        Show only on pages
+        <span className="ms-1 font-normal text-muted-foreground/70">
+          (URL path contains — one per line; empty = every page)
+        </span>
+      </p>
+      <textarea
+        value={proactivePaths}
+        onChange={(e) => setProactivePaths(e.target.value)}
+        placeholder={"e.g.\n/pricing\n/checkout"}
+        rows={2}
+        className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+      />
 
       <p className="mb-2 mt-5 text-xs font-medium text-muted-foreground">
         Conversation starters
