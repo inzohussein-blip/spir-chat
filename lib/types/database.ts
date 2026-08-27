@@ -280,6 +280,39 @@ export interface Database {
         };
         Relationships: [];
       };
+      csat_surveys: {
+        Row: {
+          id: string;
+          workspace_id: string;
+          conversation_id: string;
+          contact_id: string | null;
+          token: string;
+          status: string;
+          rating: number | null;
+          feedback: string | null;
+          created_at: string;
+          responded_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          workspace_id: string;
+          conversation_id: string;
+          contact_id?: string | null;
+          token: string;
+          status?: string;
+          rating?: number | null;
+          feedback?: string | null;
+          created_at?: string;
+          responded_at?: string | null;
+        };
+        Update: {
+          status?: string;
+          rating?: number | null;
+          feedback?: string | null;
+          responded_at?: string | null;
+        };
+        Relationships: [];
+      };
       report_shares: {
         Row: {
           id: string;

@@ -8,8 +8,11 @@ import {
   Timer,
   Inbox,
   LineChart,
+  Star,
+  Smile,
 } from "lucide-react";
 import { PageTitle } from "@/components/page-title";
+import { csatStats } from "@/lib/csat";
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -36,6 +39,7 @@ export default async function ReportsPage() {
     { count: snoozed },
     { count: outboundWeek },
     { data: webConvs },
+    { data: surveys },
   ] = await Promise.all([
     base(),
     base().eq("status", "open"),
@@ -53,7 +57,18 @@ export default async function ReportsPage() {
       .eq("platform", "website")
       .order("last_message_at", { ascending: false, nullsFirst: false })
       .limit(200),
+    supabase
+      .from("csat_surveys")
+      .select("rating, status, feedback, responded_at")
+      .eq("workspace_id", wsId)
+      .order("created_at", { ascending: false })
+      .limit(500),
   ]);
+
+  const csat = csatStats(surveys ?? []);
+  const recentComments = (surveys ?? [])
+    .filter((s) => s.status === "responded" && s.feedback)
+    .slice(0, 5);
 
   // First-response time: for each website conversation, seconds from the first
   // inbound message to the first outbound reply after it. (Website threads store
@@ -124,6 +139,68 @@ export default async function ReportsPage() {
             );
           })}
         </div>
+
+        {csat.sent > 0 && (
+          <div className="mt-8">
+            <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold">
+              <Smile className="h-4 w-4 text-amber-500" />
+              Customer satisfaction (CSAT)
+            </h2>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="rounded-xl border border-border bg-card shadow-card p-5">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">CSAT score</p>
+                  <Smile className="h-4 w-4 text-emerald-600" />
+                </div>
+                <p className="mt-2 text-3xl font-bold">
+                  {csat.satisfactionScore == null ? "—" : `${csat.satisfactionScore}%`}
+                </p>
+              </div>
+              <div className="rounded-xl border border-border bg-card shadow-card p-5">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">Average rating</p>
+                  <Star className="h-4 w-4 text-amber-500" />
+                </div>
+                <p className="mt-2 text-3xl font-bold">
+                  {csat.average == null ? "—" : `${csat.average}/5`}
+                </p>
+              </div>
+              <div className="rounded-xl border border-border bg-card shadow-card p-5">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">Responses</p>
+                  <MessageSquare className="h-4 w-4 text-violet-600" />
+                </div>
+                <p className="mt-2 text-3xl font-bold">{csat.responses}</p>
+              </div>
+              <div className="rounded-xl border border-border bg-card shadow-card p-5">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">Response rate</p>
+                  <Send className="h-4 w-4 text-cyan-600" />
+                </div>
+                <p className="mt-2 text-3xl font-bold">
+                  {csat.responseRate == null ? "—" : `${csat.responseRate}%`}
+                </p>
+              </div>
+            </div>
+
+            {recentComments.length > 0 && (
+              <div className="mt-4 rounded-xl border border-border bg-card shadow-card p-5">
+                <p className="mb-3 text-sm font-semibold">Recent feedback</p>
+                <ul className="space-y-3">
+                  {recentComments.map((s, i) => (
+                    <li key={i} className="flex items-start gap-3">
+                      <span className="mt-0.5 inline-flex items-center gap-0.5 rounded-md bg-amber-50 px-1.5 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-950/30 dark:text-amber-300">
+                        <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                        {s.rating}
+                      </span>
+                      <p className="text-sm text-muted-foreground">{s.feedback}</p>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
 
         <p className="mt-6 text-xs text-muted-foreground">
           Response time is measured on website conversations (social message

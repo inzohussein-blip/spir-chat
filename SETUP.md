@@ -73,6 +73,7 @@ project run the new files in order in the SQL Editor. Summary:
 | `00037_report_shares` | Shareable public link-performance reports |
 | `00038_dm_jobs_buttons` | Carry link buttons through the DM retry queue |
 | `00039_segments` | Saved audience segments for campaign targeting |
+| `00040_csat` | Post-resolution customer-satisfaction surveys |
 
 Optional environment variables (each feature degrades to a safe no-op when its
 keys are absent):

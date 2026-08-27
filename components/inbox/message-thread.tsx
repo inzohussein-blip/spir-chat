@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Send, Paperclip, Bot, User, MessageSquare, MessageSquareText, CheckCircle, Clock, RotateCcw, Loader2, StickyNote, UserPlus, UserCheck, PenLine, Smile, MousePointerClick } from "lucide-react";
+import { Send, Paperclip, Bot, User, MessageSquare, MessageSquareText, CheckCircle, Clock, RotateCcw, Loader2, StickyNote, UserPlus, UserCheck, PenLine, Smile, MousePointerClick, Star } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { resolveWithSurvey } from "@/lib/actions/csat";
 import { cn } from "@/lib/utils";
 import { PlatformIcon } from "@/components/platform-icon";
 import { filterCannedResponses, isCannedShortcut, type CannedResponseItem } from "@/lib/canned";
@@ -420,6 +421,20 @@ export function MessageThread({
     setShowUndo(false);
     updateConversationStatus("open");
   }
+
+  async function resolveWithRating() {
+    if (!conversation || statusUpdating) return;
+    setStatusUpdating("closed");
+    try {
+      const res = await resolveWithSurvey(conversation.id);
+      if (res.error) throw new Error(res.error);
+      router.refresh();
+    } catch {
+      alert("Failed to send the rating request.");
+    } finally {
+      setStatusUpdating(null);
+    }
+  }
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -707,6 +722,15 @@ export function MessageThread({
                     {statusUpdating === "snoozed" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Clock className="h-3.5 w-3.5" />}
                   </button>
                 )}
+                <button
+                  onClick={resolveWithRating}
+                  disabled={!!statusUpdating}
+                  title="Resolve and ask the contact to rate this conversation"
+                  aria-label="Resolve and request a rating"
+                  className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-amber-500 transition-colors disabled:opacity-50"
+                >
+                  <Star className="h-3.5 w-3.5" />
+                </button>
                 <button
                   onClick={resolve}
                   disabled={!!statusUpdating}
