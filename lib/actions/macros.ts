@@ -3,6 +3,7 @@
 import { getWorkspace } from "@/lib/workspace";
 import { sendConversationMessage } from "@/lib/outbound";
 import { parseMacroActions, validMacroActions, type MacroAction } from "@/lib/macros";
+import { renderMergeVariables } from "@/lib/merge";
 import type { ConversationStatus } from "@/lib/types/database";
 import { revalidatePath } from "next/cache";
 
@@ -60,7 +61,7 @@ export async function runMacro(macroId: string, conversationId: string) {
       .maybeSingle(),
     supabase
       .from("conversations")
-      .select("id, workspace_id, platform, late_conversation_id, channels(late_account_id)")
+      .select("id, workspace_id, platform, late_conversation_id, channels(late_account_id), contacts(display_name, email, phone)")
       .eq("id", conversationId)
       .eq("workspace_id", workspace.id)
       .maybeSingle(),
@@ -70,6 +71,9 @@ export async function runMacro(macroId: string, conversationId: string) {
 
   const actions = validMacroActions(parseMacroActions(macro.actions));
   const convChannels = conversation.channels as { late_account_id: string } | null;
+  const contact = conversation.contacts as
+    | { display_name: string | null; email: string | null; phone: string | null }
+    | null;
 
   for (const action of actions) {
     switch (action.type) {
@@ -110,7 +114,7 @@ export async function runMacro(macroId: string, conversationId: string) {
             late_conversation_id: conversation.late_conversation_id,
             channels: convChannels,
           },
-          action.value,
+          renderMergeVariables(action.value, contact ?? {}),
           user.id
         );
         break;

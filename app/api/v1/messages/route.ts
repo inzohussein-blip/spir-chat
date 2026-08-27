@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createZernioClient } from "@/lib/zernio-client";
 import { parseAttachments } from "@/lib/attachments";
 import { parseRichContent } from "@/lib/rich-content";
+import { renderMergeVariables } from "@/lib/merge";
 
 /**
  * GET /api/v1/messages?conversationId=...
@@ -113,27 +114,34 @@ export async function POST(request: NextRequest) {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await request.json();
-  const { conversationId, text } = body;
+  const { conversationId, text: rawText } = body;
   const attachments = parseAttachments(body?.attachments);
   const richContent = parseRichContent(body?.rich_content);
 
-  if (!conversationId || (!text && attachments.length === 0 && !richContent)) {
+  if (!conversationId || (!rawText && attachments.length === 0 && !richContent)) {
     return NextResponse.json(
       { error: "conversationId and text (or an attachment) required" },
       { status: 400 }
     );
   }
 
-  // Get conversation with channel info
+  // Get conversation with channel + contact info
   const { data: conversation } = await supabase
     .from("conversations")
-    .select("*, channels(*)")
+    .select("*, channels(*), contacts(display_name, email, phone)")
     .eq("id", conversationId)
     .single();
 
   if (!conversation) {
     return NextResponse.json({ error: "Conversation not found" }, { status: 404 });
   }
+
+  // Resolve {{field}} merge variables against the conversation's contact so
+  // saved replies personalize on send.
+  const contact = conversation.contacts as
+    | { display_name: string | null; email: string | null; phone: string | null }
+    | null;
+  const text = typeof rawText === "string" ? renderMergeVariables(rawText, contact ?? {}) : rawText;
 
   // Website conversations: store the agent reply locally. The visitor's widget
   // polls it; no Zernio call. RLS ensures only workspace members reach here.

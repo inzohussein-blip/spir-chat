@@ -146,6 +146,13 @@ export function CampaignsView({
               placeholder="Message…"
               className="mt-2 w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
             />
+            <p className="mt-2 text-xs text-muted-foreground">
+              Personalize with{" "}
+              <code className="rounded bg-muted px-1 py-0.5">{"{{first_name}}"}</code>,{" "}
+              <code className="rounded bg-muted px-1 py-0.5">{"{{name}}"}</code>,{" "}
+              <code className="rounded bg-muted px-1 py-0.5">{"{{email}}"}</code> — add a fallback like{" "}
+              <code className="rounded bg-muted px-1 py-0.5">{"{{first_name|there}}"}</code>.
+            </p>
             <div className="mt-3 flex items-center justify-between">
               <p className="text-xs text-muted-foreground">
                 Sends to subscribed contacts with {channel === "email" ? "an email" : "a phone number"}.

@@ -233,6 +233,12 @@ function MacroBuilder({
         </button>
       </div>
 
+      <p className="mt-2 text-xs text-muted-foreground">
+        Messages personalize with{" "}
+        <code className="rounded bg-muted px-1 py-0.5">{"{{first_name}}"}</code> and{" "}
+        <code className="rounded bg-muted px-1 py-0.5">{"{{name}}"}</code>.
+      </p>
+
       <div className="mt-4 flex items-center justify-end gap-2">
         <button onClick={onClose} className="rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-muted">
           Cancel

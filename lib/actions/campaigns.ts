@@ -8,6 +8,7 @@ import {
   type CampaignChannel,
 } from "@/lib/campaigns/providers";
 import { renderMessageWithTracking } from "@/lib/tracking";
+import { renderMergeVariables } from "@/lib/merge";
 import { applySegment, parseSegmentRules } from "@/lib/segments";
 
 const CHANNELS: CampaignChannel[] = ["email", "sms", "whatsapp"];
@@ -77,7 +78,7 @@ export async function sendCampaign(id: string) {
   const field = channel === "email" ? "email" : "phone";
   let audience = supabase
     .from("contacts")
-    .select(`id, display_name, ${field}`)
+    .select("id, display_name, email, phone")
     .eq("workspace_id", workspace.id)
     .eq("is_subscribed", true)
     .not(field, "is", null);
@@ -99,9 +100,14 @@ export async function sendCampaign(id: string) {
     const row = c as Record<string, string | null>;
     const recipient = row[field];
     if (!recipient) continue;
-    // Personalize {username}; strip any leftover {link} token.
+    // Resolve {{field}} merge variables, then strip any leftover {link} token.
+    const merged = renderMergeVariables(campaign.body, {
+      display_name: row.display_name,
+      email: row.email,
+      phone: row.phone,
+    });
     const body = renderMessageWithTracking({
-      message: campaign.body,
+      message: merged,
       recipientName: row.display_name,
     });
     const res = await sendCampaignMessage(
