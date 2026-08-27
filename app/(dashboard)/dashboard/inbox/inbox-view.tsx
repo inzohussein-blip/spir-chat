@@ -179,7 +179,7 @@ export function InboxView({
             <button
               onClick={() => setShowContactPanel(true)}
               className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-              aria-label="Show contact info"
+              aria-label={t.inbox.contactInfo}
             >
               <User className="h-3.5 w-3.5" />
               {t.inbox.contactInfo}

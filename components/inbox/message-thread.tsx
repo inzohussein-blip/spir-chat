@@ -39,14 +39,17 @@ function formatMessageTime(dateStr: string): string {
   return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
-function formatDateSeparator(dateStr: string): string {
+function formatDateSeparator(
+  dateStr: string,
+  labels: { today: string; yesterday: string }
+): string {
   const date = new Date(dateStr);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
-  if (diffDays === 0) return "Today";
-  if (diffDays === 1) return "Yesterday";
+  if (diffDays === 0) return labels.today;
+  if (diffDays === 1) return labels.yesterday;
   return date.toLocaleDateString([], {
     weekday: "long",
     month: "short",
@@ -55,12 +58,13 @@ function formatDateSeparator(dateStr: string): string {
 }
 
 function NoteBubble({ note }: { note: Note }) {
+  const { t } = useI18n();
   return (
     <div className="flex justify-center">
       <div className="w-full max-w-[85%] rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-200">
         <div className="mb-1 flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wide text-amber-600 dark:text-amber-400">
           <StickyNote className="h-3 w-3" />
-          Internal note · only your team can see this
+          {t.inbox.internalNoteLabel}
         </div>
         <p className="whitespace-pre-wrap break-words">{note.body}</p>
         <p className="mt-1 text-[10px] text-amber-600/80 dark:text-amber-400/70">
@@ -72,6 +76,7 @@ function NoteBubble({ note }: { note: Note }) {
 }
 
 function MessageBubble({ message }: { message: Message }) {
+  const { t } = useI18n();
   const isInbound = message.direction === "inbound";
   const isBot = message.sent_by_flow_id !== null;
 
@@ -187,9 +192,9 @@ function MessageBubble({ message }: { message: Message }) {
           {!isInbound && message.status !== "sent" && (
             <span className="capitalize">
               {message.status === "delivered"
-                ? "Delivered"
+                ? t.inbox.delivered
                 : message.status === "failed"
-                ? "Failed"
+                ? t.inbox.failed
                 : ""}
             </span>
           )}
@@ -434,7 +439,7 @@ export function MessageThread({
       if (res.error) throw new Error(res.error);
       router.refresh();
     } catch {
-      alert("Failed to send the rating request.");
+      alert(t.inbox.sendRatingFailed);
     } finally {
       setStatusUpdating(null);
     }
@@ -454,7 +459,7 @@ export function MessageThread({
       if (error) throw error;
       router.refresh();
     } catch {
-      alert(`Failed to update conversation status`);
+      alert(t.inbox.updateStatusFailed);
     } finally {
       setStatusUpdating(null);
     }
@@ -657,7 +662,7 @@ export function MessageThread({
           </div>
           <div>
             <p className="text-sm font-semibold">
-              {conversation.contacts?.display_name ?? "Unknown"}
+              {conversation.contacts?.display_name ?? t.inbox.unknown}
             </p>
           </div>
         </div>
@@ -668,10 +673,10 @@ export function MessageThread({
               onClick={toggleAssign}
               title={
                 assignedTo === currentUserId
-                  ? "Assigned to you — click to unassign"
+                  ? t.inbox.assignedToYou
                   : assignedTo
-                  ? "Assigned to a teammate — click to take over"
-                  : "Assign to me"
+                  ? t.inbox.assignedTeammate
+                  : t.inbox.assignToMe
               }
               className={cn(
                 "inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium transition-colors",
@@ -682,15 +687,15 @@ export function MessageThread({
             >
               {assignedTo === currentUserId ? (
                 <>
-                  <UserCheck className="h-3.5 w-3.5" /> You
+                  <UserCheck className="h-3.5 w-3.5" /> {t.inbox.you}
                 </>
               ) : assignedTo ? (
                 <>
-                  <User className="h-3.5 w-3.5" /> Assigned
+                  <User className="h-3.5 w-3.5" /> {t.inbox.assigned}
                 </>
               ) : (
                 <>
-                  <UserPlus className="h-3.5 w-3.5" /> Assign to me
+                  <UserPlus className="h-3.5 w-3.5" /> {t.inbox.assignToMe}
                 </>
               )}
             </button>
@@ -705,11 +710,15 @@ export function MessageThread({
                 : "bg-muted text-muted-foreground"
             )}
           >
-            {conversation.status === "closed" ? "Resolved" : conversation.status}
+            {conversation.status === "closed"
+              ? t.inbox.statusResolved
+              : conversation.status === "snoozed"
+              ? t.inbox.statusSnoozed
+              : t.inbox.statusOpen}
           </span>
           {conversation.is_automation_paused && (
             <span className="rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-medium text-orange-700">
-              Bot paused
+              {t.inbox.botPaused}
             </span>
           )}
           <div className="flex items-center gap-1.5">
@@ -720,8 +729,8 @@ export function MessageThread({
                   <button
                     onClick={() => updateConversationStatus("snoozed")}
                     disabled={!!statusUpdating}
-                    title="Snooze"
-                    aria-label="Snooze conversation"
+                    title={t.inbox.snooze}
+                    aria-label={t.inbox.snoozeAria}
                     className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors disabled:opacity-50"
                   >
                     {statusUpdating === "snoozed" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Clock className="h-3.5 w-3.5" />}
@@ -731,8 +740,8 @@ export function MessageThread({
                   <button
                     onClick={resolveWithRating}
                     disabled={!!statusUpdating}
-                    title="Resolve and ask the contact to rate this conversation"
-                    aria-label="Resolve and request a rating"
+                    title={t.inbox.resolveRatingTitle}
+                    aria-label={t.inbox.resolveRatingAria}
                     className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-amber-500 transition-colors disabled:opacity-50"
                   >
                     <Star className="h-3.5 w-3.5" />
@@ -744,7 +753,7 @@ export function MessageThread({
                   className="inline-flex items-center gap-1.5 rounded-md bg-emerald-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-emerald-700 transition-colors disabled:opacity-50"
                 >
                   {statusUpdating === "closed" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle className="h-3.5 w-3.5" />}
-                  Resolve
+                  {t.inbox.resolve}
                 </button>
               </>
             ) : (
@@ -754,7 +763,7 @@ export function MessageThread({
                 className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1 text-xs font-medium text-foreground hover:bg-accent transition-colors disabled:opacity-50"
               >
                 {statusUpdating === "open" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />}
-                Reopen
+                {t.inbox.reopen}
               </button>
             )}
           </div>
@@ -766,14 +775,14 @@ export function MessageThread({
         <div className="flex items-center justify-between gap-3 border-b border-emerald-200 bg-emerald-50 px-4 py-2 text-xs text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-300">
           <span className="inline-flex items-center gap-1.5">
             <CheckCircle className="h-3.5 w-3.5" />
-            Conversation resolved.
+            {t.inbox.conversationResolved}
           </span>
           <button
             onClick={undoResolve}
             className="inline-flex items-center gap-1 font-semibold underline underline-offset-2 hover:opacity-80"
           >
             <RotateCcw className="h-3 w-3" />
-            Undo
+            {t.inbox.undo}
           </button>
         </div>
       )}
@@ -805,7 +814,7 @@ export function MessageThread({
                   <div className="my-4 flex items-center gap-3">
                     <div className="h-px flex-1 bg-border" />
                     <span className="text-[11px] text-muted-foreground">
-                      {formatDateSeparator(item.at)}
+                      {formatDateSeparator(item.at, { today: t.inbox.today, yesterday: t.inbox.yesterday })}
                     </span>
                     <div className="h-px flex-1 bg-border" />
                   </div>
@@ -852,7 +861,7 @@ export function MessageThread({
             )}
           >
             <MessageSquare className="h-3.5 w-3.5" />
-            Reply
+            {t.inbox.reply}
           </button>
           <button
             type="button"
@@ -865,7 +874,7 @@ export function MessageThread({
             )}
           >
             <StickyNote className="h-3.5 w-3.5" />
-            Note
+            {t.inbox.note}
           </button>
           {mode === "reply" && isWebsite && (
             <button
@@ -879,14 +888,14 @@ export function MessageThread({
               )}
             >
               <MousePointerClick className="h-3.5 w-3.5" />
-              Buttons{pendingButtons.length > 0 ? ` (${pendingButtons.length})` : ""}
+              {t.inbox.buttonsLabel}{pendingButtons.length > 0 ? ` (${pendingButtons.length})` : ""}
             </button>
           )}
           {mode === "reply" && currentUserName && (
             <button
               type="button"
               onClick={toggleSigning}
-              title={signing ? `Signing replies as ${currentUserName}` : "Sign replies with your name"}
+              title={signing ? `${t.inbox.signingAs} ${currentUserName}` : t.inbox.signTitle}
               className={cn(
                 "ms-auto inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
                 signing
@@ -895,7 +904,7 @@ export function MessageThread({
               )}
             >
               <PenLine className="h-3.5 w-3.5" />
-              Sign
+              {t.inbox.sign}
             </button>
           )}
         </div>
@@ -913,7 +922,7 @@ export function MessageThread({
                     {b.label}
                     <button
                       type="button"
-                      aria-label="Remove button"
+                      aria-label={t.inbox.removeButton}
                       onClick={() =>
                         setPendingButtons((prev) => prev.filter((_, j) => j !== i))
                       }
@@ -930,7 +939,7 @@ export function MessageThread({
                 <input
                   value={btnLabel}
                   onChange={(e) => setBtnLabel(e.target.value)}
-                  placeholder="Button label"
+                  placeholder={t.inbox.buttonLabelPlaceholder}
                   className="w-32 rounded-md border border-input bg-background px-2 py-1.5 text-xs outline-none focus:ring-1 focus:ring-ring"
                 />
                 <input
@@ -945,7 +954,7 @@ export function MessageThread({
                   onClick={addButton}
                   className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground"
                 >
-                  Add
+                  {t.inbox.add}
                 </button>
               </div>
             )}
@@ -969,7 +978,7 @@ export function MessageThread({
                 <span className="max-w-[140px] truncate">{a.name}</span>
                 <button
                   type="button"
-                  aria-label="Remove attachment"
+                  aria-label={t.inbox.removeAttachment}
                   onClick={() =>
                     setPendingAttachments((prev) => prev.filter((_, j) => j !== i))
                   }
@@ -1012,7 +1021,7 @@ export function MessageThread({
             <button
               type="button"
               onClick={() => setShowCanned((s) => !s)}
-              aria-label="Saved replies"
+              aria-label={t.inbox.savedRepliesAria}
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-input text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
             >
               <MessageSquareText className="h-4 w-4" />
@@ -1024,7 +1033,7 @@ export function MessageThread({
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
-              aria-label="Attach file"
+              aria-label={t.inbox.attachFileAria}
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-input text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-50"
             >
               {uploading ? (
@@ -1053,7 +1062,7 @@ export function MessageThread({
             <button
               type="button"
               onClick={() => setShowEmoji((s) => !s)}
-              aria-label="Emoji"
+              aria-label={t.inbox.emojiAria}
               className={cn(
                 "flex h-10 w-10 items-center justify-center rounded-lg border border-input transition-colors hover:bg-accent hover:text-foreground",
                 showEmoji ? "text-primary" : "text-muted-foreground"
@@ -1085,11 +1094,7 @@ export function MessageThread({
                   submit();
                 }
               }}
-              placeholder={
-                mode === "note"
-                  ? "Add an internal note (only your team sees this)…"
-                  : "Type a message…  (use / for saved replies)"
-              }
+              placeholder={mode === "note" ? t.inbox.notePlaceholder : t.inbox.replyPlaceholder}
               rows={1}
               className={cn(
                 "w-full resize-none rounded-lg border bg-background px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2",
@@ -1110,7 +1115,7 @@ export function MessageThread({
                   (pendingAttachments.length > 0 || pendingButtons.length > 0)
                 ))
             }
-            aria-label={mode === "note" ? "Save note" : "Send message"}
+            aria-label={mode === "note" ? t.inbox.saveNoteAria : t.inbox.sendMessageAria}
             className={cn(
               "flex h-10 w-10 items-center justify-center rounded-lg transition-colors",
               sending ||
@@ -1143,6 +1148,7 @@ function MacroRunner({
   conversationId: string;
   onRan: () => void;
 }) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [macros, setMacros] = useState<MacroSummary[] | null>(null);
   const [running, setRunning] = useState<string | null>(null);
@@ -1174,8 +1180,8 @@ function MacroRunner({
     <div className="relative">
       <button
         onClick={toggle}
-        title="Run a macro"
-        aria-label="Run a macro"
+        title={t.inbox.runMacro}
+        aria-label={t.inbox.runMacro}
         className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-primary transition-colors"
       >
         <Zap className="h-3.5 w-3.5" />
@@ -1185,10 +1191,10 @@ function MacroRunner({
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
           <div className="absolute end-0 z-20 mt-1 w-56 rounded-lg border border-border bg-popover p-1 shadow-lg">
             {macros === null ? (
-              <div className="px-3 py-2 text-xs text-muted-foreground">Loading…</div>
+              <div className="px-3 py-2 text-xs text-muted-foreground">{t.inbox.loading}</div>
             ) : macros.length === 0 ? (
               <div className="px-3 py-2 text-xs text-muted-foreground">
-                No macros yet. Create one under Macros.
+                {t.inbox.noMacros}
               </div>
             ) : (
               macros.map((m) => (

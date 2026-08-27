@@ -14,6 +14,7 @@ import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { avatarGradient } from "@/lib/avatar";
 import { PlatformIcon } from "@/components/platform-icon";
+import { useI18n } from "@/components/i18n-provider";
 import type { Database, Platform } from "@/lib/types/database";
 
 type Contact = Database["public"]["Tables"]["contacts"]["Row"];
@@ -33,8 +34,8 @@ interface ContactDetails {
   }[];
 }
 
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return "Never";
+function formatDate(dateStr: string | null, neverLabel: string): string {
+  if (!dateStr) return neverLabel;
   return new Date(dateStr).toLocaleDateString([], {
     month: "short",
     day: "numeric",
@@ -53,6 +54,7 @@ export function ContactPanel({
   workspaceId: string;
   onClose: () => void;
 }) {
+  const { t } = useI18n();
   const [loadedDetails, setDetails] = useState<ContactDetails | null>(null);
   const [loading, setLoading] = useState(false);
   const [orders, setOrders] = useState<
@@ -138,7 +140,7 @@ export function ContactPanel({
     <div className="flex h-full w-80 flex-col border-s border-border bg-card">
       {/* Header */}
       <div className="flex h-14 items-center justify-between border-b border-border px-4">
-        <h3 className="text-sm font-semibold">Contact Info</h3>
+        <h3 className="text-sm font-semibold">{t.inbox.contactInfo}</h3>
         <button
           onClick={onClose}
           className="rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
@@ -165,14 +167,14 @@ export function ContactPanel({
               <div
                 className={cn(
                   "flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br text-xl font-semibold text-white shadow-sm",
-                  avatarGradient(details.contact.display_name ?? "Unknown")
+                  avatarGradient(details.contact.display_name ?? t.inbox.unknown)
                 )}
               >
                 {details.contact.display_name?.[0]?.toUpperCase() ?? "?"}
               </div>
             )}
             <p className="mt-3 text-sm font-semibold">
-              {details.contact.display_name ?? "Unknown"}
+              {details.contact.display_name ?? t.inbox.unknown}
             </p>
             {details.contact.email && (
               <p className="mt-0.5 text-xs text-muted-foreground">
@@ -187,7 +189,7 @@ export function ContactPanel({
                   : "bg-muted text-muted-foreground"
               )}
             >
-              {details.contact.is_subscribed ? "Subscribed" : "Unsubscribed"}
+              {details.contact.is_subscribed ? t.inbox.subscribed : t.inbox.unsubscribed}
             </span>
           </div>
 
@@ -197,7 +199,7 @@ export function ContactPanel({
             {details.channels.length > 0 && (
               <div>
                 <h4 className="text-xs font-medium uppercase text-muted-foreground">
-                  Platforms
+                  {t.inbox.platforms}
                 </h4>
                 <div className="mt-2 space-y-1.5">
                   {details.channels.map((ch, i) => (
@@ -229,7 +231,7 @@ export function ContactPanel({
               <div>
                 <h4 className="flex items-center gap-1.5 text-xs font-medium uppercase text-muted-foreground">
                   <Mail className="h-3 w-3" />
-                  Email
+                  {t.inbox.email}
                 </h4>
                 <p className="mt-1 text-sm">{details.contact.email}</p>
               </div>
@@ -240,7 +242,7 @@ export function ContactPanel({
               <div>
                 <h4 className="flex items-center gap-1.5 text-xs font-medium uppercase text-muted-foreground">
                   <ShoppingBag className="h-3 w-3" />
-                  Recent Orders
+                  {t.inbox.recentOrders}
                 </h4>
                 <div className="mt-2 space-y-1.5">
                   {orders.map((o) => (
@@ -265,10 +267,10 @@ export function ContactPanel({
             <div>
               <h4 className="flex items-center gap-1.5 text-xs font-medium uppercase text-muted-foreground">
                 <Calendar className="h-3 w-3" />
-                Last Interaction
+                {t.inbox.lastInteraction}
               </h4>
               <p className="mt-1 text-sm">
-                {formatDate(details.contact.last_interaction_at)}
+                {formatDate(details.contact.last_interaction_at, t.inbox.never)}
               </p>
             </div>
 
@@ -276,10 +278,10 @@ export function ContactPanel({
             <div>
               <h4 className="flex items-center gap-1.5 text-xs font-medium uppercase text-muted-foreground">
                 <User className="h-3 w-3" />
-                Created
+                {t.inbox.created}
               </h4>
               <p className="mt-1 text-sm">
-                {formatDate(details.contact.created_at)}
+                {formatDate(details.contact.created_at, t.inbox.never)}
               </p>
             </div>
 
@@ -287,7 +289,7 @@ export function ContactPanel({
             <div>
               <h4 className="flex items-center gap-1.5 text-xs font-medium uppercase text-muted-foreground">
                 <Tag className="h-3 w-3" />
-                Tags
+                {t.inbox.tags}
               </h4>
               {details.tags.length > 0 ? (
                 <div className="mt-2 flex flex-wrap gap-1.5">
@@ -310,7 +312,7 @@ export function ContactPanel({
                   ))}
                 </div>
               ) : (
-                <p className="mt-1 text-xs text-muted-foreground">No tags</p>
+                <p className="mt-1 text-xs text-muted-foreground">{t.inbox.noTags}</p>
               )}
             </div>
 
@@ -319,7 +321,7 @@ export function ContactPanel({
               <div>
                 <h4 className="flex items-center gap-1.5 text-xs font-medium uppercase text-muted-foreground">
                   <Hash className="h-3 w-3" />
-                  Custom Fields
+                  {t.inbox.customFields}
                 </h4>
                 <div className="mt-2 space-y-2">
                   {details.customFields.map((cf) => (
@@ -337,7 +339,7 @@ export function ContactPanel({
         </div>
       ) : (
         <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
-          Contact not found
+          {t.inbox.contactNotFound}
         </div>
       )}
     </div>
