@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { MessageSquareText, Plus, Trash2 } from "lucide-react";
+import { MessageSquareText, Plus, Trash2, Sparkles } from "lucide-react";
 import { createCannedResponse, deleteCannedResponse } from "@/lib/actions/canned";
+import { SAVED_REPLY_TEMPLATES } from "@/lib/saved-reply-templates";
 import { PageTitle } from "@/components/page-title";
 
 interface Reply {
@@ -92,6 +93,31 @@ export function SavedRepliesView({ replies }: { replies: Reply[] }) {
               <Plus className="h-4 w-4" />
               Add reply
             </button>
+          </div>
+
+          {/* Templates */}
+          <div className="mt-4 border-t border-border pt-4">
+            <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+              <Sparkles className="h-3.5 w-3.5 text-primary" />
+              Start from a template
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {SAVED_REPLY_TEMPLATES.map((tpl) => (
+                <button
+                  key={tpl.id}
+                  onClick={() => {
+                    setShortCode(tpl.short_code);
+                    setContent(tpl.content);
+                    setError(null);
+                  }}
+                  title={tpl.content}
+                  className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium transition-colors hover:border-primary/40 hover:bg-accent/50"
+                >
+                  /{tpl.short_code}
+                  <span className="ms-1.5 text-muted-foreground">{tpl.description}</span>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
