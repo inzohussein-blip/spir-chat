@@ -3,6 +3,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { FlowLoadError, resumeSession } from "@/lib/flow-engine/engine";
 import { renderMergeVariables } from "@/lib/merge";
 import { deliverCampaign } from "@/lib/campaigns/send";
+import { sendWeeklyReports } from "@/lib/reports/weekly";
 import type { Json } from "@/lib/types/database";
 
 // Signals the handler to skip retry/backoff and route straight to the
@@ -189,8 +190,9 @@ export async function GET(request: NextRequest) {
   }
 
   const campaigns = await drainScheduledCampaigns(supabase);
+  const reports = await sendWeeklyReports(supabase);
 
-  return NextResponse.json({ processed, failed, total: jobs.length, campaigns });
+  return NextResponse.json({ processed, failed, total: jobs.length, campaigns, reports });
 }
 
 /**

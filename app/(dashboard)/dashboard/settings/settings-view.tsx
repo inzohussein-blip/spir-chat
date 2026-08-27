@@ -24,6 +24,7 @@ import Link from "next/link";
 import { PageTitle } from "@/components/page-title";
 import { BusinessHoursSection } from "@/components/settings/business-hours-section";
 import { RoutingSection } from "@/components/settings/routing-section";
+import { WeeklyReportSection } from "@/components/settings/weekly-report-section";
 import type { BusinessHours } from "@/lib/business-hours";
 import { createClient } from "@/lib/supabase/client";
 
@@ -37,6 +38,7 @@ interface WorkspaceSettings {
   autoAssign: string;
   slaMinutes: number;
   csatEnabled: boolean;
+  weeklyReportEmail: string | null;
 }
 
 interface TestResult {
@@ -215,6 +217,13 @@ export function SettingsView({
             initialAutoAssign={workspace.autoAssign}
             initialSlaMinutes={workspace.slaMinutes}
             initialCsatEnabled={workspace.csatEnabled}
+          />
+
+          <hr className="border-border" />
+
+          <WeeklyReportSection
+            workspaceId={workspace.id}
+            initialEmail={workspace.weeklyReportEmail}
           />
 
           <hr className="border-border" />
