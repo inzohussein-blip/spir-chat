@@ -336,7 +336,6 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function handle_new_user();
 
-
 -- ============================================================
 -- 00002_rls_policies.sql
 -- ============================================================
@@ -679,7 +678,6 @@ create policy "Users can insert analytics in their workspaces"
   on analytics_events for insert
   with check (is_workspace_member(workspace_id));
 
-
 -- ============================================================
 -- 00003_rpc_functions.sql
 -- ============================================================
@@ -720,7 +718,6 @@ begin
   where id = b_id;
 end;
 $$ language plpgsql security definer;
-
 
 -- ============================================================
 -- 00004_comment_automation.sql
@@ -773,7 +770,6 @@ create policy "Users can view comment logs in their workspace"
     )
   );
 
-
 -- ============================================================
 -- 00005_sequences.sql
 -- ============================================================
@@ -819,7 +815,6 @@ CREATE POLICY "enrollments_via_sequence" ON sequence_enrollments
       )
     )
   );
-
 
 -- ============================================================
 -- 00006_workspace_invites.sql
@@ -879,13 +874,11 @@ CREATE POLICY "workspace_invites_update" ON workspace_invites
     email = (SELECT email FROM auth.users WHERE id = auth.uid())
   );
 
-
 -- ============================================================
 -- 00007_openai_api_key.sql
 -- ============================================================
 -- Add OpenAI API key column to workspaces
 ALTER TABLE workspaces ADD COLUMN IF NOT EXISTS openai_api_key TEXT;
-
 
 -- ============================================================
 -- 00008_ai_provider.sql
@@ -893,7 +886,6 @@ ALTER TABLE workspaces ADD COLUMN IF NOT EXISTS openai_api_key TEXT;
 -- Rename openai_api_key to ai_api_key and add ai_provider column
 ALTER TABLE workspaces RENAME COLUMN openai_api_key TO ai_api_key;
 ALTER TABLE workspaces ADD COLUMN IF NOT EXISTS ai_provider TEXT NOT NULL DEFAULT 'openai';
-
 
 -- ============================================================
 -- 00009_fix_broadcast_rls.sql
@@ -927,7 +919,6 @@ CREATE POLICY "Authenticated users can read jobs" ON scheduled_jobs
 
 CREATE POLICY "Authenticated users can update jobs" ON scheduled_jobs
   FOR UPDATE USING (auth.uid() IS NOT NULL);
-
 
 -- ============================================================
 -- 00010_flow_versions.sql
@@ -967,7 +958,6 @@ create policy "flow_versions_insert" on flow_versions for insert
       and wm.user_id = auth.uid()
   ));
 
-
 -- ============================================================
 -- 00011_workspace_webhook_secret.sql
 -- ============================================================
@@ -975,7 +965,6 @@ create policy "flow_versions_insert" on flow_versions for insert
 -- Zernio exposes a single webhook per profile/API key, so the secret lives at the
 -- workspace level (not per-channel). Used by /api/webhooks/late to verify signatures.
 ALTER TABLE workspaces ADD COLUMN IF NOT EXISTS webhook_secret TEXT;
-
 
 -- ============================================================
 -- 00012_webhook_events.sql
@@ -994,7 +983,6 @@ CREATE INDEX IF NOT EXISTS webhook_events_received_at_idx ON webhook_events (rec
 
 ALTER TABLE webhook_events ENABLE ROW LEVEL SECURITY;
 
-
 -- ============================================================
 -- 00013_sequence_enrollments_channel_cascade.sql
 -- ============================================================
@@ -1006,7 +994,6 @@ ALTER TABLE sequence_enrollments
   DROP CONSTRAINT sequence_enrollments_channel_id_fkey,
   ADD CONSTRAINT sequence_enrollments_channel_id_fkey
     FOREIGN KEY (channel_id) REFERENCES channels(id) ON DELETE CASCADE;
-
 
 -- ============================================================
 -- 00014_scheduled_jobs_claimed_at.sql
@@ -1020,7 +1007,6 @@ ALTER TABLE scheduled_jobs ADD COLUMN claimed_at timestamptz;
 CREATE INDEX idx_scheduled_jobs_processing ON scheduled_jobs(claimed_at)
   WHERE status = 'processing';
 
-
 -- ============================================================
 -- 00015_backfill_claimed_at.sql
 -- ============================================================
@@ -1033,7 +1019,6 @@ CREATE INDEX idx_scheduled_jobs_processing ON scheduled_jobs(claimed_at)
 UPDATE scheduled_jobs
 SET claimed_at = now()
 WHERE status = 'processing' AND claimed_at IS NULL;
-
 
 -- ============================================================
 -- 00016_security_hardening.sql
@@ -1058,7 +1043,6 @@ alter function increment_broadcast_failed(uuid) set search_path = public;
 --    only mutate counters within a workspace the caller can already access).
 revoke execute on function handle_new_user() from public, anon, authenticated;
 
-
 -- ============================================================
 -- 00017_website_channel.sql
 -- ============================================================
@@ -1079,7 +1063,6 @@ alter table channels add constraint channels_platform_check
 -- Website conversations are polled by created_at within a conversation; the
 -- existing idx_messages_conversation (conversation_id, created_at) already
 -- covers that access pattern, so no new index is required.
-
 
 -- ============================================================
 -- 00018_canned_responses.sql
@@ -1108,7 +1091,6 @@ create policy "Users manage canned responses in their workspaces"
 create trigger set_updated_at before update on canned_responses
   for each row execute function update_updated_at();
 
-
 -- ============================================================
 -- 00019_widget_config.sql
 -- ============================================================
@@ -1117,7 +1099,6 @@ create trigger set_updated_at before update on canned_responses
 --   { "prechat": boolean, "greeting": string }
 alter table channels
   add column if not exists widget_config jsonb not null default '{}'::jsonb;
-
 
 -- ============================================================
 -- 00020_conversation_notes.sql
@@ -1145,7 +1126,6 @@ alter table conversation_notes enable row level security;
 create policy "Users manage notes in their workspaces"
   on conversation_notes for all
   using (is_workspace_member(workspace_id));
-
 
 -- ============================================================
 -- 00021_conversation_labels.sql
@@ -1187,7 +1167,6 @@ create policy "Users manage conversation labels in their workspaces"
     )
   );
 
-
 -- ============================================================
 -- 00022_widget_presence.sql
 -- ============================================================
@@ -1197,7 +1176,6 @@ alter table conversations
   add column if not exists visitor_last_seen_at timestamptz,
   add column if not exists visitor_current_page text;
 
-
 -- ============================================================
 -- 00023_widget_typing.sql
 -- ============================================================
@@ -1205,7 +1183,6 @@ alter table conversations
 -- the inbox treats the visitor as typing only within a few seconds of it.
 alter table conversations
   add column if not exists visitor_typing_at timestamptz;
-
 
 -- ============================================================
 -- 00024_business_hours.sql
@@ -1229,7 +1206,6 @@ alter table conversations
 
 ALTER TABLE workspaces
   ADD COLUMN IF NOT EXISTS business_hours jsonb NOT NULL DEFAULT '{}'::jsonb;
-
 
 -- ============================================================
 -- 00025_api_keys_webhooks.sql
@@ -1276,7 +1252,6 @@ create policy "Users manage webhooks in their workspaces"
   on webhook_endpoints for all
   using (is_workspace_member(workspace_id));
 
-
 -- ============================================================
 -- 00026_push_subscriptions.sql
 -- ============================================================
@@ -1304,7 +1279,6 @@ create policy "Users manage their own push subscriptions"
   on push_subscriptions for all
   using (user_id = auth.uid() and is_workspace_member(workspace_id))
   with check (user_id = auth.uid() and is_workspace_member(workspace_id));
-
 
 -- ============================================================
 -- 00027_help_center.sql
@@ -1335,7 +1309,6 @@ create policy "Members manage KB articles in their workspaces"
   on kb_articles for all
   using (is_workspace_member(workspace_id));
 
-
 -- ============================================================
 -- 00028_routing_sla.sql
 -- ============================================================
@@ -1346,7 +1319,6 @@ create policy "Members manage KB articles in their workspaces"
 ALTER TABLE workspaces
   ADD COLUMN IF NOT EXISTS auto_assign text NOT NULL DEFAULT 'off',
   ADD COLUMN IF NOT EXISTS sla_minutes integer NOT NULL DEFAULT 0;
-
 
 -- ============================================================
 -- 00029_rich_messages.sql
@@ -1363,7 +1335,6 @@ ALTER TABLE workspaces
 
 ALTER TABLE messages
   ADD COLUMN IF NOT EXISTS rich_content jsonb;
-
 
 -- ============================================================
 -- 00030_forms.sql
@@ -1413,7 +1384,6 @@ create policy "Members read form responses in their workspaces"
   on form_responses for select
   using (is_workspace_member(workspace_id));
 
-
 -- ============================================================
 -- 00031_campaigns.sql
 -- ============================================================
@@ -1446,7 +1416,6 @@ create policy "Members manage campaigns in their workspaces"
   on campaigns for all
   using (is_workspace_member(workspace_id));
 
-
 -- ============================================================
 -- 00032_integrations.sql
 -- ============================================================
@@ -1478,7 +1447,6 @@ create policy "Members manage integrations in their workspaces"
   on integrations for all
   using (is_workspace_member(workspace_id));
 
-
 -- ============================================================
 -- 00033_auto_reply_flag.sql
 -- ============================================================
@@ -1488,7 +1456,6 @@ create policy "Members manage integrations in their workspaces"
 
 alter table conversations
   add column if not exists auto_reply_sent_at timestamptz;
-
 
 -- ============================================================
 -- 00034_tracked_links.sql
@@ -1536,7 +1503,6 @@ create policy "Members read link clicks in their workspaces"
   on link_clicks for select
   using (is_workspace_member(workspace_id));
 
-
 -- ============================================================
 -- 00035_comment_log_status.sql
 -- ============================================================
@@ -1548,7 +1514,6 @@ create policy "Members read link clicks in their workspaces"
 
 alter table comment_logs
   add column if not exists status text;
-
 
 -- ============================================================
 -- 00036_meta_credentials.sql
@@ -1604,7 +1569,6 @@ create policy "Members read dm jobs in their workspaces"
   on dm_jobs for select
   using (is_workspace_member(workspace_id));
 
-
 -- ============================================================
 -- 00037_report_shares.sql
 -- ============================================================
@@ -1628,7 +1592,6 @@ create policy "Members manage report shares in their workspaces"
   using (is_workspace_member(workspace_id));
 -- Public reads happen via the service role on the /reports route.
 
-
 -- ============================================================
 -- 00038_dm_jobs_buttons.sql
 -- ============================================================
@@ -1638,3 +1601,29 @@ create policy "Members manage report shares in their workspaces"
 alter table dm_jobs
   add column if not exists buttons jsonb;
 
+-- ============================================================
+-- 00039_segments.sql
+-- ============================================================
+-- Audience segments (concept adapted from Parcelvoy's rule engine, MIT).
+-- A segment is a saved set of contact filters campaigns can target instead of
+-- "all subscribed contacts".
+
+create table segments (
+  id uuid primary key default gen_random_uuid(),
+  workspace_id uuid not null references workspaces(id) on delete cascade,
+  name text not null,
+  rules jsonb not null default '[]'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index idx_segments_workspace on segments(workspace_id);
+
+alter table segments enable row level security;
+create policy "Members manage segments in their workspaces"
+  on segments for all
+  using (is_workspace_member(workspace_id));
+
+-- Campaigns can target a segment.
+alter table campaigns
+  add column if not exists segment_id uuid references segments(id) on delete set null;

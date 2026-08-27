@@ -8,6 +8,7 @@ import {
   type CampaignChannel,
 } from "@/lib/campaigns/providers";
 import { renderMessageWithTracking } from "@/lib/tracking";
+import { applySegment, parseSegmentRules } from "@/lib/segments";
 
 const CHANNELS: CampaignChannel[] = ["email", "sms", "whatsapp"];
 // Cap per-send so the server action stays within request limits (baseline).
@@ -18,6 +19,7 @@ export async function createCampaign(input: {
   channel: string;
   subject?: string;
   body: string;
+  segmentId?: string | null;
 }) {
   const { workspace, user, supabase } = await getWorkspace();
   const name = input.name.trim();
@@ -36,6 +38,7 @@ export async function createCampaign(input: {
       channel,
       subject: input.subject?.trim() || null,
       body: input.body,
+      segment_id: input.segmentId || null,
       created_by: user.id,
     })
     .select("id")
@@ -69,15 +72,26 @@ export async function sendCampaign(id: string) {
 
   await supabase.from("campaigns").update({ status: "sending" }).eq("id", id);
 
-  // Audience: subscribed contacts with the field this channel needs.
+  // Audience: subscribed contacts with the field this channel needs, further
+  // narrowed by the campaign's segment when one is set.
   const field = channel === "email" ? "email" : "phone";
-  const { data: contacts } = await supabase
+  let audience = supabase
     .from("contacts")
     .select(`id, display_name, ${field}`)
     .eq("workspace_id", workspace.id)
     .eq("is_subscribed", true)
-    .not(field, "is", null)
-    .limit(MAX_RECIPIENTS);
+    .not(field, "is", null);
+
+  if (campaign.segment_id) {
+    const { data: segment } = await supabase
+      .from("segments")
+      .select("rules")
+      .eq("id", campaign.segment_id)
+      .maybeSingle();
+    if (segment) audience = applySegment(audience, parseSegmentRules(segment.rules));
+  }
+
+  const { data: contacts } = await audience.limit(MAX_RECIPIENTS);
 
   let sent = 0;
   let failed = 0;

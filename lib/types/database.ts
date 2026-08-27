@@ -256,6 +256,30 @@ export interface Database {
         };
         Relationships: [];
       };
+      segments: {
+        Row: {
+          id: string;
+          workspace_id: string;
+          name: string;
+          rules: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          workspace_id: string;
+          name: string;
+          rules?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          name?: string;
+          rules?: Json;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       report_shares: {
         Row: {
           id: string;
@@ -433,6 +457,7 @@ export interface Database {
           status: string;
           sent_count: number;
           failed_count: number;
+          segment_id: string | null;
           created_by: string | null;
           created_at: string;
           sent_at: string | null;
@@ -447,6 +472,7 @@ export interface Database {
           status?: string;
           sent_count?: number;
           failed_count?: number;
+          segment_id?: string | null;
           created_by?: string | null;
           created_at?: string;
           sent_at?: string | null;
@@ -459,6 +485,7 @@ export interface Database {
           status?: string;
           sent_count?: number;
           failed_count?: number;
+          segment_id?: string | null;
           sent_at?: string | null;
         };
         Relationships: [];

@@ -33,12 +33,19 @@ const STATUS_STYLE: Record<string, string> = {
   failed: "bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-300",
 };
 
-export function CampaignsView({ campaigns }: { campaigns: Campaign[] }) {
+export function CampaignsView({
+  campaigns,
+  segments,
+}: {
+  campaigns: Campaign[];
+  segments: { id: string; name: string }[];
+}) {
   const router = useRouter();
   const [name, setName] = useState("");
   const [channel, setChannel] = useState("email");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
+  const [segmentId, setSegmentId] = useState("");
   const [creating, setCreating] = useState(false);
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -48,7 +55,7 @@ export function CampaignsView({ campaigns }: { campaigns: Campaign[] }) {
     if (!name.trim() || !body.trim() || creating) return;
     setCreating(true);
     setError(null);
-    const res = await createCampaign({ name, channel, subject, body });
+    const res = await createCampaign({ name, channel, subject, body, segmentId: segmentId || null });
     setCreating(false);
     if (res.error) return setError(res.error);
     setName("");
@@ -112,6 +119,18 @@ export function CampaignsView({ campaigns }: { campaigns: Campaign[] }) {
                 ))}
               </select>
             </div>
+            <select
+              value={segmentId}
+              onChange={(e) => setSegmentId(e.target.value)}
+              className="mt-2 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+            >
+              <option value="">All subscribed contacts</option>
+              {segments.map((s) => (
+                <option key={s.id} value={s.id}>
+                  Segment: {s.name}
+                </option>
+              ))}
+            </select>
             {channel === "email" && (
               <input
                 value={subject}
