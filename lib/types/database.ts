@@ -85,6 +85,7 @@ export interface Database {
           business_hours: Json;
           auto_assign: string;
           sla_minutes: number;
+          csat_enabled: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -99,6 +100,7 @@ export interface Database {
           business_hours?: Json;
           auto_assign?: string;
           sla_minutes?: number;
+          csat_enabled?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -113,6 +115,7 @@ export interface Database {
           business_hours?: Json;
           auto_assign?: string;
           sla_minutes?: number;
+          csat_enabled?: boolean;
           updated_at?: string;
         };
         Relationships: [];

@@ -6,36 +6,41 @@ import { sendConversationMessage } from "@/lib/outbound";
 import { generateCsatToken, buildCsatUrl, csatMessage } from "@/lib/csat";
 import { revalidatePath } from "next/cache";
 
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/lib/types/database";
+
+interface ConversationForCsat {
+  id: string;
+  workspace_id: string;
+  contact_id: string | null;
+  platform: string;
+  late_conversation_id: string | null;
+  channels: unknown;
+}
+
 /**
- * Resolve a conversation and send the contact a CSAT survey link.
- * Works on any channel: the survey is a public tokenized page, delivered as
- * an ordinary outbound message (stored locally for website, sent via Zernio
- * for external platforms).
+ * Create (or reuse) a CSAT survey for a conversation and deliver its link on
+ * the conversation's channel. Shared by the manual and automatic resolve paths.
+ * Works on any channel: the survey is a public tokenized page, sent as an
+ * ordinary outbound message (stored locally for website, via Zernio for social).
  */
-export async function resolveWithSurvey(conversationId: string) {
-  const { workspace, user, supabase } = await getWorkspace();
-
-  const { data: conversation } = await supabase
-    .from("conversations")
-    .select("id, workspace_id, contact_id, platform, late_conversation_id, channels(late_account_id)")
-    .eq("id", conversationId)
-    .eq("workspace_id", workspace.id)
-    .single();
-  if (!conversation) return { error: "Conversation not found" };
-
-  // Reuse an existing survey for this conversation, or create one.
+async function deliverSurvey(
+  supabase: SupabaseClient<Database>,
+  conversation: ConversationForCsat,
+  userId: string
+): Promise<{ error?: string }> {
   const { data: existing } = await supabase
     .from("csat_surveys")
     .select("token")
-    .eq("conversation_id", conversationId)
+    .eq("conversation_id", conversation.id)
     .maybeSingle();
 
   let token = existing?.token;
   if (!token) {
     token = generateCsatToken();
     const { error } = await supabase.from("csat_surveys").insert({
-      workspace_id: workspace.id,
-      conversation_id: conversationId,
+      workspace_id: conversation.workspace_id,
+      conversation_id: conversation.id,
       contact_id: conversation.contact_id,
       token,
       status: "pending",
@@ -43,10 +48,6 @@ export async function resolveWithSurvey(conversationId: string) {
     if (error) return { error: error.message };
   }
 
-  const text = csatMessage(buildCsatUrl(token));
-
-  // Deliver the survey message on the conversation's channel (non-fatal on
-  // failure: the survey row still exists and resolution proceeds).
   await sendConversationMessage(
     supabase,
     {
@@ -56,9 +57,61 @@ export async function resolveWithSurvey(conversationId: string) {
       late_conversation_id: conversation.late_conversation_id,
       channels: conversation.channels as { late_account_id: string } | null,
     },
-    text,
-    user.id
+    csatMessage(buildCsatUrl(token)),
+    userId
   );
+  return {};
+}
+
+const CONVERSATION_CSAT_SELECT =
+  "id, workspace_id, contact_id, platform, late_conversation_id, channels(late_account_id)";
+
+/**
+ * Resolve a conversation. Always closes it; additionally sends a CSAT survey
+ * when the workspace has CSAT enabled. Used by the inbox Resolve action.
+ */
+export async function resolveConversation(conversationId: string) {
+  const { workspace, user, supabase } = await getWorkspace();
+
+  const { data: conversation } = await supabase
+    .from("conversations")
+    .select(CONVERSATION_CSAT_SELECT)
+    .eq("id", conversationId)
+    .eq("workspace_id", workspace.id)
+    .single();
+  if (!conversation) return { error: "Conversation not found" };
+
+  await supabase.from("conversations").update({ status: "closed" }).eq("id", conversationId);
+
+  let surveySent = false;
+  const { data: ws } = await supabase
+    .from("workspaces")
+    .select("csat_enabled")
+    .eq("id", workspace.id)
+    .maybeSingle();
+  if (ws?.csat_enabled) {
+    await deliverSurvey(supabase, conversation, user.id);
+    surveySent = true;
+  }
+
+  revalidatePath("/dashboard/inbox");
+  return { ok: true, surveySent };
+}
+
+/** Resolve a conversation and always send a CSAT survey (manual trigger). */
+export async function resolveWithSurvey(conversationId: string) {
+  const { workspace, user, supabase } = await getWorkspace();
+
+  const { data: conversation } = await supabase
+    .from("conversations")
+    .select(CONVERSATION_CSAT_SELECT)
+    .eq("id", conversationId)
+    .eq("workspace_id", workspace.id)
+    .single();
+  if (!conversation) return { error: "Conversation not found" };
+
+  const res = await deliverSurvey(supabase, conversation, user.id);
+  if (res.error) return { error: res.error };
 
   await supabase.from("conversations").update({ status: "closed" }).eq("id", conversationId);
 

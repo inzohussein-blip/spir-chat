@@ -13,7 +13,6 @@ import {
 } from "lucide-react";
 import { PageTitle } from "@/components/page-title";
 import { csatStats } from "@/lib/csat";
-import { CSAT_ENABLED } from "@/lib/features";
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -58,14 +57,12 @@ export default async function ReportsPage() {
       .eq("platform", "website")
       .order("last_message_at", { ascending: false, nullsFirst: false })
       .limit(200),
-    CSAT_ENABLED
-      ? supabase
-          .from("csat_surveys")
-          .select("rating, status, feedback, responded_at")
-          .eq("workspace_id", wsId)
-          .order("created_at", { ascending: false })
-          .limit(500)
-      : Promise.resolve({ data: [] as { rating: number | null; status: string; feedback: string | null }[] }),
+    supabase
+      .from("csat_surveys")
+      .select("rating, status, feedback, responded_at")
+      .eq("workspace_id", wsId)
+      .order("created_at", { ascending: false })
+      .limit(500),
   ]);
 
   const csat = csatStats(surveys ?? []);
@@ -143,7 +140,7 @@ export default async function ReportsPage() {
           })}
         </div>
 
-        {CSAT_ENABLED && csat.sent > 0 && (
+        {csat.sent > 0 && (
           <div className="mt-8">
             <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold">
               <Smile className="h-4 w-4 text-amber-500" />

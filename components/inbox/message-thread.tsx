@@ -2,11 +2,10 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Send, Paperclip, Bot, User, MessageSquare, MessageSquareText, CheckCircle, Clock, RotateCcw, Loader2, StickyNote, UserPlus, UserCheck, PenLine, Smile, MousePointerClick, Star, Zap } from "lucide-react";
+import { Send, Paperclip, Bot, User, MessageSquare, MessageSquareText, CheckCircle, Clock, RotateCcw, Loader2, StickyNote, UserPlus, UserCheck, PenLine, Smile, MousePointerClick, Zap } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { resolveWithSurvey } from "@/lib/actions/csat";
+import { resolveConversation } from "@/lib/actions/csat";
 import { runMacro } from "@/lib/actions/macros";
-import { CSAT_ENABLED } from "@/lib/features";
 import { cn } from "@/lib/utils";
 import { PlatformIcon } from "@/components/platform-icon";
 import { filterCannedResponses, isCannedShortcut, type CannedResponseItem } from "@/lib/canned";
@@ -418,31 +417,26 @@ export function MessageThread({
     else handleSend();
   }
 
-  function resolve() {
-    updateConversationStatus("closed");
+  async function resolve() {
+    if (!conversation || statusUpdating) return;
+    setStatusUpdating("closed");
     setShowUndo(true);
     if (undoTimer.current) clearTimeout(undoTimer.current);
     undoTimer.current = setTimeout(() => setShowUndo(false), 6000);
+    try {
+      // Closes the conversation and sends a CSAT survey when the workspace
+      // has it enabled.
+      await resolveConversation(conversation.id);
+      router.refresh();
+    } finally {
+      setStatusUpdating(null);
+    }
   }
 
   function undoResolve() {
     if (undoTimer.current) clearTimeout(undoTimer.current);
     setShowUndo(false);
     updateConversationStatus("open");
-  }
-
-  async function resolveWithRating() {
-    if (!conversation || statusUpdating) return;
-    setStatusUpdating("closed");
-    try {
-      const res = await resolveWithSurvey(conversation.id);
-      if (res.error) throw new Error(res.error);
-      router.refresh();
-    } catch {
-      alert(t.inbox.sendRatingFailed);
-    } finally {
-      setStatusUpdating(null);
-    }
   }
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -734,17 +728,6 @@ export function MessageThread({
                     className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors disabled:opacity-50"
                   >
                     {statusUpdating === "snoozed" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Clock className="h-3.5 w-3.5" />}
-                  </button>
-                )}
-                {CSAT_ENABLED && (
-                  <button
-                    onClick={resolveWithRating}
-                    disabled={!!statusUpdating}
-                    title={t.inbox.resolveRatingTitle}
-                    aria-label={t.inbox.resolveRatingAria}
-                    className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-amber-500 transition-colors disabled:opacity-50"
-                  >
-                    <Star className="h-3.5 w-3.5" />
                   </button>
                 )}
                 <button

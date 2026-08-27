@@ -1726,3 +1726,13 @@ alter table campaign_recipients enable row level security;
 create policy "Members view campaign recipients in their workspaces"
   on campaign_recipients for all
   using (is_workspace_member(workspace_id));
+
+-- ============================================================
+-- 00044_workspace_csat.sql
+-- ============================================================
+-- ============================================================
+-- Per-workspace toggle: when on, resolving a conversation automatically
+-- sends the contact a CSAT survey link.
+-- ============================================================
+alter table workspaces
+  add column if not exists csat_enabled boolean not null default false;

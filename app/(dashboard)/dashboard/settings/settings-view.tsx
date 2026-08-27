@@ -36,6 +36,7 @@ interface WorkspaceSettings {
   businessHours: BusinessHours;
   autoAssign: string;
   slaMinutes: number;
+  csatEnabled: boolean;
 }
 
 interface TestResult {
@@ -213,6 +214,7 @@ export function SettingsView({
             workspaceId={workspace.id}
             initialAutoAssign={workspace.autoAssign}
             initialSlaMinutes={workspace.slaMinutes}
+            initialCsatEnabled={workspace.csatEnabled}
           />
 
           <hr className="border-border" />

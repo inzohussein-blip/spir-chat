@@ -8,13 +8,16 @@ export function RoutingSection({
   workspaceId,
   initialAutoAssign,
   initialSlaMinutes,
+  initialCsatEnabled,
 }: {
   workspaceId: string;
   initialAutoAssign: string;
   initialSlaMinutes: number;
+  initialCsatEnabled: boolean;
 }) {
   const [autoAssign, setAutoAssign] = useState(initialAutoAssign);
   const [slaMinutes, setSlaMinutes] = useState(initialSlaMinutes);
+  const [csatEnabled, setCsatEnabled] = useState(initialCsatEnabled);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -26,6 +29,7 @@ export function RoutingSection({
       .update({
         auto_assign: autoAssign === "round_robin" ? "round_robin" : "off",
         sla_minutes: Number.isFinite(slaMinutes) && slaMinutes > 0 ? Math.round(slaMinutes) : 0,
+        csat_enabled: csatEnabled,
       })
       .eq("id", workspaceId);
     setSaving(false);
@@ -75,6 +79,22 @@ export function RoutingSection({
             in the inbox.
           </p>
         </div>
+
+        <label className="flex items-start gap-2 text-sm font-medium">
+          <input
+            type="checkbox"
+            checked={csatEnabled}
+            onChange={(e) => setCsatEnabled(e.target.checked)}
+            className="mt-0.5 h-4 w-4 rounded border-border"
+          />
+          <span>
+            Satisfaction survey on resolve
+            <span className="mt-0.5 block text-[11px] font-normal text-muted-foreground">
+              When you resolve a conversation, the contact gets a link to rate it (1–5).
+              Results show in Reports.
+            </span>
+          </span>
+        </label>
 
         <div className="flex justify-end">
           <button
