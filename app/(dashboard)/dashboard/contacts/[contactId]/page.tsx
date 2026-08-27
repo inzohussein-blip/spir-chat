@@ -10,6 +10,7 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { PlatformIcon } from "@/components/platform-icon";
+import { CustomFieldsEditor } from "@/components/contacts/custom-fields-editor";
 import { avatarGradient } from "@/lib/avatar";
 import { cn } from "@/lib/utils";
 
@@ -21,7 +22,7 @@ export default async function ContactDetailPage({
   const { contactId } = await params;
   const { workspace, supabase } = await getWorkspace();
 
-  const [contactRes, channelsRes, conversationsRes, customFieldsRes] =
+  const [contactRes, channelsRes, conversationsRes, customFieldsRes, fieldDefsRes] =
     await Promise.all([
       supabase
         .from("contacts")
@@ -41,8 +42,13 @@ export default async function ContactDetailPage({
         .order("last_message_at", { ascending: false }),
       supabase
         .from("contact_custom_fields")
-        .select("value, custom_field_definitions(name, slug, field_type)")
+        .select("field_id, value")
         .eq("contact_id", contactId),
+      supabase
+        .from("custom_field_definitions")
+        .select("id, name, type")
+        .eq("workspace_id", workspace.id)
+        .order("created_at", { ascending: true }),
     ]);
 
   if (!contactRes.data) notFound();
@@ -50,7 +56,11 @@ export default async function ContactDetailPage({
   const contact = contactRes.data;
   const channels = channelsRes.data ?? [];
   const conversations = conversationsRes.data ?? [];
-  const customFields = customFieldsRes.data ?? [];
+  const fieldDefs = fieldDefsRes.data ?? [];
+  const fieldValues: Record<string, string> = {};
+  for (const cf of customFieldsRes.data ?? []) {
+    fieldValues[cf.field_id] = cf.value;
+  }
   const tags = contact.contact_tags
     .map((ct: { tags: unknown }) => ct.tags)
     .filter(Boolean) as { id: string; name: string; color: string | null }[];
@@ -237,28 +247,11 @@ export default async function ContactDetailPage({
           </div>
 
           {/* Custom fields */}
-          {customFields.length > 0 && (
-            <div>
-              <h2 className="mb-3 text-sm font-semibold uppercase text-muted-foreground">
-                Custom Fields
-              </h2>
-              <div className="space-y-2">
-                {customFields.map((cf, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center justify-between rounded-lg border border-border bg-card p-3 shadow-card"
-                  >
-                    <span className="text-sm text-muted-foreground">
-                      {(
-                        cf.custom_field_definitions as { name?: string }
-                      )?.name ?? "Field"}
-                    </span>
-                    <span className="text-sm font-medium">{cf.value}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          <CustomFieldsEditor
+            contactId={contactId}
+            definitions={fieldDefs}
+            values={fieldValues}
+          />
         </div>
       </div>
     </div>
