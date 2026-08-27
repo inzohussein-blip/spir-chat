@@ -74,6 +74,15 @@ const en = {
     analyze: "Analyze",
     configure: "Configure",
   },
+  topbar: {
+    searchPlaceholder: "Search or jump to…",
+    noResults: "No matches",
+    notifications: "Notifications",
+    unread: "unread conversations",
+    allCaughtUp: "You're all caught up.",
+    viewInbox: "Open inbox",
+    signOut: "Sign out",
+  },
   widget: {
     title: "SpirChat",
     subtitle: "We typically reply shortly",
@@ -253,6 +262,15 @@ const ar: Dictionary = {
     grow: "النموّ",
     analyze: "التحليل",
     configure: "الإعدادات",
+  },
+  topbar: {
+    searchPlaceholder: "ابحث أو انتقل إلى…",
+    noResults: "لا نتائج",
+    notifications: "الإشعارات",
+    unread: "محادثات غير مقروءة",
+    allCaughtUp: "لا جديد لديك.",
+    viewInbox: "فتح الوارد",
+    signOut: "تسجيل الخروج",
   },
   widget: {
     title: "SpirChat",

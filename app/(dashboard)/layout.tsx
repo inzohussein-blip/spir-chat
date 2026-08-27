@@ -1,5 +1,6 @@
 import { getWorkspace } from "@/lib/workspace";
 import { Sidebar } from "@/components/sidebar";
+import { Topbar } from "@/components/topbar";
 
 export default async function DashboardLayout({
   children,
@@ -8,10 +9,17 @@ export default async function DashboardLayout({
 }) {
   const { workspace, user, supabase } = await getWorkspace();
 
-  const { data: memberships } = await supabase
-    .from("workspace_members")
-    .select("role, workspaces(id, name, slug)")
-    .eq("user_id", user.id);
+  const [{ data: memberships }, { count: unreadCount }] = await Promise.all([
+    supabase
+      .from("workspace_members")
+      .select("role, workspaces(id, name, slug)")
+      .eq("user_id", user.id),
+    supabase
+      .from("conversations")
+      .select("id", { count: "exact", head: true })
+      .eq("workspace_id", workspace.id)
+      .gt("unread_count", 0),
+  ]);
 
   const workspaces = (memberships ?? [])
     .map((m) => ({
@@ -23,7 +31,10 @@ export default async function DashboardLayout({
   return (
     <div className="flex h-screen">
       <Sidebar workspace={workspace} user={user} workspaces={workspaces} />
-      <main className="min-h-0 flex-1 overflow-hidden">{children}</main>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <Topbar userEmail={user.email} unreadCount={unreadCount ?? 0} />
+        <main className="min-h-0 flex-1 overflow-hidden">{children}</main>
+      </div>
     </div>
   );
 }
