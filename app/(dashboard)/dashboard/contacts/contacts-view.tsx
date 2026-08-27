@@ -13,7 +13,15 @@ import {
   XCircle,
   Filter,
   ChevronDown,
+  Tag as TagIcon,
+  Bell,
+  BellOff,
+  Trash2,
+  Loader2,
+  X,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { bulkAddTag, bulkSetSubscribed, bulkDeleteContacts } from "@/lib/actions/contacts";
 import { cn } from "@/lib/utils";
 import { avatarGradient } from "@/lib/avatar";
 import { PageTitle } from "@/components/page-title";
@@ -66,12 +74,18 @@ export function ContactsView({
   workspaceId: string;
 }) {
   const { t } = useI18n();
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [selectedTagId, setSelectedTagId] = useState<string | null>(null);
   const [showSegmentBuilder, setShowSegmentBuilder] = useState(false);
   const [segmentFilter, setSegmentFilter] = useState<SegmentFilter>(
     createEmptyFilter()
   );
+  // Bulk selection.
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkTagId, setBulkTagId] = useState("");
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkNotice, setBulkNotice] = useState<string | null>(null);
 
   const filtered = contacts.filter((contact) => {
     // Search filter
@@ -90,6 +104,51 @@ export function ContactsView({
     }
     return true;
   });
+
+  const filteredIds = filtered.map((c) => c.id);
+  const allSelected = filteredIds.length > 0 && filteredIds.every((id) => selectedIds.has(id));
+
+  function toggleOne(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleAll() {
+    setSelectedIds((prev) => {
+      if (filteredIds.every((id) => prev.has(id))) {
+        const next = new Set(prev);
+        filteredIds.forEach((id) => next.delete(id));
+        return next;
+      }
+      return new Set([...prev, ...filteredIds]);
+    });
+  }
+
+  function clearSelection() {
+    setSelectedIds(new Set());
+    setBulkNotice(null);
+  }
+
+  async function runBulk(fn: () => Promise<{ error?: string; count?: number }>, label: string) {
+    if (bulkBusy) return;
+    setBulkBusy(true);
+    setBulkNotice(null);
+    const res = await fn();
+    setBulkBusy(false);
+    if (res.error) {
+      setBulkNotice(res.error);
+      return;
+    }
+    setBulkNotice(`${label} · ${res.count} contact${res.count === 1 ? "" : "s"}`);
+    clearSelection();
+    router.refresh();
+  }
+
+  const ids = () => Array.from(selectedIds);
 
   return (
     <div className="flex h-full flex-col">
@@ -188,6 +247,78 @@ export function ContactsView({
         )}
       </div>
 
+      {/* Bulk action bar */}
+      {selectedIds.size > 0 && (
+        <div className="flex flex-wrap items-center gap-2 border-b border-border bg-primary/5 px-8 py-2.5">
+          <span className="text-sm font-medium">
+            {selectedIds.size} selected
+          </span>
+          <button
+            onClick={clearSelection}
+            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
+          >
+            <X className="h-3.5 w-3.5" /> Clear
+          </button>
+
+          <div className="ms-auto flex flex-wrap items-center gap-2">
+            {tags.length > 0 && (
+              <div className="flex items-center gap-1.5">
+                <select
+                  value={bulkTagId}
+                  onChange={(e) => setBulkTagId(e.target.value)}
+                  className="rounded-lg border border-border bg-background px-2 py-1.5 text-xs outline-none"
+                >
+                  <option value="">Add tag…</option>
+                  {tags.map((tag) => (
+                    <option key={tag.id} value={tag.id}>
+                      {tag.name}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={() => runBulk(() => bulkAddTag(ids(), bulkTagId), "Tagged")}
+                  disabled={!bulkTagId || bulkBusy}
+                  className="inline-flex items-center gap-1 rounded-md bg-primary px-2.5 py-1.5 text-xs font-medium text-primary-foreground disabled:opacity-50"
+                >
+                  <TagIcon className="h-3.5 w-3.5" /> Apply
+                </button>
+              </div>
+            )}
+            <button
+              onClick={() => runBulk(() => bulkSetSubscribed(ids(), true), "Subscribed")}
+              disabled={bulkBusy}
+              className="inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium hover:bg-accent disabled:opacity-50"
+            >
+              <Bell className="h-3.5 w-3.5" /> Subscribe
+            </button>
+            <button
+              onClick={() => runBulk(() => bulkSetSubscribed(ids(), false), "Unsubscribed")}
+              disabled={bulkBusy}
+              className="inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium hover:bg-accent disabled:opacity-50"
+            >
+              <BellOff className="h-3.5 w-3.5" /> Unsubscribe
+            </button>
+            <button
+              onClick={() => {
+                if (confirm(`Delete ${selectedIds.size} contact(s)? This can't be undone.`)) {
+                  runBulk(() => bulkDeleteContacts(ids()), "Deleted");
+                }
+              }}
+              disabled={bulkBusy}
+              className="inline-flex items-center gap-1 rounded-md border border-destructive/40 px-2.5 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/10 disabled:opacity-50"
+            >
+              {bulkBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+              Delete
+            </button>
+          </div>
+        </div>
+      )}
+      {bulkNotice && (
+        <div className="border-b border-border bg-emerald-50 px-8 py-2 text-xs font-medium text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300">
+          {bulkNotice}
+        </div>
+      )}
+
       {/* Table */}
       <div className="flex-1 overflow-auto">
         {filtered.length === 0 ? (
@@ -206,7 +337,16 @@ export function ContactsView({
           <table className="w-full">
             <thead>
               <tr className="border-b border-border bg-muted/50 text-left">
-                <th className="px-8 py-3 text-xs font-medium uppercase text-muted-foreground">
+                <th className="ps-8 pe-2 py-3">
+                  <input
+                    type="checkbox"
+                    checked={allSelected}
+                    onChange={toggleAll}
+                    aria-label="Select all"
+                    className="h-4 w-4 cursor-pointer rounded border-border accent-[var(--primary)]"
+                  />
+                </th>
+                <th className="px-3 py-3 text-xs font-medium uppercase text-muted-foreground">
                   Name
                 </th>
                 <th className="px-4 py-3 text-xs font-medium uppercase text-muted-foreground">
@@ -232,9 +372,21 @@ export function ContactsView({
                 return (
                   <tr
                     key={contact.id}
-                    className="border-b border-border transition-colors hover:bg-accent/50"
+                    className={cn(
+                      "border-b border-border transition-colors hover:bg-accent/50",
+                      selectedIds.has(contact.id) && "bg-primary/5"
+                    )}
                   >
-                    <td className="px-8 py-3">
+                    <td className="ps-8 pe-2 py-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(contact.id)}
+                        onChange={() => toggleOne(contact.id)}
+                        aria-label={`Select ${contact.display_name ?? "contact"}`}
+                        className="h-4 w-4 cursor-pointer rounded border-border accent-[var(--primary)]"
+                      />
+                    </td>
+                    <td className="px-3 py-3">
                       <Link
                         href={`/dashboard/contacts/${contact.id}`}
                         className="flex items-center gap-3"
