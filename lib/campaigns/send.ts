@@ -70,6 +70,15 @@ export async function deliverCampaign(
 
   let sent = 0;
   let failed = 0;
+  const log: {
+    campaign_id: string;
+    workspace_id: string;
+    contact_id: string;
+    recipient: string;
+    status: "sent" | "failed";
+    error: string | null;
+  }[] = [];
+
   for (const c of contacts ?? []) {
     const row = c as Record<string, string | null>;
     const recipient = row[field];
@@ -86,6 +95,20 @@ export async function deliverCampaign(
     const res = await sendCampaignMessage(channel, recipient, campaign.subject ?? "", body);
     if (res.ok) sent++;
     else failed++;
+    log.push({
+      campaign_id: campaign.id,
+      workspace_id: campaign.workspace_id,
+      contact_id: row.id as string,
+      recipient,
+      status: res.ok ? "sent" : "failed",
+      error: res.ok ? null : res.error ?? "Unknown error",
+    });
+  }
+
+  // Replace any prior log for this campaign, then record this run's outcomes.
+  await supabase.from("campaign_recipients").delete().eq("campaign_id", campaign.id);
+  if (log.length > 0) {
+    await supabase.from("campaign_recipients").insert(log);
   }
 
   await supabase

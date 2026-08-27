@@ -550,6 +550,33 @@ export interface Database {
         };
         Relationships: [];
       };
+      campaign_recipients: {
+        Row: {
+          id: string;
+          campaign_id: string;
+          workspace_id: string;
+          contact_id: string | null;
+          recipient: string;
+          status: string;
+          error: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          campaign_id: string;
+          workspace_id: string;
+          contact_id?: string | null;
+          recipient: string;
+          status: string;
+          error?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          status?: string;
+          error?: string | null;
+        };
+        Relationships: [];
+      };
       forms: {
         Row: {
           id: string;

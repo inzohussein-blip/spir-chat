@@ -244,7 +244,12 @@ export function CampaignsView({
                 >
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="truncate text-sm font-semibold">{c.name}</p>
+                      <a
+                        href={`/dashboard/campaigns/${c.id}`}
+                        className="truncate text-sm font-semibold hover:underline"
+                      >
+                        {c.name}
+                      </a>
                       <span
                         className={cn(
                           "rounded-full px-2 py-0.5 text-[10px] font-medium capitalize",
