@@ -31,6 +31,8 @@ interface Automation {
   followMessage: string;
   buttons: { label: string; url: string }[];
   isActive: boolean;
+  sentCount: number;
+  clickCount: number;
 }
 
 export function IgAutomationsView({
@@ -143,6 +145,12 @@ export function IgAutomationsView({
                       {a.keywords.map((k) => `"${k}"`).join(", ")} → DM
                       {a.buttons.length ? ` · ${a.buttons.length} button(s)` : ""}
                     </p>
+                    <div className="mt-1.5 flex items-center gap-3 text-xs">
+                      <span className="font-medium text-blue-600">{a.sentCount} sent</span>
+                      {a.buttons.length > 0 && (
+                        <span className="text-muted-foreground">{a.clickCount} clicks</span>
+                      )}
+                    </div>
                   </div>
                   <div className="flex flex-shrink-0 items-center gap-1">
                     <button
