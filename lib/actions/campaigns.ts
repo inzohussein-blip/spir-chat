@@ -2,18 +2,10 @@
 
 import { getWorkspace } from "@/lib/workspace";
 import { revalidatePath } from "next/cache";
-import {
-  sendCampaignMessage,
-  channelConfigured,
-  type CampaignChannel,
-} from "@/lib/campaigns/providers";
-import { renderMessageWithTracking } from "@/lib/tracking";
-import { renderMergeVariables } from "@/lib/merge";
-import { applySegment, parseSegmentRules } from "@/lib/segments";
+import { type CampaignChannel } from "@/lib/campaigns/providers";
+import { deliverCampaign } from "@/lib/campaigns/send";
 
 const CHANNELS: CampaignChannel[] = ["email", "sms", "whatsapp"];
-// Cap per-send so the server action stays within request limits (baseline).
-const MAX_RECIPIENTS = 200;
 
 export async function createCampaign(input: {
   name: string;
@@ -21,6 +13,7 @@ export async function createCampaign(input: {
   subject?: string;
   body: string;
   segmentId?: string | null;
+  scheduledAt?: string | null;
 }) {
   const { workspace, user, supabase } = await getWorkspace();
   const name = input.name.trim();
@@ -29,6 +22,17 @@ export async function createCampaign(input: {
     : "email";
   if (!name || !input.body.trim()) {
     return { error: "Name and message are required" };
+  }
+
+  // A future schedule marks the campaign 'scheduled' for the cron to deliver.
+  let scheduledAt: string | null = null;
+  let status = "draft";
+  if (input.scheduledAt) {
+    const when = new Date(input.scheduledAt);
+    if (isNaN(when.getTime())) return { error: "Invalid schedule time" };
+    if (when.getTime() <= Date.now()) return { error: "Schedule time must be in the future" };
+    scheduledAt = when.toISOString();
+    status = "scheduled";
   }
 
   const { data, error } = await supabase
@@ -40,6 +44,8 @@ export async function createCampaign(input: {
       subject: input.subject?.trim() || null,
       body: input.body,
       segment_id: input.segmentId || null,
+      scheduled_at: scheduledAt,
+      status,
       created_by: user.id,
     })
     .select("id")
@@ -50,88 +56,34 @@ export async function createCampaign(input: {
   return { id: data.id };
 }
 
-/** Send a draft campaign to all subscribed contacts reachable on its channel. */
+/** Cancel a pending schedule, returning the campaign to draft. */
+export async function cancelSchedule(id: string) {
+  const { supabase } = await getWorkspace();
+  const { error } = await supabase
+    .from("campaigns")
+    .update({ status: "draft", scheduled_at: null })
+    .eq("id", id)
+    .eq("status", "scheduled");
+  if (error) return { error: error.message };
+  revalidatePath("/dashboard/campaigns");
+  return { ok: true };
+}
+
+/** Send a draft (or scheduled) campaign now to all reachable subscribers. */
 export async function sendCampaign(id: string) {
   const { workspace, supabase } = await getWorkspace();
 
   const { data: campaign } = await supabase
     .from("campaigns")
-    .select("*")
+    .select("id, workspace_id, channel, subject, body, segment_id, status")
     .eq("id", id)
+    .eq("workspace_id", workspace.id)
     .single();
   if (!campaign) return { error: "Campaign not found" };
-  if (campaign.status === "sent" || campaign.status === "sending") {
-    return { error: "Campaign already sent" };
-  }
 
-  const channel = campaign.channel as CampaignChannel;
-  if (!channelConfigured(channel)) {
-    return {
-      error: `The ${channel} provider isn't configured. Add its API keys to the environment.`,
-    };
-  }
-
-  await supabase.from("campaigns").update({ status: "sending" }).eq("id", id);
-
-  // Audience: subscribed contacts with the field this channel needs, further
-  // narrowed by the campaign's segment when one is set.
-  const field = channel === "email" ? "email" : "phone";
-  let audience = supabase
-    .from("contacts")
-    .select("id, display_name, email, phone")
-    .eq("workspace_id", workspace.id)
-    .eq("is_subscribed", true)
-    .not(field, "is", null);
-
-  if (campaign.segment_id) {
-    const { data: segment } = await supabase
-      .from("segments")
-      .select("rules")
-      .eq("id", campaign.segment_id)
-      .maybeSingle();
-    if (segment) audience = applySegment(audience, parseSegmentRules(segment.rules));
-  }
-
-  const { data: contacts } = await audience.limit(MAX_RECIPIENTS);
-
-  let sent = 0;
-  let failed = 0;
-  for (const c of contacts ?? []) {
-    const row = c as Record<string, string | null>;
-    const recipient = row[field];
-    if (!recipient) continue;
-    // Resolve {{field}} merge variables, then strip any leftover {link} token.
-    const merged = renderMergeVariables(campaign.body, {
-      display_name: row.display_name,
-      email: row.email,
-      phone: row.phone,
-    });
-    const body = renderMessageWithTracking({
-      message: merged,
-      recipientName: row.display_name,
-    });
-    const res = await sendCampaignMessage(
-      channel,
-      recipient,
-      campaign.subject ?? "",
-      body
-    );
-    if (res.ok) sent++;
-    else failed++;
-  }
-
-  await supabase
-    .from("campaigns")
-    .update({
-      status: "sent",
-      sent_count: sent,
-      failed_count: failed,
-      sent_at: new Date().toISOString(),
-    })
-    .eq("id", id);
-
+  const result = await deliverCampaign(supabase, campaign);
   revalidatePath("/dashboard/campaigns");
-  return { sent, failed };
+  return result;
 }
 
 export async function deleteCampaign(id: string) {

@@ -515,6 +515,7 @@ export interface Database {
           sent_count: number;
           failed_count: number;
           segment_id: string | null;
+          scheduled_at: string | null;
           created_by: string | null;
           created_at: string;
           sent_at: string | null;
@@ -530,6 +531,7 @@ export interface Database {
           sent_count?: number;
           failed_count?: number;
           segment_id?: string | null;
+          scheduled_at?: string | null;
           created_by?: string | null;
           created_at?: string;
           sent_at?: string | null;
@@ -543,6 +545,7 @@ export interface Database {
           sent_count?: number;
           failed_count?: number;
           segment_id?: string | null;
+          scheduled_at?: string | null;
           sent_at?: string | null;
         };
         Relationships: [];

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { FlowLoadError, resumeSession } from "@/lib/flow-engine/engine";
 import { renderMergeVariables } from "@/lib/merge";
+import { deliverCampaign } from "@/lib/campaigns/send";
 import type { Json } from "@/lib/types/database";
 
 // Signals the handler to skip retry/backoff and route straight to the
@@ -187,7 +188,43 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  return NextResponse.json({ processed, failed, total: jobs.length });
+  const campaigns = await drainScheduledCampaigns(supabase);
+
+  return NextResponse.json({ processed, failed, total: jobs.length, campaigns });
+}
+
+/**
+ * Deliver campaigns whose scheduled_at has passed. A CAS from 'scheduled' to
+ * 'sending' claims each one so a concurrent/duplicate cron invocation can't
+ * send it twice.
+ */
+async function drainScheduledCampaigns(
+  supabase: Awaited<ReturnType<typeof createServiceClient>>
+): Promise<number> {
+  const { data: due } = await supabase
+    .from("campaigns")
+    .select("id, workspace_id, channel, subject, body, segment_id, status")
+    .eq("status", "scheduled")
+    .lte("scheduled_at", new Date().toISOString())
+    .limit(20);
+
+  let delivered = 0;
+  for (const campaign of due ?? []) {
+    // Claim: only proceed if this invocation flips 'scheduled' -> 'sending'.
+    const { data: claim } = await supabase
+      .from("campaigns")
+      .update({ status: "sending" })
+      .eq("id", campaign.id)
+      .eq("status", "scheduled")
+      .select("id");
+    if (!claim || claim.length === 0) continue;
+
+    // deliverCampaign expects a non-sending status; pass 'draft' since we hold
+    // the claim (it will set 'sending' again, harmlessly, then 'sent').
+    const res = await deliverCampaign(supabase, { ...campaign, status: "draft" });
+    if (!("error" in res)) delivered++;
+  }
+  return delivered;
 }
 
 // Marks a job out of retries as failed. A failed resume_flow job would leave

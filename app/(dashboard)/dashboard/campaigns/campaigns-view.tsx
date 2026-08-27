@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Megaphone, Plus, Send, Trash2, Loader2, Mail, MessageCircle } from "lucide-react";
-import { createCampaign, sendCampaign, deleteCampaign } from "@/lib/actions/campaigns";
+import { Megaphone, Plus, Send, Trash2, Loader2, Mail, MessageCircle, CalendarClock, X } from "lucide-react";
+import { createCampaign, sendCampaign, deleteCampaign, cancelSchedule } from "@/lib/actions/campaigns";
 import { renderMergeVariables } from "@/lib/merge";
 import { PageTitle } from "@/components/page-title";
 import { cn } from "@/lib/utils";
@@ -21,6 +21,7 @@ interface Campaign {
   sent_count: number;
   failed_count: number;
   sent_at: string | null;
+  scheduled_at: string | null;
   created_at: string;
 }
 
@@ -32,10 +33,20 @@ const CHANNELS = [
 
 const STATUS_STYLE: Record<string, string> = {
   draft: "bg-muted text-muted-foreground",
+  scheduled: "bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300",
   sending: "bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300",
   sent: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300",
   failed: "bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-300",
 };
+
+function formatSchedule(iso: string): string {
+  return new Date(iso).toLocaleString([], {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
 export function CampaignsView({
   campaigns,
@@ -50,6 +61,7 @@ export function CampaignsView({
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [segmentId, setSegmentId] = useState("");
+  const [scheduledAt, setScheduledAt] = useState("");
   const [creating, setCreating] = useState(false);
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -59,12 +71,20 @@ export function CampaignsView({
     if (!name.trim() || !body.trim() || creating) return;
     setCreating(true);
     setError(null);
-    const res = await createCampaign({ name, channel, subject, body, segmentId: segmentId || null });
+    const res = await createCampaign({
+      name,
+      channel,
+      subject,
+      body,
+      segmentId: segmentId || null,
+      scheduledAt: scheduledAt ? new Date(scheduledAt).toISOString() : null,
+    });
     setCreating(false);
     if (res.error) return setError(res.error);
     setName("");
     setSubject("");
     setBody("");
+    setScheduledAt("");
     router.refresh();
   }
 
@@ -74,7 +94,7 @@ export function CampaignsView({
     setNotice(null);
     const res = await sendCampaign(id);
     setSendingId(null);
-    if (res.error) setError(res.error);
+    if ("error" in res) setError(res.error);
     else setNotice(`Sent to ${res.sent} contact(s)${res.failed ? `, ${res.failed} failed` : ""}.`);
     router.refresh();
   }
@@ -167,18 +187,44 @@ export function CampaignsView({
                 </p>
               </div>
             )}
-            <div className="mt-3 flex items-center justify-between">
-              <p className="text-xs text-muted-foreground">
-                Sends to subscribed contacts with {channel === "email" ? "an email" : "a phone number"}.
-              </p>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <label className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                <CalendarClock className="h-3.5 w-3.5" />
+                Schedule
+              </label>
+              <input
+                type="datetime-local"
+                value={scheduledAt}
+                onChange={(e) => setScheduledAt(e.target.value)}
+                className="rounded-lg border border-border bg-background px-2 py-1.5 text-sm outline-none focus:border-primary"
+              />
+              {scheduledAt && (
+                <button
+                  onClick={() => setScheduledAt("")}
+                  className="text-xs text-muted-foreground hover:text-foreground"
+                >
+                  Clear
+                </button>
+              )}
               <button
                 onClick={handleCreate}
                 disabled={creating || !name.trim() || !body.trim()}
-                className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
+                className="ms-auto inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
               >
-                <Plus className="h-4 w-4" /> Create draft
+                {creating ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : scheduledAt ? (
+                  <CalendarClock className="h-4 w-4" />
+                ) : (
+                  <Plus className="h-4 w-4" />
+                )}
+                {scheduledAt ? "Schedule" : "Create draft"}
               </button>
             </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Sends to subscribed contacts with {channel === "email" ? "an email" : "a phone number"}.
+              {" "}Scheduled campaigns are delivered by the daily job (send time depends on cron frequency).
+            </p>
           </div>
 
           {/* List */}
@@ -214,6 +260,8 @@ export function CampaignsView({
                     <p className="mt-0.5 truncate text-xs text-muted-foreground">
                       {c.status === "sent"
                         ? `${c.sent_count} sent${c.failed_count ? `, ${c.failed_count} failed` : ""}`
+                        : c.status === "scheduled" && c.scheduled_at
+                        ? `Scheduled for ${formatSchedule(c.scheduled_at)}`
                         : c.body}
                     </p>
                   </div>
@@ -229,7 +277,20 @@ export function CampaignsView({
                         ) : (
                           <Send className="h-3.5 w-3.5" />
                         )}
-                        Send
+                        {c.status === "scheduled" ? "Send now" : "Send"}
+                      </button>
+                    )}
+                    {c.status === "scheduled" && (
+                      <button
+                        onClick={async () => {
+                          await cancelSchedule(c.id);
+                          router.refresh();
+                        }}
+                        title="Cancel schedule"
+                        aria-label="Cancel schedule"
+                        className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+                      >
+                        <X className="h-4 w-4" />
                       </button>
                     )}
                     <button

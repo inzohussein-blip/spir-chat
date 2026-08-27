@@ -75,6 +75,7 @@ project run the new files in order in the SQL Editor. Summary:
 | `00039_segments` | Saved audience segments for campaign targeting |
 | `00040_csat` | Post-resolution customer-satisfaction surveys |
 | `00041_macros` | One-click conversation action bundles (macros) |
+| `00042_campaign_schedule` | Scheduled campaigns (deliver at a set time) |
 
 Optional environment variables (each feature degrades to a safe no-op when its
 keys are absent):

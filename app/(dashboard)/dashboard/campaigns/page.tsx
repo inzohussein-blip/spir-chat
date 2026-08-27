@@ -7,7 +7,7 @@ export default async function CampaignsPage() {
   const [{ data: campaigns }, { data: segments }] = await Promise.all([
     supabase
       .from("campaigns")
-      .select("id, name, channel, subject, body, status, sent_count, failed_count, sent_at, created_at")
+      .select("id, name, channel, subject, body, status, sent_count, failed_count, sent_at, scheduled_at, created_at")
       .eq("workspace_id", workspace.id)
       .order("created_at", { ascending: false }),
     supabase
