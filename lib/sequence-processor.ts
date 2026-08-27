@@ -1,5 +1,6 @@
 import { createServiceClient } from "@/lib/supabase/server";
 import { createZernioClient } from "@/lib/zernio-client";
+import { renderMergeVariables } from "@/lib/merge";
 import type { SequenceStep } from "@/lib/types/database";
 
 /**
@@ -185,17 +186,25 @@ async function sendSequenceMessage(
     return;
   }
 
+  // Resolve {{field}} merge variables against the contact.
+  const { data: contact } = await supabase
+    .from("contacts")
+    .select("display_name, email, phone")
+    .eq("id", contactId)
+    .single();
+  const merged = renderMergeVariables(text, contact ?? {});
+
   try {
     const response = await zernio.messages.sendInboxMessage({
       path: { conversationId: conversation.late_conversation_id },
-      body: { accountId: channel.late_account_id, message: text },
+      body: { accountId: channel.late_account_id, message: merged },
     });
 
     // Store outbound message
     await supabase.from("messages").insert({
       conversation_id: conversation.id,
       direction: "outbound",
-      text,
+      text: merged,
       status: "sent",
       platform_message_id: response.data?.data?.messageId || null,
     });
@@ -206,7 +215,7 @@ async function sendSequenceMessage(
     await supabase.from("messages").insert({
       conversation_id: conversation.id,
       direction: "outbound",
-      text,
+      text: merged,
       status: "failed",
     });
   }

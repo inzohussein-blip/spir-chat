@@ -6,6 +6,7 @@ import { Send, Paperclip, Bot, User, MessageSquare, MessageSquareText, CheckCirc
 import { createClient } from "@/lib/supabase/client";
 import { resolveWithSurvey } from "@/lib/actions/csat";
 import { runMacro } from "@/lib/actions/macros";
+import { CSAT_ENABLED } from "@/lib/features";
 import { cn } from "@/lib/utils";
 import { PlatformIcon } from "@/components/platform-icon";
 import { filterCannedResponses, isCannedShortcut, type CannedResponseItem } from "@/lib/canned";
@@ -724,15 +725,17 @@ export function MessageThread({
                     {statusUpdating === "snoozed" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Clock className="h-3.5 w-3.5" />}
                   </button>
                 )}
-                <button
-                  onClick={resolveWithRating}
-                  disabled={!!statusUpdating}
-                  title="Resolve and ask the contact to rate this conversation"
-                  aria-label="Resolve and request a rating"
-                  className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-amber-500 transition-colors disabled:opacity-50"
-                >
-                  <Star className="h-3.5 w-3.5" />
-                </button>
+                {CSAT_ENABLED && (
+                  <button
+                    onClick={resolveWithRating}
+                    disabled={!!statusUpdating}
+                    title="Resolve and ask the contact to rate this conversation"
+                    aria-label="Resolve and request a rating"
+                    className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-amber-500 transition-colors disabled:opacity-50"
+                  >
+                    <Star className="h-3.5 w-3.5" />
+                  </button>
+                )}
                 <button
                   onClick={resolve}
                   disabled={!!statusUpdating}

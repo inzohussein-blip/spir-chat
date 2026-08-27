@@ -4,8 +4,12 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Megaphone, Plus, Send, Trash2, Loader2, Mail, MessageCircle } from "lucide-react";
 import { createCampaign, sendCampaign, deleteCampaign } from "@/lib/actions/campaigns";
+import { renderMergeVariables } from "@/lib/merge";
 import { PageTitle } from "@/components/page-title";
 import { cn } from "@/lib/utils";
+
+// A stand-in contact so the composer can preview how merge variables render.
+const SAMPLE_CONTACT = { display_name: "Ahmed Khaled", email: "ahmed@example.com", phone: "+201234567890" };
 
 interface Campaign {
   id: string;
@@ -153,6 +157,16 @@ export function CampaignsView({
               <code className="rounded bg-muted px-1 py-0.5">{"{{email}}"}</code> — add a fallback like{" "}
               <code className="rounded bg-muted px-1 py-0.5">{"{{first_name|there}}"}</code>.
             </p>
+            {body.includes("{{") && (
+              <div className="mt-2 rounded-lg border border-dashed border-border bg-muted/40 px-3 py-2">
+                <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                  Preview · {SAMPLE_CONTACT.display_name}
+                </p>
+                <p className="whitespace-pre-wrap text-sm">
+                  {renderMergeVariables(body, SAMPLE_CONTACT).replace(/\s*\{link\}\s*/gi, " ").trim()}
+                </p>
+              </div>
+            )}
             <div className="mt-3 flex items-center justify-between">
               <p className="text-xs text-muted-foreground">
                 Sends to subscribed contacts with {channel === "email" ? "an email" : "a phone number"}.

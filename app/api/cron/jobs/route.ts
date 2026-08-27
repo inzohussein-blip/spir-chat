@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { FlowLoadError, resumeSession } from "@/lib/flow-engine/engine";
+import { renderMergeVariables } from "@/lib/merge";
 import type { Json } from "@/lib/types/database";
 
 // Signals the handler to skip retry/backoff and route straight to the
@@ -565,7 +566,7 @@ async function processJob(
       // Get the conversation for this contact+channel (need late_conversation_id)
       const { data: conv } = await supabase
         .from("conversations")
-        .select("late_conversation_id")
+        .select("late_conversation_id, contacts(display_name, email, phone)")
         .eq("contact_id", recipient.contact_id)
         .eq("channel_id", recipient.channel_id)
         .single();
@@ -574,6 +575,10 @@ async function processJob(
 
       const broadcastData = recipient.broadcasts as { message_content: { text?: string } } | null;
       const messageContent = broadcastData?.message_content;
+      const bcContact = conv.contacts as
+        | { display_name: string | null; email: string | null; phone: string | null }
+        | null;
+      const bcText = renderMergeVariables(messageContent?.text || "", bcContact ?? {});
 
       // CAS to 'sending' before the API call so a crash between the send and
       // the 'sent' write cannot cause a re-send when the job is reclaimed
@@ -596,7 +601,7 @@ async function processJob(
       try {
         await zernio.messages.sendInboxMessage({
           path: { conversationId: conv.late_conversation_id },
-          body: { accountId: channel.late_account_id, message: messageContent?.text || "" },
+          body: { accountId: channel.late_account_id, message: bcText },
         });
 
         await supabase
