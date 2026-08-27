@@ -280,6 +280,30 @@ export interface Database {
         };
         Relationships: [];
       };
+      macros: {
+        Row: {
+          id: string;
+          workspace_id: string;
+          name: string;
+          actions: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          workspace_id: string;
+          name: string;
+          actions?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          name?: string;
+          actions?: Json;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       csat_surveys: {
         Row: {
           id: string;

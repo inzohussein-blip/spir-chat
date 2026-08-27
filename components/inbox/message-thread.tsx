@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Send, Paperclip, Bot, User, MessageSquare, MessageSquareText, CheckCircle, Clock, RotateCcw, Loader2, StickyNote, UserPlus, UserCheck, PenLine, Smile, MousePointerClick, Star } from "lucide-react";
+import { Send, Paperclip, Bot, User, MessageSquare, MessageSquareText, CheckCircle, Clock, RotateCcw, Loader2, StickyNote, UserPlus, UserCheck, PenLine, Smile, MousePointerClick, Star, Zap } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { resolveWithSurvey } from "@/lib/actions/csat";
+import { runMacro } from "@/lib/actions/macros";
 import { cn } from "@/lib/utils";
 import { PlatformIcon } from "@/components/platform-icon";
 import { filterCannedResponses, isCannedShortcut, type CannedResponseItem } from "@/lib/canned";
@@ -709,6 +710,7 @@ export function MessageThread({
             </span>
           )}
           <div className="flex items-center gap-1.5">
+            <MacroRunner conversationId={conversation.id} onRan={() => router.refresh()} />
             {conversation.status !== "closed" ? (
               <>
                 {conversation.status !== "snoozed" && (
@@ -1119,6 +1121,90 @@ export function MessageThread({
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+interface MacroSummary {
+  id: string;
+  name: string;
+  actions: unknown;
+}
+
+function MacroRunner({
+  conversationId,
+  onRan,
+}: {
+  conversationId: string;
+  onRan: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [macros, setMacros] = useState<MacroSummary[] | null>(null);
+  const [running, setRunning] = useState<string | null>(null);
+
+  async function toggle() {
+    const next = !open;
+    setOpen(next);
+    if (next && macros === null) {
+      const { data } = await createClient()
+        .from("macros")
+        .select("id, name, actions")
+        .order("name", { ascending: true });
+      setMacros(data ?? []);
+    }
+  }
+
+  async function run(id: string) {
+    setRunning(id);
+    try {
+      await runMacro(id, conversationId);
+      onRan();
+    } finally {
+      setRunning(null);
+      setOpen(false);
+    }
+  }
+
+  return (
+    <div className="relative">
+      <button
+        onClick={toggle}
+        title="Run a macro"
+        aria-label="Run a macro"
+        className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-primary transition-colors"
+      >
+        <Zap className="h-3.5 w-3.5" />
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute end-0 z-20 mt-1 w-56 rounded-lg border border-border bg-popover p-1 shadow-lg">
+            {macros === null ? (
+              <div className="px-3 py-2 text-xs text-muted-foreground">Loading…</div>
+            ) : macros.length === 0 ? (
+              <div className="px-3 py-2 text-xs text-muted-foreground">
+                No macros yet. Create one under Macros.
+              </div>
+            ) : (
+              macros.map((m) => (
+                <button
+                  key={m.id}
+                  onClick={() => run(m.id)}
+                  disabled={!!running}
+                  className="flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-start text-sm hover:bg-accent disabled:opacity-50"
+                >
+                  {running === m.id ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Zap className="h-3.5 w-3.5 text-primary" />
+                  )}
+                  <span className="truncate">{m.name}</span>
+                </button>
+              ))
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }

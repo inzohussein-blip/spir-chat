@@ -74,6 +74,7 @@ project run the new files in order in the SQL Editor. Summary:
 | `00038_dm_jobs_buttons` | Carry link buttons through the DM retry queue |
 | `00039_segments` | Saved audience segments for campaign targeting |
 | `00040_csat` | Post-resolution customer-satisfaction surveys |
+| `00041_macros` | One-click conversation action bundles (macros) |
 
 Optional environment variables (each feature degrades to a safe no-op when its
 keys are absent):

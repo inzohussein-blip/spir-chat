@@ -2,7 +2,7 @@
 
 import { getWorkspace } from "@/lib/workspace";
 import { createServiceClient } from "@/lib/supabase/server";
-import { createZernioClient } from "@/lib/zernio-client";
+import { sendConversationMessage } from "@/lib/outbound";
 import { generateCsatToken, buildCsatUrl, csatMessage } from "@/lib/csat";
 import { revalidatePath } from "next/cache";
 
@@ -45,42 +45,22 @@ export async function resolveWithSurvey(conversationId: string) {
 
   const text = csatMessage(buildCsatUrl(token));
 
-  // Deliver the survey message on the conversation's channel.
-  if (conversation.platform === "website") {
-    await supabase.from("messages").insert({
-      conversation_id: conversationId,
-      direction: "outbound",
-      text,
-      sent_by_user_id: user.id,
-    });
-  } else if (conversation.late_conversation_id) {
-    const channel = conversation.channels as { late_account_id: string } | null;
-    const { data: ws } = await supabase
-      .from("workspaces")
-      .select("late_api_key_encrypted")
-      .eq("id", workspace.id)
-      .single();
-    if (channel?.late_account_id && ws?.late_api_key_encrypted) {
-      try {
-        const zernio = createZernioClient(ws.late_api_key_encrypted);
-        await zernio.messages.sendInboxMessage({
-          path: { conversationId: conversation.late_conversation_id },
-          body: { accountId: channel.late_account_id, message: text },
-        });
-      } catch {
-        // Non-fatal: the survey row still exists; resolution proceeds.
-      }
-    }
-  }
+  // Deliver the survey message on the conversation's channel (non-fatal on
+  // failure: the survey row still exists and resolution proceeds).
+  await sendConversationMessage(
+    supabase,
+    {
+      id: conversation.id,
+      workspace_id: conversation.workspace_id,
+      platform: conversation.platform,
+      late_conversation_id: conversation.late_conversation_id,
+      channels: conversation.channels as { late_account_id: string } | null,
+    },
+    text,
+    user.id
+  );
 
-  await supabase
-    .from("conversations")
-    .update({
-      status: "closed",
-      last_message_at: new Date().toISOString(),
-      last_message_preview: text.slice(0, 100),
-    })
-    .eq("id", conversationId);
+  await supabase.from("conversations").update({ status: "closed" }).eq("id", conversationId);
 
   revalidatePath("/dashboard/inbox");
   return { ok: true };
