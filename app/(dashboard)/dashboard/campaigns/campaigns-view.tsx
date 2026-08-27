@@ -62,6 +62,8 @@ export function CampaignsView({
   const [body, setBody] = useState("");
   const [segmentId, setSegmentId] = useState("");
   const [scheduledAt, setScheduledAt] = useState("");
+  const [abEnabled, setAbEnabled] = useState(false);
+  const [bodyB, setBodyB] = useState("");
   const [creating, setCreating] = useState(false);
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -76,6 +78,7 @@ export function CampaignsView({
       channel,
       subject,
       body,
+      bodyB: abEnabled && bodyB.trim() ? bodyB : null,
       segmentId: segmentId || null,
       scheduledAt: scheduledAt ? new Date(scheduledAt).toISOString() : null,
     });
@@ -84,6 +87,8 @@ export function CampaignsView({
     setName("");
     setSubject("");
     setBody("");
+    setBodyB("");
+    setAbEnabled(false);
     setScheduledAt("");
     router.refresh();
   }
@@ -187,6 +192,31 @@ export function CampaignsView({
                 </p>
               </div>
             )}
+            <label className="mt-3 inline-flex items-center gap-2 text-sm font-medium">
+              <input
+                type="checkbox"
+                checked={abEnabled}
+                onChange={(e) => setAbEnabled(e.target.checked)}
+                className="h-4 w-4 rounded border-border"
+              />
+              A/B test — send a second variant
+            </label>
+            {abEnabled && (
+              <textarea
+                value={bodyB}
+                onChange={(e) => setBodyB(e.target.value)}
+                rows={4}
+                placeholder="Variant B message…"
+                className="mt-2 w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+              />
+            )}
+            {abEnabled && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                Recipients are split ~50/50 between variant A and B. The campaign
+                report breaks delivery down by variant.
+              </p>
+            )}
+
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <label className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
                 <CalendarClock className="h-3.5 w-3.5" />

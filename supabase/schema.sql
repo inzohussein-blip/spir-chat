@@ -1801,3 +1801,17 @@ drop trigger if exists trg_enroll_on_tag on contact_tags;
 create trigger trg_enroll_on_tag
   after insert on contact_tags
   for each row execute function enroll_on_tag();
+
+-- ============================================================
+-- 00046_campaign_ab.sql
+-- ============================================================
+-- ============================================================
+-- A/B campaigns: an optional second message variant. When body_b is set,
+-- the audience is split ~50/50 and each recipient's variant is logged so
+-- the campaign report can compare the two.
+-- ============================================================
+alter table campaigns
+  add column if not exists body_b text;
+
+alter table campaign_recipients
+  add column if not exists variant text not null default 'a' check (variant in ('a', 'b'));

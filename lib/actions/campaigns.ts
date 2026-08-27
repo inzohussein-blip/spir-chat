@@ -12,6 +12,7 @@ export async function createCampaign(input: {
   channel: string;
   subject?: string;
   body: string;
+  bodyB?: string | null;
   segmentId?: string | null;
   scheduledAt?: string | null;
 }) {
@@ -43,6 +44,7 @@ export async function createCampaign(input: {
       channel,
       subject: input.subject?.trim() || null,
       body: input.body,
+      body_b: input.bodyB?.trim() || null,
       segment_id: input.segmentId || null,
       scheduled_at: scheduledAt,
       status,
@@ -75,7 +77,7 @@ export async function sendCampaign(id: string) {
 
   const { data: campaign } = await supabase
     .from("campaigns")
-    .select("id, workspace_id, channel, subject, body, segment_id, status")
+    .select("id, workspace_id, channel, subject, body, body_b, segment_id, status")
     .eq("id", id)
     .eq("workspace_id", workspace.id)
     .single();

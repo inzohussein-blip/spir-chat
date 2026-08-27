@@ -39,7 +39,7 @@ export default async function CampaignDetailPage({
 
   const { data: recipients } = await supabase
     .from("campaign_recipients")
-    .select("id, recipient, status, error, created_at, contacts(display_name)")
+    .select("id, recipient, status, error, variant, created_at, contacts(display_name)")
     .eq("campaign_id", campaignId)
     .order("created_at", { ascending: false })
     .limit(500);
@@ -49,6 +49,20 @@ export default async function CampaignDetailPage({
   const failed = rows.filter((r) => r.status === "failed").length;
   const total = rows.length || campaign.sent_count + campaign.failed_count;
   const deliveryRate = total > 0 ? Math.round((sent / total) * 100) : null;
+
+  // A/B breakdown (only meaningful when a second variant was configured).
+  const variantStats = (v: "a" | "b") => {
+    const vr = rows.filter((r) => r.variant === v);
+    const vsent = vr.filter((r) => r.status === "sent").length;
+    return {
+      total: vr.length,
+      sent: vsent,
+      rate: vr.length ? Math.round((vsent / vr.length) * 100) : null,
+    };
+  };
+  const abA = variantStats("a");
+  const abB = variantStats("b");
+  const hasAb = !!(campaign as { body_b?: string | null }).body_b || abB.total > 0;
 
   const stats = [
     { label: "Recipients", value: total, icon: Users, tone: "text-violet-600" },
@@ -108,13 +122,36 @@ export default async function CampaignDetailPage({
             ))}
           </div>
 
-          {/* Message */}
-          <div className="rounded-xl border border-border bg-card p-5 shadow-card">
-            <div className="mb-2 flex items-center gap-2 text-sm font-semibold">
-              <Send className="h-4 w-4 text-primary" /> Message
+          {/* A/B breakdown */}
+          {hasAb && (
+            <div className="grid gap-4 sm:grid-cols-2">
+              {([
+                { label: "Variant A", body: campaign.body, s: abA },
+                { label: "Variant B", body: (campaign as { body_b?: string | null }).body_b ?? "", s: abB },
+              ] as const).map((v) => (
+                <div key={v.label} className="rounded-xl border border-border bg-card p-5 shadow-card">
+                  <div className="mb-2 flex items-center justify-between">
+                    <span className="text-sm font-semibold">{v.label}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {v.s.sent}/{v.s.total} delivered
+                      {v.s.rate != null ? ` · ${v.s.rate}%` : ""}
+                    </span>
+                  </div>
+                  <p className="whitespace-pre-wrap text-sm text-muted-foreground">{v.body}</p>
+                </div>
+              ))}
             </div>
-            <p className="whitespace-pre-wrap text-sm text-muted-foreground">{campaign.body}</p>
-          </div>
+          )}
+
+          {/* Message (single variant) */}
+          {!hasAb && (
+            <div className="rounded-xl border border-border bg-card p-5 shadow-card">
+              <div className="mb-2 flex items-center gap-2 text-sm font-semibold">
+                <Send className="h-4 w-4 text-primary" /> Message
+              </div>
+              <p className="whitespace-pre-wrap text-sm text-muted-foreground">{campaign.body}</p>
+            </div>
+          )}
 
           {/* Failures */}
           {failures.length > 0 && (

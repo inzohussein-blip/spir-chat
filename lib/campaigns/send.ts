@@ -21,6 +21,7 @@ export interface DeliverableCampaign {
   channel: string;
   subject: string | null;
   body: string;
+  body_b?: string | null;
   segment_id: string | null;
   status: string;
 }
@@ -68,6 +69,8 @@ export async function deliverCampaign(
 
   const { data: contacts } = await audience.limit(MAX_RECIPIENTS);
 
+  const bodyB = campaign.body_b?.trim() || null;
+
   let sent = 0;
   let failed = 0;
   const log: {
@@ -77,13 +80,16 @@ export async function deliverCampaign(
     recipient: string;
     status: "sent" | "failed";
     error: string | null;
+    variant: "a" | "b";
   }[] = [];
 
   for (const c of contacts ?? []) {
     const row = c as Record<string, string | null>;
     const recipient = row[field];
     if (!recipient) continue;
-    const merged = renderMergeVariables(campaign.body, {
+    // A/B split: when a second variant exists, pick one at random per recipient.
+    const variant: "a" | "b" = bodyB && Math.random() < 0.5 ? "b" : "a";
+    const merged = renderMergeVariables(variant === "b" ? bodyB! : campaign.body, {
       display_name: row.display_name,
       email: row.email,
       phone: row.phone,
@@ -102,6 +108,7 @@ export async function deliverCampaign(
       recipient,
       status: res.ok ? "sent" : "failed",
       error: res.ok ? null : res.error ?? "Unknown error",
+      variant,
     });
   }
 

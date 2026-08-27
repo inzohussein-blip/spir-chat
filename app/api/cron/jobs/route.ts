@@ -203,7 +203,7 @@ async function drainScheduledCampaigns(
 ): Promise<number> {
   const { data: due } = await supabase
     .from("campaigns")
-    .select("id, workspace_id, channel, subject, body, segment_id, status")
+    .select("id, workspace_id, channel, subject, body, body_b, segment_id, status")
     .eq("status", "scheduled")
     .lte("scheduled_at", new Date().toISOString())
     .limit(20);

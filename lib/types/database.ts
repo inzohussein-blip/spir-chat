@@ -514,6 +514,7 @@ export interface Database {
           channel: string;
           subject: string | null;
           body: string;
+          body_b: string | null;
           status: string;
           sent_count: number;
           failed_count: number;
@@ -530,6 +531,7 @@ export interface Database {
           channel?: string;
           subject?: string | null;
           body?: string;
+          body_b?: string | null;
           status?: string;
           sent_count?: number;
           failed_count?: number;
@@ -544,6 +546,7 @@ export interface Database {
           channel?: string;
           subject?: string | null;
           body?: string;
+          body_b?: string | null;
           status?: string;
           sent_count?: number;
           failed_count?: number;
@@ -562,6 +565,7 @@ export interface Database {
           recipient: string;
           status: string;
           error: string | null;
+          variant: string;
           created_at: string;
         };
         Insert: {
@@ -572,11 +576,13 @@ export interface Database {
           recipient: string;
           status: string;
           error?: string | null;
+          variant?: string;
           created_at?: string;
         };
         Update: {
           status?: string;
           error?: string | null;
+          variant?: string;
         };
         Relationships: [];
       };

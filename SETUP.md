@@ -79,6 +79,7 @@ project run the new files in order in the SQL Editor. Summary:
 | `00043_campaign_recipients` | Per-recipient delivery log for campaign reports |
 | `00044_workspace_csat` | Per-workspace toggle to auto-send CSAT on resolve |
 | `00045_sequence_tag_trigger` | Auto-enroll into a sequence when a tag is applied |
+| `00046_campaign_ab` | A/B campaigns (second message variant + per-recipient variant) |
 
 Optional environment variables (each feature degrades to a safe no-op when its
 keys are absent):
