@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSyncExternalStore } from "react";
 import {
+  LayoutDashboard,
   GitBranch,
   MessageSquare,
   Users,
@@ -59,6 +60,7 @@ const navigation: {
   href: string;
   icon: typeof GitBranch;
 }[] = [
+  { key: "home", href: "/dashboard/home", icon: LayoutDashboard },
   { key: "flows", href: "/dashboard/flows", icon: GitBranch },
   { key: "inbox", href: "/dashboard/inbox", icon: MessageSquare },
   { key: "contacts", href: "/dashboard/contacts", icon: Users },

@@ -41,6 +41,7 @@ const en = {
     minChars: "Min. 6 characters",
   },
   sidebar: {
+    home: "Home",
     flows: "Flows",
     inbox: "Inbox",
     contacts: "Contacts",
@@ -213,6 +214,7 @@ const ar: Dictionary = {
     minChars: "6 أحرف على الأقل",
   },
   sidebar: {
+    home: "الرئيسية",
     flows: "التدفقات",
     inbox: "الوارد",
     contacts: "جهات الاتصال",
