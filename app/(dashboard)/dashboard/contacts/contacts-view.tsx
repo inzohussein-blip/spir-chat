@@ -19,9 +19,18 @@ import {
   Trash2,
   Loader2,
   X,
+  Download,
+  Upload,
 } from "lucide-react";
+import { useRef } from "react";
 import { useRouter } from "next/navigation";
-import { bulkAddTag, bulkSetSubscribed, bulkDeleteContacts } from "@/lib/actions/contacts";
+import {
+  bulkAddTag,
+  bulkSetSubscribed,
+  bulkDeleteContacts,
+  importContacts,
+} from "@/lib/actions/contacts";
+import { parseCsv, toCsv, contactsFromCsv } from "@/lib/csv";
 import { cn } from "@/lib/utils";
 import { avatarGradient } from "@/lib/avatar";
 import { PageTitle } from "@/components/page-title";
@@ -86,6 +95,52 @@ export function ContactsView({
   const [bulkTagId, setBulkTagId] = useState("");
   const [bulkBusy, setBulkBusy] = useState(false);
   const [bulkNotice, setBulkNotice] = useState<string | null>(null);
+  // CSV import/export.
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importing, setImporting] = useState(false);
+  const [importNotice, setImportNotice] = useState<string | null>(null);
+
+  function exportCsv() {
+    const header = ["Name", "Email", "Phone", "Subscribed", "Tags", "Created"];
+    const rows = filtered.map((c) => [
+      c.display_name,
+      c.email,
+      c.phone,
+      c.is_subscribed ? "yes" : "no",
+      (c.contact_tags.map((ct) => ct.tags?.name).filter(Boolean) as string[]).join("; "),
+      c.created_at,
+    ]);
+    const blob = new Blob([toCsv([header, ...rows])], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `contacts-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImporting(true);
+    setImportNotice(null);
+    const text = await file.text();
+    e.target.value = "";
+    const records = contactsFromCsv(parseCsv(text));
+    if (records.length === 0) {
+      setImporting(false);
+      setImportNotice("No importable rows found (need an email or phone column).");
+      return;
+    }
+    const res = await importContacts(records);
+    setImporting(false);
+    if (res.error) {
+      setImportNotice(res.error);
+      return;
+    }
+    setImportNotice(`Imported ${res.created} new · updated ${res.updated}.`);
+    router.refresh();
+  }
 
   const filtered = contacts.filter((contact) => {
     // Search filter
@@ -154,13 +209,40 @@ export function ContactsView({
     <div className="flex h-full flex-col">
       {/* Header */}
       <div className="border-b border-border px-8 py-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3">
           <PageTitle
             icon={Users}
             title={t.dash.contacts.title}
             subtitle={`${contacts.length} ${t.dash.contacts.subtitleSuffix}`}
           />
+          <div className="flex flex-shrink-0 items-center gap-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv,text/csv"
+              hidden
+              onChange={handleImportFile}
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={importing}
+              className="inline-flex items-center gap-2 rounded-lg border border-input px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-50"
+            >
+              {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+              Import
+            </button>
+            <button
+              onClick={exportCsv}
+              disabled={filtered.length === 0}
+              className="inline-flex items-center gap-2 rounded-lg border border-input px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-50"
+            >
+              <Download className="h-4 w-4" /> Export
+            </button>
+          </div>
         </div>
+        {importNotice && (
+          <p className="mt-2 text-xs font-medium text-muted-foreground">{importNotice}</p>
+        )}
 
         {/* Search and filters */}
         <div className="mt-4 flex items-center gap-3">
