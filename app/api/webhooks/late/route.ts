@@ -6,6 +6,7 @@ import { matchTrigger } from "@/lib/flow-engine/trigger-matcher";
 import { resolveWebhookSecret, verifyWebhookSignature } from "@/lib/zernio-webhook";
 import { upsertContactForSender } from "@/lib/inbox-sync";
 import { processComment } from "@/lib/comment-processor";
+import { autoAssignConversation } from "@/lib/routing";
 import type { Database } from "@/lib/types/database";
 
 // ── Zernio API webhook payload ───────────────────────────────────────────────
@@ -246,7 +247,7 @@ async function processMessageEvent(
       },
       { onConflict: "channel_id,contact_id" }
     )
-    .select("id, is_automation_paused")
+    .select("id, is_automation_paused, assigned_to")
     .single();
 
   if (!conversation) {
@@ -261,6 +262,12 @@ async function processMessageEvent(
         preview: messagePreview,
       })
       .then(() => {});
+  }
+
+  // Round-robin assign unassigned conversations (no-op unless the workspace
+  // has auto-assign on; the routing helper re-checks and only claims nulls).
+  if (!conversation.assigned_to) {
+    await autoAssignConversation(supabase, channel.workspace_id, conversation.id);
   }
 
   // Messages are stored by Zernio (source of truth) — no local insert needed.
