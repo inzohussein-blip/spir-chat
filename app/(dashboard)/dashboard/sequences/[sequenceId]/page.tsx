@@ -2,6 +2,7 @@ import { getWorkspace } from "@/lib/workspace";
 import { notFound } from "next/navigation";
 import { SequenceEditor } from "@/components/sequences/sequence-editor";
 import { EnrollmentList } from "@/components/sequences/enrollment-list";
+import { EnrollSegment } from "@/components/sequences/enroll-segment";
 import type { SequenceStep } from "@/lib/types/database";
 
 export default async function SequenceDetailPage({
@@ -23,11 +24,18 @@ export default async function SequenceDetailPage({
     notFound();
   }
 
-  const { data: enrollments } = await supabase
-    .from("sequence_enrollments")
-    .select("*, contacts(display_name, email)")
-    .eq("sequence_id", sequenceId)
-    .order("enrolled_at", { ascending: false });
+  const [{ data: enrollments }, { data: segments }] = await Promise.all([
+    supabase
+      .from("sequence_enrollments")
+      .select("*, contacts(display_name, email)")
+      .eq("sequence_id", sequenceId)
+      .order("enrolled_at", { ascending: false }),
+    supabase
+      .from("segments")
+      .select("id, name")
+      .eq("workspace_id", workspace.id)
+      .order("name", { ascending: true }),
+  ]);
 
   return (
     <div className="flex h-full flex-col">
@@ -39,6 +47,11 @@ export default async function SequenceDetailPage({
           status: sequence.status as "draft" | "active" | "paused",
           steps: (sequence.steps as unknown as SequenceStep[]) || [],
         }}
+      />
+      <EnrollSegment
+        sequenceId={sequence.id}
+        segments={segments ?? []}
+        active={sequence.status === "active"}
       />
       <div className="border-t border-border">
         <EnrollmentList
