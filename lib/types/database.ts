@@ -1648,6 +1648,7 @@ export interface Database {
           description: string | null;
           status: SequenceStatus;
           steps: Json;
+          trigger_tag_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -1658,6 +1659,7 @@ export interface Database {
           description?: string | null;
           status?: SequenceStatus;
           steps?: Json;
+          trigger_tag_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -1666,6 +1668,7 @@ export interface Database {
           description?: string | null;
           status?: SequenceStatus;
           steps?: Json;
+          trigger_tag_id?: string | null;
           updated_at?: string;
         };
         Relationships: [

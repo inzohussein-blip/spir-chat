@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { SequenceEditor } from "@/components/sequences/sequence-editor";
 import { EnrollmentList } from "@/components/sequences/enrollment-list";
 import { EnrollSegment } from "@/components/sequences/enroll-segment";
+import { SequenceTrigger } from "@/components/sequences/sequence-trigger";
 import type { SequenceStep } from "@/lib/types/database";
 
 export default async function SequenceDetailPage({
@@ -24,7 +25,7 @@ export default async function SequenceDetailPage({
     notFound();
   }
 
-  const [{ data: enrollments }, { data: segments }] = await Promise.all([
+  const [{ data: enrollments }, { data: segments }, { data: tags }] = await Promise.all([
     supabase
       .from("sequence_enrollments")
       .select("*, contacts(display_name, email)")
@@ -32,6 +33,11 @@ export default async function SequenceDetailPage({
       .order("enrolled_at", { ascending: false }),
     supabase
       .from("segments")
+      .select("id, name")
+      .eq("workspace_id", workspace.id)
+      .order("name", { ascending: true }),
+    supabase
+      .from("tags")
       .select("id, name")
       .eq("workspace_id", workspace.id)
       .order("name", { ascending: true }),
@@ -47,6 +53,11 @@ export default async function SequenceDetailPage({
           status: sequence.status as "draft" | "active" | "paused",
           steps: (sequence.steps as unknown as SequenceStep[]) || [],
         }}
+      />
+      <SequenceTrigger
+        sequenceId={sequence.id}
+        tags={tags ?? []}
+        initialTagId={(sequence as { trigger_tag_id?: string | null }).trigger_tag_id ?? null}
       />
       <EnrollSegment
         sequenceId={sequence.id}

@@ -237,6 +237,19 @@ export async function enrollSegment(sequenceId: string, segmentId: string) {
   };
 }
 
+/** Set (or clear) the tag that auto-enrolls contacts into this sequence. */
+export async function setSequenceTriggerTag(sequenceId: string, tagId: string | null) {
+  const { workspace, supabase } = await getWorkspace();
+  const { error } = await supabase
+    .from("sequences")
+    .update({ trigger_tag_id: tagId || null })
+    .eq("id", sequenceId)
+    .eq("workspace_id", workspace.id);
+  if (error) return { error: error.message };
+  revalidatePath(`/dashboard/sequences/${sequenceId}`);
+  return { ok: true };
+}
+
 export async function cancelEnrollment(enrollmentId: string) {
   const { workspace, supabase } = await getWorkspace();
 
