@@ -7,6 +7,7 @@ import { resolveWebhookSecret, verifyWebhookSignature } from "@/lib/zernio-webho
 import { upsertContactForSender } from "@/lib/inbox-sync";
 import { processComment } from "@/lib/comment-processor";
 import { autoAssignConversation } from "@/lib/routing";
+import { maybeSendOfflineAutoReply } from "@/lib/auto-reply";
 import type { Database } from "@/lib/types/database";
 
 // ── Zernio API webhook payload ───────────────────────────────────────────────
@@ -269,6 +270,16 @@ async function processMessageEvent(
   if (!conversation.assigned_to) {
     await autoAssignConversation(supabase, channel.workspace_id, conversation.id);
   }
+
+  // Off-hours auto-reply (once per conversation, no-op unless business hours
+  // are enabled and we're currently closed).
+  await maybeSendOfflineAutoReply(supabase, channel.workspace_id, {
+    id: conversation.id,
+    workspace_id: channel.workspace_id,
+    platform: channel.platform,
+    late_conversation_id: conv.id,
+    channels: { late_account_id: channel.late_account_id },
+  });
 
   // Messages are stored by Zernio (source of truth) — no local insert needed.
 
