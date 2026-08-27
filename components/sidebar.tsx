@@ -55,33 +55,63 @@ function subscribeToThemeClass(callback: () => void) {
   return () => observer.disconnect();
 }
 
-const navigation: {
+type NavItem = {
   key: keyof Dictionary["sidebar"];
   href: string;
   icon: typeof GitBranch;
-}[] = [
-  { key: "home", href: "/dashboard/home", icon: LayoutDashboard },
-  { key: "flows", href: "/dashboard/flows", icon: GitBranch },
-  { key: "inbox", href: "/dashboard/inbox", icon: MessageSquare },
-  { key: "contacts", href: "/dashboard/contacts", icon: Users },
-  { key: "broadcasts", href: "/dashboard/broadcasts", icon: Radio },
-  { key: "campaigns", href: "/dashboard/campaigns", icon: Megaphone },
-  { key: "segments", href: "/dashboard/segments", icon: Filter },
-  { key: "macros", href: "/dashboard/macros", icon: Zap },
-  { key: "links", href: "/dashboard/links", icon: Link2 },
-  { key: "sequences", href: "/dashboard/sequences", icon: ListOrdered },
-  { key: "analytics", href: "/dashboard/analytics", icon: BarChart3 },
-  { key: "reports", href: "/dashboard/reports", icon: LineChart },
-  { key: "growth", href: "/dashboard/growth", icon: Sprout },
-  { key: "igAutomations", href: "/dashboard/ig-automations", icon: Instagram },
-  { key: "website", href: "/dashboard/widgets", icon: Globe },
-  { key: "savedReplies", href: "/dashboard/saved-replies", icon: MessageSquareText },
-  { key: "forms", href: "/dashboard/forms", icon: ClipboardList },
-  { key: "helpCenter", href: "/dashboard/help-center", icon: BookOpen },
-  { key: "channels", href: "/dashboard/channels", icon: Plug },
-  { key: "integrations", href: "/dashboard/integrations", icon: Blocks },
-  { key: "developers", href: "/dashboard/developers", icon: Code2 },
-  { key: "settings", href: "/dashboard/settings", icon: Settings },
+};
+
+// The top item stands alone; the rest are grouped under Tidio-style section
+// labels so the long nav stays scannable.
+const homeItem: NavItem = { key: "home", href: "/dashboard/home", icon: LayoutDashboard };
+
+const navGroups: { group: keyof Dictionary["navGroups"]; items: NavItem[] }[] = [
+  {
+    group: "communicate",
+    items: [
+      { key: "inbox", href: "/dashboard/inbox", icon: MessageSquare },
+      { key: "contacts", href: "/dashboard/contacts", icon: Users },
+      { key: "savedReplies", href: "/dashboard/saved-replies", icon: MessageSquareText },
+      { key: "macros", href: "/dashboard/macros", icon: Zap },
+    ],
+  },
+  {
+    group: "automate",
+    items: [
+      { key: "flows", href: "/dashboard/flows", icon: GitBranch },
+      { key: "sequences", href: "/dashboard/sequences", icon: ListOrdered },
+      { key: "igAutomations", href: "/dashboard/ig-automations", icon: Instagram },
+      { key: "broadcasts", href: "/dashboard/broadcasts", icon: Radio },
+      { key: "campaigns", href: "/dashboard/campaigns", icon: Megaphone },
+      { key: "segments", href: "/dashboard/segments", icon: Filter },
+    ],
+  },
+  {
+    group: "grow",
+    items: [
+      { key: "growth", href: "/dashboard/growth", icon: Sprout },
+      { key: "links", href: "/dashboard/links", icon: Link2 },
+      { key: "forms", href: "/dashboard/forms", icon: ClipboardList },
+      { key: "helpCenter", href: "/dashboard/help-center", icon: BookOpen },
+      { key: "website", href: "/dashboard/widgets", icon: Globe },
+    ],
+  },
+  {
+    group: "analyze",
+    items: [
+      { key: "analytics", href: "/dashboard/analytics", icon: BarChart3 },
+      { key: "reports", href: "/dashboard/reports", icon: LineChart },
+    ],
+  },
+  {
+    group: "configure",
+    items: [
+      { key: "channels", href: "/dashboard/channels", icon: Plug },
+      { key: "integrations", href: "/dashboard/integrations", icon: Blocks },
+      { key: "developers", href: "/dashboard/developers", icon: Code2 },
+      { key: "settings", href: "/dashboard/settings", icon: Settings },
+    ],
+  },
 ];
 
 export function Sidebar({
@@ -127,32 +157,25 @@ export function Sidebar({
         <WorkspaceSwitcher current={workspace} workspaces={workspaces} />
       </div>
 
-      <nav className="flex-1 space-y-0.5 px-3 pb-3">
-        {navigation.map((item) => {
-          const isActive = pathname.startsWith(item.href);
-          return (
-            <Link
-              key={item.key}
-              href={item.href}
-              className={cn(
-                "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all",
-                isActive
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm"
-                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"
-              )}
-            >
-              <item.icon
-                className={cn(
-                  "h-4 w-4 transition-colors",
-                  isActive
-                    ? "text-sidebar-accent-foreground"
-                    : "text-sidebar-foreground/50 group-hover:text-sidebar-accent-foreground"
-                )}
+      <nav className="flex-1 overflow-y-auto px-3 pb-3">
+        <div className="space-y-0.5">
+          <NavLink item={homeItem} pathname={pathname} label={t.sidebar[homeItem.key]} />
+        </div>
+        {navGroups.map((section) => (
+          <div key={section.group} className="mt-4 space-y-0.5">
+            <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/40">
+              {t.navGroups[section.group]}
+            </p>
+            {section.items.map((item) => (
+              <NavLink
+                key={item.key}
+                item={item}
+                pathname={pathname}
+                label={t.sidebar[item.key]}
               />
-              {t.sidebar[item.key]}
-            </Link>
-          );
-        })}
+            ))}
+          </div>
+        ))}
       </nav>
 
       <div className="border-t border-sidebar-border p-3 space-y-1">
@@ -176,5 +199,38 @@ export function Sidebar({
         </button>
       </div>
     </div>
+  );
+}
+
+function NavLink({
+  item,
+  pathname,
+  label,
+}: {
+  item: NavItem;
+  pathname: string;
+  label: string;
+}) {
+  const isActive = pathname.startsWith(item.href);
+  return (
+    <Link
+      href={item.href}
+      className={cn(
+        "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all",
+        isActive
+          ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm"
+          : "text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"
+      )}
+    >
+      <item.icon
+        className={cn(
+          "h-4 w-4 transition-colors",
+          isActive
+            ? "text-sidebar-accent-foreground"
+            : "text-sidebar-foreground/50 group-hover:text-sidebar-accent-foreground"
+        )}
+      />
+      {label}
+    </Link>
   );
 }

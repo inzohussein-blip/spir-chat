@@ -67,6 +67,13 @@ const en = {
     darkMode: "Dark mode",
     signOut: "Sign out",
   },
+  navGroups: {
+    communicate: "Communicate",
+    automate: "Automate",
+    grow: "Grow",
+    analyze: "Analyze",
+    configure: "Configure",
+  },
   widget: {
     title: "SpirChat",
     subtitle: "We typically reply shortly",
@@ -239,6 +246,13 @@ const ar: Dictionary = {
     lightMode: "الوضع الفاتح",
     darkMode: "الوضع الداكن",
     signOut: "تسجيل الخروج",
+  },
+  navGroups: {
+    communicate: "التواصل",
+    automate: "الأتمتة",
+    grow: "النموّ",
+    analyze: "التحليل",
+    configure: "الإعدادات",
   },
   widget: {
     title: "SpirChat",
