@@ -97,20 +97,23 @@ export async function importContacts(records: ImportedContact[]) {
     is_subscribed: boolean;
   }[] = [];
   const updates: { id: string; rec: ImportedContact }[] = [];
-  // Track ids matched within this batch so duplicate rows don't double-insert.
-  const seenEmail = new Map<string, string>();
-  const seenPhone = new Map<string, string>();
+  // Track keys already handled in this batch so a duplicate row within the file
+  // neither double-inserts nor updates a bogus id.
+  const seenEmail = new Set<string>();
+  const seenPhone = new Set<string>();
 
   for (const rec of rows) {
     const emailKey = rec.email?.toLowerCase();
     const existingId =
-      (emailKey && (byEmail.get(emailKey) ?? seenEmail.get(emailKey))) ||
-      (rec.phone && (byPhone.get(rec.phone) ?? seenPhone.get(rec.phone))) ||
+      (emailKey && byEmail.get(emailKey)) ||
+      (rec.phone && byPhone.get(rec.phone)) ||
       null;
+    const seenInFile =
+      (!!emailKey && seenEmail.has(emailKey)) || (!!rec.phone && seenPhone.has(rec.phone));
 
     if (existingId) {
       updates.push({ id: existingId, rec });
-    } else {
+    } else if (!seenInFile) {
       toInsert.push({
         workspace_id: workspace.id,
         display_name: rec.display_name,
@@ -119,9 +122,10 @@ export async function importContacts(records: ImportedContact[]) {
         is_subscribed: rec.is_subscribed,
       });
     }
-    // Record keys so later duplicate rows in the same file merge, not duplicate.
-    if (emailKey && !seenEmail.has(emailKey)) seenEmail.set(emailKey, existingId ?? "pending");
-    if (rec.phone && !seenPhone.has(rec.phone)) seenPhone.set(rec.phone, existingId ?? "pending");
+    // else: a repeat of a new contact already queued this batch — skip it.
+
+    if (emailKey) seenEmail.add(emailKey);
+    if (rec.phone) seenPhone.add(rec.phone);
   }
 
   let created = 0;

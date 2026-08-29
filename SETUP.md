@@ -81,6 +81,7 @@ project run the new files in order in the SQL Editor. Summary:
 | `00045_sequence_tag_trigger` | Auto-enroll into a sequence when a tag is applied |
 | `00046_campaign_ab` | A/B campaigns (second message variant + per-recipient variant) |
 | `00047_weekly_reports` | Opt-in weekly email report per workspace |
+| `00048_enroll_on_tag_safe` | Harden the tag→sequence trigger so it can't block tagging |
 
 Optional environment variables (each feature degrades to a safe no-op when its
 keys are absent):
