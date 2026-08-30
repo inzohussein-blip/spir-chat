@@ -7,6 +7,8 @@ import { cn } from "@/lib/utils";
 import { avatarGradient } from "@/lib/avatar";
 import { PlatformIcon } from "@/components/platform-icon";
 import { useI18n } from "@/components/i18n-provider";
+import { Bookmark, Plus, X } from "lucide-react";
+import { createInboxView, deleteInboxView } from "@/lib/actions/inbox-views";
 import type { Database, Platform, ConversationStatus } from "@/lib/types/database";
 
 type Conversation = Database["public"]["Tables"]["conversations"]["Row"] & {
@@ -65,6 +67,41 @@ export function ConversationList({
   const [statusFilter, setStatusFilter] = useState<ConversationStatus | "all">("open");
   const [channelFilter, setChannelFilter] = useState<string>("all");
   const [mineOnly, setMineOnly] = useState(false);
+  const [views, setViews] = useState<{ id: string; name: string; filters: Record<string, unknown> }[]>([]);
+
+  // Load saved inbox views (shared across the workspace).
+  useEffect(() => {
+    createClient()
+      .from("inbox_views")
+      .select("id, name, filters")
+      .eq("workspace_id", workspaceId)
+      .order("created_at", { ascending: true })
+      .then(({ data }) => setViews((data as typeof views) ?? []));
+  }, [workspaceId]);
+
+  function applyView(f: Record<string, unknown>) {
+    setStatusFilter((f.status as ConversationStatus | "all") ?? "all");
+    setChannelFilter((f.channel as string) ?? "all");
+    setMineOnly(f.mine === true);
+    setSearch((f.search as string) ?? "");
+  }
+
+  async function saveCurrentView() {
+    const name = window.prompt("Name this view");
+    if (!name?.trim()) return;
+    const res = await createInboxView(name, {
+      status: statusFilter,
+      channel: channelFilter,
+      mine: mineOnly,
+      search,
+    });
+    if (res.view) setViews((prev) => [...prev, res.view as (typeof views)[number]]);
+  }
+
+  async function removeView(id: string) {
+    await deleteInboxView(id);
+    setViews((prev) => prev.filter((v) => v.id !== id));
+  }
   // Relative timestamps depend on the client's clock/locale, which differ from the
   // server's during SSR and trigger a hydration mismatch (React #418, which crashes
   // the inbox in production). Defer time rendering until after mount so the server
@@ -186,6 +223,35 @@ export function ConversationList({
             className="w-full rounded-lg border border-input bg-background py-2 ps-9 pe-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
+      </div>
+
+      {/* Saved views */}
+      <div className="flex flex-wrap items-center gap-1 px-3 pb-2">
+        {views.map((v) => (
+          <span
+            key={v.id}
+            className="group inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-xs font-medium hover:border-primary/40"
+          >
+            <button onClick={() => applyView(v.filters)} className="inline-flex items-center gap-1">
+              <Bookmark className="h-3 w-3 text-primary" />
+              {v.name}
+            </button>
+            <button
+              onClick={() => removeView(v.id)}
+              aria-label={`Delete view ${v.name}`}
+              className="text-muted-foreground/50 hover:text-destructive"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </span>
+        ))}
+        <button
+          onClick={saveCurrentView}
+          title="Save current filters as a view"
+          className="inline-flex items-center gap-1 rounded-full border border-dashed border-border px-2.5 py-1 text-xs font-medium text-muted-foreground hover:border-primary/40 hover:text-foreground"
+        >
+          <Plus className="h-3 w-3" /> Save view
+        </button>
       </div>
 
       {/* Status filter */}

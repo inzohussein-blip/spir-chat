@@ -613,6 +613,27 @@ export interface Database {
         };
         Relationships: [];
       };
+      inbox_views: {
+        Row: {
+          id: string;
+          workspace_id: string;
+          name: string;
+          filters: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          workspace_id: string;
+          name: string;
+          filters?: Json;
+          created_at?: string;
+        };
+        Update: {
+          name?: string;
+          filters?: Json;
+        };
+        Relationships: [];
+      };
       forms: {
         Row: {
           id: string;

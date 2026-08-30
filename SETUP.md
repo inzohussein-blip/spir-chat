@@ -86,6 +86,7 @@ project run the new files in order in the SQL Editor. Summary:
 | `00050_snooze_until` | Timed snooze — auto-reopen conversations when the time passes |
 | `00051_sla_escalation` | Stamp SLA-breached conversations so the cron escalates once |
 | `00052_merge_contacts` | Transactional merge of duplicate contacts |
+| `00053_inbox_views` | Saved inbox filter views (shared per workspace) |
 
 Optional environment variables (each feature degrades to a safe no-op when its
 keys are absent):
