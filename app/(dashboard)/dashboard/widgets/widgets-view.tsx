@@ -36,6 +36,9 @@ function WidgetConfigEditor({
   const [proactiveDelay, setProactiveDelay] = useState(initial.proactiveDelay);
   const [proactivePaths, setProactivePaths] = useState(initial.proactivePaths.join("\n"));
   const [starters, setStarters] = useState(initial.starters.join("\n"));
+  const [accentColor, setAccentColor] = useState(initial.accentColor ?? "#7C3AED");
+  const [useAccent, setUseAccent] = useState(!!initial.accentColor);
+  const [position, setPosition] = useState(initial.position);
   const [away, setAway] = useState(initial.away);
   const [awayMessage, setAwayMessage] = useState(initial.awayMessage ?? "");
   const [formId, setFormId] = useState(initial.formId ?? "");
@@ -51,6 +54,8 @@ function WidgetConfigEditor({
       proactive,
       proactiveDelay,
       proactivePaths: proactivePaths.split("\n"),
+      accentColor: useAccent ? accentColor : null,
+      position,
       starters: starters.split("\n"),
       away,
       awayMessage,
@@ -131,6 +136,40 @@ function WidgetConfigEditor({
       <p className="mt-1 text-[11px] text-muted-foreground">
         Shown as tappable buttons when the chat is empty. First 4 lines are used.
       </p>
+
+      <p className="mb-2 mt-5 text-xs font-medium text-muted-foreground">Appearance</p>
+      <div className="flex flex-wrap items-center gap-4">
+        <label className="inline-flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={useAccent}
+            onChange={(e) => setUseAccent(e.target.checked)}
+            className="h-4 w-4 rounded border-border"
+          />
+          Custom launcher colour
+        </label>
+        {useAccent && (
+          <input
+            type="color"
+            value={accentColor}
+            onChange={(e) => setAccentColor(e.target.value)}
+            className="h-8 w-12 cursor-pointer rounded border border-border bg-background"
+            aria-label="Launcher colour"
+          />
+        )}
+        <label className="inline-flex items-center gap-2 text-sm">
+          Position
+          <select
+            value={position}
+            onChange={(e) => setPosition(e.target.value as typeof position)}
+            className="rounded-lg border border-border bg-background px-2 py-1.5 text-sm outline-none"
+          >
+            <option value="auto">Auto (follows language)</option>
+            <option value="right">Bottom right</option>
+            <option value="left">Bottom left</option>
+          </select>
+        </label>
+      </div>
 
       <p className="mb-2 mt-5 text-xs font-medium text-muted-foreground">
         Conversational form

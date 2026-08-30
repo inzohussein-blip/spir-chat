@@ -66,6 +66,10 @@ export interface WidgetConfig {
   proactivePaths: string[];
   /** Clickable quick-reply prompts shown when the chat is empty (Tidio-style). */
   starters: string[];
+  /** Launcher accent colour (hex). Null keeps the default gradient. */
+  accentColor: string | null;
+  /** Launcher/panel side: "auto" follows text direction. */
+  position: "auto" | "left" | "right";
   /** When on, the widget shows an "away" state instead of "online". */
   away: boolean;
   /** Message shown to visitors while away (falls back to a built-in default). */
@@ -105,6 +109,12 @@ export function parseWidgetConfig(raw: unknown): WidgetConfig {
         .map((x) => x.trim().slice(0, 200))
         .slice(0, 20)
     : [];
+  const accentColor =
+    typeof o.accentColor === "string" && /^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/.test(o.accentColor.trim())
+      ? o.accentColor.trim()
+      : null;
+  const position =
+    o.position === "left" || o.position === "right" ? o.position : "auto";
   const awayMessage =
     typeof o.awayMessage === "string" && o.awayMessage.trim()
       ? o.awayMessage.trim().slice(0, 200)
@@ -118,6 +128,8 @@ export function parseWidgetConfig(raw: unknown): WidgetConfig {
     proactiveDelay,
     proactivePaths,
     starters,
+    accentColor,
+    position,
     away: o.away === true,
     awayMessage,
     formId,

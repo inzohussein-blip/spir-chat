@@ -44,6 +44,8 @@ export async function setWidgetConfig(
     proactiveDelay?: number;
     proactivePaths?: string[];
     starters?: string[];
+    accentColor?: string | null;
+    position?: string;
     away?: boolean;
     awayMessage?: string;
     formId?: string | null;
@@ -71,6 +73,13 @@ export async function setWidgetConfig(
         proactive: (config.proactive ?? "").trim().slice(0, 300),
         proactiveDelay: Number.isFinite(delay) && delay > 0 ? Math.round(delay) : 15,
         proactivePaths,
+        accentColor:
+          typeof config.accentColor === "string" &&
+          /^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/.test(config.accentColor.trim())
+            ? config.accentColor.trim()
+            : null,
+        position:
+          config.position === "left" || config.position === "right" ? config.position : "auto",
         starters,
         away: config.away === true,
         awayMessage: (config.awayMessage ?? "").trim().slice(0, 200),

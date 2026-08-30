@@ -263,7 +263,21 @@
     fetch(origin + "/api/widget/" + encodeURIComponent(channelId) + "/config")
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (cfg) {
-        if (cfg && cfg.proactive && pageMatches(cfg.proactivePaths)) {
+        if (!cfg) return;
+        // Appearance overrides.
+        if (typeof cfg.accentColor === "string" && cfg.accentColor) {
+          button.style.background = cfg.accentColor;
+        }
+        if (cfg.position === "left" || cfg.position === "right") {
+          side = cfg.position;
+          var other = side === "left" ? "right" : "left";
+          button.style[side] = "20px";
+          button.style[other] = "auto";
+          iframe.style[side] = "20px";
+          iframe.style[other] = "auto";
+          iframe.style.transformOrigin = "bottom " + side;
+        }
+        if (cfg.proactive && pageMatches(cfg.proactivePaths)) {
           var delay = (cfg.proactiveDelay || 15) * 1000;
           setTimeout(function () { showTeaser(cfg.proactive); }, delay);
         }

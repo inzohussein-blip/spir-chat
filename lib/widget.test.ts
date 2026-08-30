@@ -61,6 +61,8 @@ describe("parseWidgetConfig", () => {
       proactiveDelay: 15,
       proactivePaths: [],
       starters: [],
+      accentColor: null,
+      position: "auto",
       away: false,
       awayMessage: null,
       formId: null,
