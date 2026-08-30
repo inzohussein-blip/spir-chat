@@ -83,6 +83,7 @@ project run the new files in order in the SQL Editor. Summary:
 | `00047_weekly_reports` | Opt-in weekly email report per workspace |
 | `00048_enroll_on_tag_safe` | Harden the tag→sequence trigger so it can't block tagging |
 | `00049_label_rules` | Auto-label conversations by inbound-message keyword |
+| `00050_snooze_until` | Timed snooze — auto-reopen conversations when the time passes |
 
 Optional environment variables (each feature degrades to a safe no-op when its
 keys are absent):

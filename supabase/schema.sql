@@ -1910,3 +1910,17 @@ alter table label_rules enable row level security;
 create policy "Members manage label rules in their workspaces"
   on label_rules for all
   using (is_workspace_member(workspace_id));
+
+-- ============================================================
+-- 00050_snooze_until.sql
+-- ============================================================
+-- ============================================================
+-- Timed snooze: a snoozed conversation with snooze_until in the past is
+-- reopened automatically by the daily jobs cron.
+-- ============================================================
+alter table conversations
+  add column if not exists snooze_until timestamptz;
+
+create index if not exists idx_conversations_snooze
+  on conversations(snooze_until)
+  where status = 'snoozed' and snooze_until is not null;

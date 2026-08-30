@@ -6,6 +6,7 @@ import { Send, Paperclip, Bot, User, MessageSquare, MessageSquareText, CheckCirc
 import { createClient } from "@/lib/supabase/client";
 import { resolveConversation } from "@/lib/actions/csat";
 import { runMacro } from "@/lib/actions/macros";
+import { snoozeConversation } from "@/lib/actions/conversations";
 import { cn } from "@/lib/utils";
 import { PlatformIcon } from "@/components/platform-icon";
 import { filterCannedResponses, isCannedShortcut, type CannedResponseItem } from "@/lib/canned";
@@ -720,15 +721,11 @@ export function MessageThread({
             {conversation.status !== "closed" ? (
               <>
                 {conversation.status !== "snoozed" && (
-                  <button
-                    onClick={() => updateConversationStatus("snoozed")}
-                    disabled={!!statusUpdating}
-                    title={t.inbox.snooze}
-                    aria-label={t.inbox.snoozeAria}
-                    className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors disabled:opacity-50"
-                  >
-                    {statusUpdating === "snoozed" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Clock className="h-3.5 w-3.5" />}
-                  </button>
+                  <SnoozeMenu
+                    conversationId={conversation.id}
+                    label={t.inbox.snooze}
+                    onDone={() => router.refresh()}
+                  />
                 )}
                 <button
                   onClick={resolve}
@@ -1196,6 +1193,101 @@ function MacroRunner({
                 </button>
               ))
             )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function SnoozeMenu({
+  conversationId,
+  label,
+  onDone,
+}: {
+  conversationId: string;
+  label: string;
+  onDone: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [custom, setCustom] = useState("");
+
+  async function snooze(iso: string) {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await snoozeConversation(conversationId, iso);
+      onDone();
+    } finally {
+      setBusy(false);
+      setOpen(false);
+    }
+  }
+
+  function inHours(h: number): string {
+    return new Date(Date.now() + h * 3600000).toISOString();
+  }
+  function tomorrowMorning(): string {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    d.setHours(9, 0, 0, 0);
+    return d.toISOString();
+  }
+  function nextWeek(): string {
+    const d = new Date();
+    d.setDate(d.getDate() + 7);
+    d.setHours(9, 0, 0, 0);
+    return d.toISOString();
+  }
+
+  const options: { label: string; iso: () => string }[] = [
+    { label: "In 1 hour", iso: () => inHours(1) },
+    { label: "In 3 hours", iso: () => inHours(3) },
+    { label: "Tomorrow morning", iso: tomorrowMorning },
+    { label: "Next week", iso: nextWeek },
+  ];
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        disabled={busy}
+        title={label}
+        aria-label={label}
+        className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors disabled:opacity-50"
+      >
+        {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Clock className="h-3.5 w-3.5" />}
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute end-0 z-20 mt-1 w-52 rounded-lg border border-border bg-popover p-1 shadow-lg">
+            {options.map((o) => (
+              <button
+                key={o.label}
+                onClick={() => snooze(o.iso())}
+                className="flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-start text-sm hover:bg-accent"
+              >
+                <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                {o.label}
+              </button>
+            ))}
+            <div className="border-t border-border p-2">
+              <input
+                type="datetime-local"
+                value={custom}
+                onChange={(e) => setCustom(e.target.value)}
+                className="w-full rounded-md border border-border bg-background px-2 py-1 text-xs outline-none focus:border-primary"
+              />
+              <button
+                onClick={() => custom && snooze(new Date(custom).toISOString())}
+                disabled={!custom}
+                className="mt-1.5 w-full rounded-md bg-primary px-2 py-1 text-xs font-medium text-primary-foreground disabled:opacity-50"
+              >
+                Snooze until…
+              </button>
+            </div>
           </div>
         </>
       )}

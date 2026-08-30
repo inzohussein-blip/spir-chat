@@ -192,7 +192,23 @@ export async function GET(request: NextRequest) {
   const campaigns = await drainScheduledCampaigns(supabase);
   const reports = await sendWeeklyReports(supabase);
 
-  return NextResponse.json({ processed, failed, total: jobs.length, campaigns, reports });
+  // Reopen snoozed conversations whose snooze time has passed.
+  const { data: reopened } = await supabase
+    .from("conversations")
+    .update({ status: "open", snooze_until: null })
+    .eq("status", "snoozed")
+    .not("snooze_until", "is", null)
+    .lte("snooze_until", new Date().toISOString())
+    .select("id");
+
+  return NextResponse.json({
+    processed,
+    failed,
+    total: jobs.length,
+    campaigns,
+    reports,
+    reopened: reopened?.length ?? 0,
+  });
 }
 
 /**
