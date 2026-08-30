@@ -1778,6 +1778,14 @@ export interface Database {
       [_ in never]: never;
     };
     Functions: {
+      merge_contacts: {
+        Args: {
+          p_primary: string;
+          p_dup: string;
+          p_ws: string;
+        };
+        Returns: undefined;
+      };
       increment_unread: {
         Args: {
           conv_id: string;

@@ -153,6 +153,20 @@ export async function importContacts(records: ImportedContact[]) {
   return { ok: true, created, updated };
 }
 
+/** Merge the duplicate contact into the primary (survivor), then delete it. */
+export async function mergeContacts(primaryId: string, duplicateId: string) {
+  const { workspace, supabase } = await getWorkspace();
+  if (primaryId === duplicateId) return { error: "Pick two different contacts" };
+  const { error } = await supabase.rpc("merge_contacts", {
+    p_primary: primaryId,
+    p_dup: duplicateId,
+    p_ws: workspace.id,
+  });
+  if (error) return { error: error.message };
+  revalidatePath("/dashboard/contacts");
+  return { ok: true };
+}
+
 export async function bulkDeleteContacts(contactIds: string[]) {
   const { workspace, supabase } = await getWorkspace();
   const ids = await scopeToWorkspace(supabase, workspace.id, contactIds);

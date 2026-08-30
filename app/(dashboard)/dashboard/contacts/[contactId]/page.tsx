@@ -12,6 +12,7 @@ import {
 import { PlatformIcon } from "@/components/platform-icon";
 import { CustomFieldsEditor } from "@/components/contacts/custom-fields-editor";
 import { ContactTimeline, type TimelineEvent } from "@/components/contacts/contact-timeline";
+import { MergeContact } from "@/components/contacts/merge-contact";
 import { avatarGradient } from "@/lib/avatar";
 import { cn } from "@/lib/utils";
 
@@ -121,6 +122,19 @@ export default async function ContactDetailPage({
     });
   }
   events.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
+
+  // Other contacts, for the merge picker.
+  const { data: otherContactsRaw } = await supabase
+    .from("contacts")
+    .select("id, display_name, email")
+    .eq("workspace_id", workspace.id)
+    .neq("id", contactId)
+    .order("last_interaction_at", { ascending: false, nullsFirst: false })
+    .limit(200);
+  const otherContacts = (otherContactsRaw ?? []).map((c) => ({
+    id: c.id,
+    label: c.display_name || c.email || "Unknown contact",
+  }));
   const tags = contact.contact_tags
     .map((ct: { tags: unknown }) => ct.tags)
     .filter(Boolean) as { id: string; name: string; color: string | null }[];
@@ -315,6 +329,9 @@ export default async function ContactDetailPage({
 
           {/* Activity timeline */}
           <ContactTimeline events={events} />
+
+          {/* Merge duplicate */}
+          <MergeContact primaryId={contactId} others={otherContacts} />
         </div>
       </div>
     </div>
