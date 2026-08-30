@@ -1924,3 +1924,13 @@ alter table conversations
 create index if not exists idx_conversations_snooze
   on conversations(snooze_until)
   where status = 'snoozed' and snooze_until is not null;
+
+-- ============================================================
+-- 00051_sla_escalation.sql
+-- ============================================================
+-- ============================================================
+-- SLA escalation bookkeeping: stamp when a breached conversation was
+-- escalated so the cron notifies at most once per breach.
+-- ============================================================
+alter table conversations
+  add column if not exists sla_escalated_at timestamptz;

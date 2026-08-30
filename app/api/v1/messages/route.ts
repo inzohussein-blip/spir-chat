@@ -180,6 +180,7 @@ export async function POST(request: NextRequest) {
         last_message_at: new Date().toISOString(),
         last_message_preview: preview.slice(0, 100),
         unread_count: 0,
+        sla_escalated_at: null,
       })
       .eq("id", conversationId);
 
@@ -224,6 +225,7 @@ export async function POST(request: NextRequest) {
       .update({
         last_message_at: new Date().toISOString(),
         last_message_preview: text.slice(0, 100),
+        sla_escalated_at: null,
       })
       .eq("id", conversationId);
 

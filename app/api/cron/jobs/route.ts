@@ -4,6 +4,7 @@ import { FlowLoadError, resumeSession } from "@/lib/flow-engine/engine";
 import { renderMergeVariables } from "@/lib/merge";
 import { deliverCampaign } from "@/lib/campaigns/send";
 import { sendWeeklyReports } from "@/lib/reports/weekly";
+import { escalateSla } from "@/lib/sla";
 import type { Json } from "@/lib/types/database";
 
 // Signals the handler to skip retry/backoff and route straight to the
@@ -191,6 +192,7 @@ export async function GET(request: NextRequest) {
 
   const campaigns = await drainScheduledCampaigns(supabase);
   const reports = await sendWeeklyReports(supabase);
+  const slaEscalated = await escalateSla(supabase);
 
   // Reopen snoozed conversations whose snooze time has passed.
   const { data: reopened } = await supabase
@@ -207,6 +209,7 @@ export async function GET(request: NextRequest) {
     total: jobs.length,
     campaigns,
     reports,
+    slaEscalated,
     reopened: reopened?.length ?? 0,
   });
 }

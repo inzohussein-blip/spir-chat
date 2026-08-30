@@ -84,6 +84,7 @@ project run the new files in order in the SQL Editor. Summary:
 | `00048_enroll_on_tag_safe` | Harden the tag→sequence trigger so it can't block tagging |
 | `00049_label_rules` | Auto-label conversations by inbound-message keyword |
 | `00050_snooze_until` | Timed snooze — auto-reopen conversations when the time passes |
+| `00051_sla_escalation` | Stamp SLA-breached conversations so the cron escalates once |
 
 Optional environment variables (each feature degrades to a safe no-op when its
 keys are absent):

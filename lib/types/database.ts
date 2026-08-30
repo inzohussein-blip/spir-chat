@@ -1279,6 +1279,7 @@ export interface Database {
           visitor_typing_at: string | null;
           auto_reply_sent_at: string | null;
           snooze_until: string | null;
+          sla_escalated_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -1300,6 +1301,7 @@ export interface Database {
           visitor_typing_at?: string | null;
           auto_reply_sent_at?: string | null;
           snooze_until?: string | null;
+          sla_escalated_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -1316,6 +1318,7 @@ export interface Database {
           visitor_typing_at?: string | null;
           auto_reply_sent_at?: string | null;
           snooze_until?: string | null;
+          sla_escalated_at?: string | null;
           updated_at?: string;
         };
         Relationships: [
