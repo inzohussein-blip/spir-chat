@@ -64,6 +64,7 @@ export function CampaignsView({
   const [scheduledAt, setScheduledAt] = useState("");
   const [abEnabled, setAbEnabled] = useState(false);
   const [bodyB, setBodyB] = useState("");
+  const [linkUrl, setLinkUrl] = useState("");
   const [creating, setCreating] = useState(false);
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -81,6 +82,7 @@ export function CampaignsView({
       bodyB: abEnabled && bodyB.trim() ? bodyB : null,
       segmentId: segmentId || null,
       scheduledAt: scheduledAt ? new Date(scheduledAt).toISOString() : null,
+      linkUrl: linkUrl.trim() || null,
     });
     setCreating(false);
     if (res.error) return setError(res.error);
@@ -90,6 +92,7 @@ export function CampaignsView({
     setBodyB("");
     setAbEnabled(false);
     setScheduledAt("");
+    setLinkUrl("");
     router.refresh();
   }
 
@@ -192,6 +195,18 @@ export function CampaignsView({
                 </p>
               </div>
             )}
+            <input
+              value={linkUrl}
+              onChange={(e) => setLinkUrl(e.target.value)}
+              placeholder="Tracked link URL (optional) — put {link} in the message"
+              className="mt-2 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+            />
+            {linkUrl.trim() && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                {"{link}"} in the message becomes a tracked short link; clicks show on the campaign report.
+              </p>
+            )}
+
             <label className="mt-3 inline-flex items-center gap-2 text-sm font-medium">
               <input
                 type="checkbox"

@@ -4,6 +4,8 @@ import { getWorkspace } from "@/lib/workspace";
 import { revalidatePath } from "next/cache";
 import { type CampaignChannel } from "@/lib/campaigns/providers";
 import { deliverCampaign } from "@/lib/campaigns/send";
+import { createTrackedLink } from "@/lib/actions/tracking";
+import { isValidUrl } from "@/lib/tracking";
 
 const CHANNELS: CampaignChannel[] = ["email", "sms", "whatsapp"];
 
@@ -15,6 +17,7 @@ export async function createCampaign(input: {
   bodyB?: string | null;
   segmentId?: string | null;
   scheduledAt?: string | null;
+  linkUrl?: string | null;
 }) {
   const { workspace, user, supabase } = await getWorkspace();
   const name = input.name.trim();
@@ -53,6 +56,16 @@ export async function createCampaign(input: {
     .select("id")
     .single();
   if (error) return { error: error.message };
+
+  // Optional tracked link: {link} in the body resolves to it at send time and
+  // clicks are attributed to this campaign.
+  if (input.linkUrl && isValidUrl(input.linkUrl.trim())) {
+    await createTrackedLink({
+      destinationUrl: input.linkUrl.trim(),
+      label: name,
+      campaignId: data.id,
+    });
+  }
 
   revalidatePath("/dashboard/campaigns");
   return { id: data.id };

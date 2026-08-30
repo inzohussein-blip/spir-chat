@@ -69,6 +69,15 @@ export async function deliverCampaign(
 
   const { data: contacts } = await audience.limit(MAX_RECIPIENTS);
 
+  // A campaign-linked tracked link resolves {link} to a /r/<slug> redirect so
+  // clicks are attributed to this campaign.
+  const { data: link } = await supabase
+    .from("tracked_links")
+    .select("slug, destination_url")
+    .eq("campaign_id", campaign.id)
+    .maybeSingle();
+  const trackedLink = link ? { slug: link.slug, destinationUrl: link.destination_url } : null;
+
   const bodyB = campaign.body_b?.trim() || null;
 
   let sent = 0;
@@ -97,6 +106,7 @@ export async function deliverCampaign(
     const body = renderMessageWithTracking({
       message: merged,
       recipientName: row.display_name,
+      trackedLink,
     });
     const res = await sendCampaignMessage(channel, recipient, campaign.subject ?? "", body);
     if (res.ok) sent++;

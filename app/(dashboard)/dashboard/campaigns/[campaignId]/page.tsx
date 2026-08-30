@@ -78,6 +78,25 @@ export default async function CampaignDetailPage({
 
   const failures = rows.filter((r) => r.status === "failed");
 
+  // Click performance (when the campaign has a tracked link).
+  const { data: cLink } = await supabase
+    .from("tracked_links")
+    .select("id, slug, destination_url")
+    .eq("campaign_id", campaignId)
+    .maybeSingle();
+  let clicks = 0;
+  let uniqueClicks = 0;
+  if (cLink) {
+    const { data: clickRows } = await supabase
+      .from("link_clicks")
+      .select("ip_hash")
+      .eq("tracked_link_id", cLink.id)
+      .limit(10000);
+    clicks = clickRows?.length ?? 0;
+    uniqueClicks = new Set((clickRows ?? []).map((c) => c.ip_hash).filter(Boolean)).size;
+  }
+  const ctr = cLink && sent > 0 ? Math.round((uniqueClicks / sent) * 100) : null;
+
   return (
     <div className="flex h-full flex-col">
       <div className="border-b border-border px-8 py-6">
@@ -140,6 +159,32 @@ export default async function CampaignDetailPage({
                   <p className="whitespace-pre-wrap text-sm text-muted-foreground">{v.body}</p>
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* Link performance */}
+          {cLink && (
+            <div className="rounded-xl border border-border bg-card p-5 shadow-card">
+              <div className="mb-3 flex items-center gap-2 text-sm font-semibold">
+                <Percent className="h-4 w-4 text-primary" /> Link performance
+              </div>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div>
+                  <p className="text-sm text-muted-foreground">Clicks</p>
+                  <p className="mt-1 text-2xl font-bold">{clicks}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Unique clicks</p>
+                  <p className="mt-1 text-2xl font-bold">{uniqueClicks}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Click-through rate</p>
+                  <p className="mt-1 text-2xl font-bold">{ctr == null ? "—" : `${ctr}%`}</p>
+                </div>
+              </div>
+              <p className="mt-3 truncate text-xs text-muted-foreground">
+                {cLink.destination_url}
+              </p>
             </div>
           )}
 
