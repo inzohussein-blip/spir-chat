@@ -37,6 +37,8 @@ export default async function SettingsPage() {
         csatEnabled: (workspace as { csat_enabled?: boolean }).csat_enabled ?? false,
         weeklyReportEmail:
           (workspace as { weekly_report_email?: string | null }).weekly_report_email ?? null,
+        aiRepliesEnabled:
+          (workspace as { ai_replies_enabled?: boolean }).ai_replies_enabled ?? false,
       }}
     />
   );

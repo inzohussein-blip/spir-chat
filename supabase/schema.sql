@@ -2034,3 +2034,14 @@ alter table inbox_views enable row level security;
 create policy "Members manage inbox views in their workspaces"
   on inbox_views for all
   using (is_workspace_member(workspace_id));
+
+-- ============================================================
+-- 00054_ai_replies.sql
+-- ============================================================
+-- ============================================================
+-- AI auto-reply: when on, a website visitor's message is answered from the
+-- workspace's published Help Center articles (if the model is confident),
+-- as long as the conversation is unassigned and automation isn't paused.
+-- ============================================================
+alter table workspaces
+  add column if not exists ai_replies_enabled boolean not null default false;

@@ -88,6 +88,7 @@ export interface Database {
           csat_enabled: boolean;
           weekly_report_email: string | null;
           last_report_sent_at: string | null;
+          ai_replies_enabled: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -105,6 +106,7 @@ export interface Database {
           csat_enabled?: boolean;
           weekly_report_email?: string | null;
           last_report_sent_at?: string | null;
+          ai_replies_enabled?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -122,6 +124,7 @@ export interface Database {
           csat_enabled?: boolean;
           weekly_report_email?: string | null;
           last_report_sent_at?: string | null;
+          ai_replies_enabled?: boolean;
           updated_at?: string;
         };
         Relationships: [];

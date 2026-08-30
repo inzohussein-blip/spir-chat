@@ -26,6 +26,7 @@ import { BusinessHoursSection } from "@/components/settings/business-hours-secti
 import { RoutingSection } from "@/components/settings/routing-section";
 import { WeeklyReportSection } from "@/components/settings/weekly-report-section";
 import { LabelRulesSection } from "@/components/settings/label-rules-section";
+import { AiRepliesSection } from "@/components/settings/ai-replies-section";
 import type { BusinessHours } from "@/lib/business-hours";
 import { createClient } from "@/lib/supabase/client";
 
@@ -40,6 +41,7 @@ interface WorkspaceSettings {
   slaMinutes: number;
   csatEnabled: boolean;
   weeklyReportEmail: string | null;
+  aiRepliesEnabled: boolean;
 }
 
 interface TestResult {
@@ -234,6 +236,13 @@ export function SettingsView({
           <hr className="border-border" />
 
           <LabelRulesSection labels={labels} rules={labelRules} />
+
+          <hr className="border-border" />
+
+          <AiRepliesSection
+            workspaceId={workspace.id}
+            initialEnabled={workspace.aiRepliesEnabled}
+          />
 
           <hr className="border-border" />
 

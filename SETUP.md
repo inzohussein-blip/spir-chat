@@ -87,6 +87,7 @@ project run the new files in order in the SQL Editor. Summary:
 | `00051_sla_escalation` | Stamp SLA-breached conversations so the cron escalates once |
 | `00052_merge_contacts` | Transactional merge of duplicate contacts |
 | `00053_inbox_views` | Saved inbox filter views (shared per workspace) |
+| `00054_ai_replies` | AI auto-reply from Help Center (per-workspace toggle) |
 
 Optional environment variables (each feature degrades to a safe no-op when its
 keys are absent):

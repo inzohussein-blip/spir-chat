@@ -11,6 +11,7 @@ import { parseBusinessHours, isOpenAt } from "@/lib/business-hours";
 import { dispatchWebhook } from "@/lib/api-keys";
 import { sendPushToWorkspace } from "@/lib/push";
 import { applyLabelRules } from "@/lib/auto-label";
+import { generateHelpCenterAnswer } from "@/lib/ai/answer";
 import { applyAiClassification } from "@/lib/ai/classify";
 
 export async function OPTIONS() {
@@ -168,6 +169,48 @@ export async function POST(
             conversationId,
             message.text
           );
+        }
+      }
+
+      // AI auto-reply from the Help Center: only when enabled, the conversation
+      // is unassigned and automation isn't paused, and the model is confident.
+      if (message.text) {
+        const { data: ws } = await supabase
+          .from("workspaces")
+          .select("ai_replies_enabled, ai_api_key")
+          .eq("id", ch.workspace_id)
+          .single();
+        const { data: convState } = await supabase
+          .from("conversations")
+          .select("assigned_to, is_automation_paused")
+          .eq("id", conversationId)
+          .single();
+        if (
+          ws?.ai_replies_enabled &&
+          convState &&
+          !convState.assigned_to &&
+          !convState.is_automation_paused
+        ) {
+          const res = await generateHelpCenterAnswer(
+            supabase,
+            ch.workspace_id,
+            ws.ai_api_key ?? undefined,
+            message.text
+          );
+          if (res?.confident) {
+            await supabase.from("messages").insert({
+              conversation_id: conversationId,
+              direction: "outbound",
+              text: res.answer,
+            });
+            await supabase
+              .from("conversations")
+              .update({
+                last_message_at: new Date().toISOString(),
+                last_message_preview: res.answer.slice(0, 100),
+              })
+              .eq("id", conversationId);
+          }
         }
       }
     }
