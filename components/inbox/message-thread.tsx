@@ -6,7 +6,7 @@ import { Send, Paperclip, Bot, User, MessageSquare, MessageSquareText, CheckCirc
 import { createClient } from "@/lib/supabase/client";
 import { resolveConversation } from "@/lib/actions/csat";
 import { runMacro } from "@/lib/actions/macros";
-import { snoozeConversation } from "@/lib/actions/conversations";
+import { snoozeConversation, scheduleMessage } from "@/lib/actions/conversations";
 import { cn } from "@/lib/utils";
 import { PlatformIcon } from "@/components/platform-icon";
 import { filterCannedResponses, isCannedShortcut, type CannedResponseItem } from "@/lib/canned";
@@ -240,6 +240,8 @@ export function MessageThread({
   const [statusUpdating, setStatusUpdating] = useState<string | null>(null);
   const [showCanned, setShowCanned] = useState(false);
   const [showEmoji, setShowEmoji] = useState(false);
+  const [showSchedule, setShowSchedule] = useState(false);
+  const [scheduleAt, setScheduleAt] = useState("");
   const [notes, setNotes] = useState<Note[]>([]);
   const [mode, setMode] = useState<"reply" | "note">("reply");
   const [showUndo, setShowUndo] = useState(false);
@@ -416,6 +418,22 @@ export function MessageThread({
   function submit() {
     if (mode === "note") addNote();
     else handleSend();
+  }
+
+  async function handleScheduleSend() {
+    if (!conversation || !input.trim() || !scheduleAt) return;
+    const res = await scheduleMessage(
+      conversation.id,
+      input,
+      new Date(scheduleAt).toISOString()
+    );
+    if (res.error) {
+      alert(res.error);
+      return;
+    }
+    setInput("");
+    setScheduleAt("");
+    setShowSchedule(false);
   }
 
   async function resolve() {
@@ -871,6 +889,20 @@ export function MessageThread({
               {t.inbox.buttonsLabel}{pendingButtons.length > 0 ? ` (${pendingButtons.length})` : ""}
             </button>
           )}
+          {mode === "reply" && (
+            <button
+              type="button"
+              onClick={() => setShowSchedule((s) => !s)}
+              title="Schedule this message"
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+                showSchedule ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Clock className="h-3.5 w-3.5" />
+              Schedule
+            </button>
+          )}
           {mode === "reply" && currentUserName && (
             <button
               type="button"
@@ -978,6 +1010,28 @@ export function MessageThread({
           accept="image/png,image/jpeg,image/gif,image/webp,application/pdf,text/plain,.doc,.docx"
           onChange={handleFilePick}
         />
+
+        {showSchedule && mode === "reply" && (
+          <div className="mx-auto mb-2 flex max-w-2xl flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/40 p-2">
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+              <Clock className="h-3.5 w-3.5" /> Send at
+            </span>
+            <input
+              type="datetime-local"
+              value={scheduleAt}
+              onChange={(e) => setScheduleAt(e.target.value)}
+              className="rounded-md border border-border bg-background px-2 py-1 text-xs outline-none focus:border-primary"
+            />
+            <button
+              type="button"
+              onClick={handleScheduleSend}
+              disabled={!input.trim() || !scheduleAt}
+              className="rounded-md bg-primary px-3 py-1 text-xs font-medium text-primary-foreground disabled:opacity-50"
+            >
+              Schedule send
+            </button>
+          </div>
+        )}
 
         <div className="relative mx-auto flex max-w-2xl items-end gap-2">
           {/* Saved-replies picker (reply mode only) */}

@@ -5,6 +5,7 @@ import { renderMergeVariables } from "@/lib/merge";
 import { deliverCampaign } from "@/lib/campaigns/send";
 import { sendWeeklyReports } from "@/lib/reports/weekly";
 import { escalateSla } from "@/lib/sla";
+import { sendConversationMessage } from "@/lib/outbound";
 import type { Json } from "@/lib/types/database";
 
 // Signals the handler to skip retry/backoff and route straight to the
@@ -686,6 +687,30 @@ async function processJob(
       }
 
       await settleBroadcastIfDone(supabase, payload.broadcastId);
+      break;
+    }
+
+    case "scheduled_message": {
+      const payload = job.payload as { conversationId?: string; text?: string };
+      if (!payload.conversationId || !payload.text) break;
+      const { data: conv } = await supabase
+        .from("conversations")
+        .select("id, workspace_id, platform, late_conversation_id, channels(late_account_id)")
+        .eq("id", payload.conversationId)
+        .maybeSingle();
+      if (conv) {
+        await sendConversationMessage(
+          supabase,
+          {
+            id: conv.id,
+            workspace_id: conv.workspace_id,
+            platform: conv.platform,
+            late_conversation_id: conv.late_conversation_id,
+            channels: conv.channels as { late_account_id: string } | null,
+          },
+          payload.text
+        );
+      }
       break;
     }
 
