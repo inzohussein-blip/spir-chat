@@ -1,4 +1,5 @@
 import { getWorkspace } from "@/lib/workspace";
+import { createServiceClient } from "@/lib/supabase/server";
 import { getDictionary } from "@/lib/i18n/server";
 import {
   MessageSquare,
@@ -10,9 +11,13 @@ import {
   LineChart,
   Star,
   Smile,
+  Users,
 } from "lucide-react";
 import { PageTitle } from "@/components/page-title";
 import { csatStats } from "@/lib/csat";
+import { agentStats } from "@/lib/agent-stats";
+import { avatarGradient } from "@/lib/avatar";
+import { cn } from "@/lib/utils";
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -69,6 +74,43 @@ export default async function ReportsPage() {
   const recentComments = (surveys ?? [])
     .filter((s) => s.status === "responded" && s.feedback)
     .slice(0, 5);
+
+  // Agent performance.
+  const [{ data: members }, { data: assignConvs }, { data: agentReplies }, { data: agentSurveys }] =
+    await Promise.all([
+      supabase.from("workspace_members").select("user_id").eq("workspace_id", wsId),
+      supabase.from("conversations").select("assigned_to, status").eq("workspace_id", wsId),
+      supabase
+        .from("messages")
+        .select("sent_by_user_id")
+        .eq("direction", "outbound")
+        .not("sent_by_user_id", "is", null)
+        .gte("created_at", new Date(Date.now() - 30 * DAY).toISOString())
+        .limit(10000),
+      supabase
+        .from("csat_surveys")
+        .select("rating, status, conversations(assigned_to)")
+        .eq("workspace_id", wsId)
+        .eq("status", "responded")
+        .limit(1000),
+    ]);
+
+  const service = await createServiceClient();
+  const agentMembers = await Promise.all(
+    (members ?? []).map(async (m) => {
+      const { data } = await service.auth.admin.getUserById(m.user_id);
+      return { id: m.user_id, email: data.user?.email ?? "Unknown" };
+    })
+  );
+  const agents = agentStats(
+    agentMembers,
+    assignConvs ?? [],
+    agentReplies ?? [],
+    (agentSurveys ?? []).map((s) => ({
+      agentId: (s.conversations as unknown as { assigned_to: string | null } | null)?.assigned_to ?? null,
+      rating: s.rating,
+    }))
+  ).filter((a) => a.assigned > 0 || a.replies > 0);
 
   // First-response time: for each website conversation, seconds from the first
   // inbound message to the first outbound reply after it. (Website threads store
@@ -199,6 +241,66 @@ export default async function ReportsPage() {
                 </ul>
               </div>
             )}
+          </div>
+        )}
+
+        {agents.length > 0 && (
+          <div className="mt-8">
+            <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold">
+              <Users className="h-4 w-4 text-primary" />
+              Agent performance
+            </h2>
+            <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-card">
+              <table className="w-full min-w-[560px]">
+                <thead>
+                  <tr className="border-b border-border bg-muted/50 text-left text-xs font-medium uppercase text-muted-foreground">
+                    <th className="px-5 py-3">Agent</th>
+                    <th className="px-4 py-3">Assigned</th>
+                    <th className="px-4 py-3">Open</th>
+                    <th className="px-4 py-3">Resolved</th>
+                    <th className="px-4 py-3">Replies (30d)</th>
+                    <th className="px-4 py-3">CSAT</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {agents.map((a) => {
+                    const name = a.email.split("@")[0];
+                    return (
+                      <tr key={a.id} className="border-b border-border last:border-0">
+                        <td className="px-5 py-3">
+                          <div className="flex items-center gap-2.5">
+                            <span
+                              className={cn(
+                                "flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-xs font-semibold text-white",
+                                avatarGradient(name)
+                              )}
+                            >
+                              {name.charAt(0).toUpperCase()}
+                            </span>
+                            <span className="truncate text-sm font-medium">{a.email}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-sm">{a.assigned}</td>
+                        <td className="px-4 py-3 text-sm">{a.open}</td>
+                        <td className="px-4 py-3 text-sm">{a.resolved}</td>
+                        <td className="px-4 py-3 text-sm">{a.replies}</td>
+                        <td className="px-4 py-3 text-sm">
+                          {a.csatAvg == null ? (
+                            <span className="text-muted-foreground/60">—</span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1">
+                              <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                              {a.csatAvg}
+                              <span className="text-xs text-muted-foreground">({a.csatResponses})</span>
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
