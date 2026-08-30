@@ -25,6 +25,7 @@ import { PageTitle } from "@/components/page-title";
 import { BusinessHoursSection } from "@/components/settings/business-hours-section";
 import { RoutingSection } from "@/components/settings/routing-section";
 import { WeeklyReportSection } from "@/components/settings/weekly-report-section";
+import { LabelRulesSection } from "@/components/settings/label-rules-section";
 import type { BusinessHours } from "@/lib/business-hours";
 import { createClient } from "@/lib/supabase/client";
 
@@ -49,8 +50,12 @@ interface TestResult {
 
 export function SettingsView({
   workspace,
+  labels,
+  labelRules,
 }: {
   workspace: WorkspaceSettings;
+  labels: { id: string; name: string; color: string | null }[];
+  labelRules: { id: string; keyword: string; label_id: string }[];
 }) {
   const { t } = useI18n();
   const [name, setName] = useState(workspace.name);
@@ -225,6 +230,10 @@ export function SettingsView({
             workspaceId={workspace.id}
             initialEmail={workspace.weeklyReportEmail}
           />
+
+          <hr className="border-border" />
+
+          <LabelRulesSection labels={labels} rules={labelRules} />
 
           <hr className="border-border" />
 

@@ -8,6 +8,7 @@ import { upsertContactForSender } from "@/lib/inbox-sync";
 import { processComment } from "@/lib/comment-processor";
 import { autoAssignConversation } from "@/lib/routing";
 import { maybeSendOfflineAutoReply } from "@/lib/auto-reply";
+import { applyLabelRules } from "@/lib/auto-label";
 import type { Database } from "@/lib/types/database";
 
 // ── Zernio API webhook payload ───────────────────────────────────────────────
@@ -280,6 +281,9 @@ async function processMessageEvent(
     late_conversation_id: conv.id,
     channels: { late_account_id: channel.late_account_id },
   });
+
+  // Auto-labeling: apply any keyword-matching labels to the conversation.
+  await applyLabelRules(supabase, channel.workspace_id, conversation.id, msg.text);
 
   // Messages are stored by Zernio (source of truth) — no local insert needed.
 

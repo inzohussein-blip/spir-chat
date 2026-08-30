@@ -3,10 +3,25 @@ import { SettingsView } from "./settings-view";
 import { parseBusinessHours } from "@/lib/business-hours";
 
 export default async function SettingsPage() {
-  const { workspace } = await getWorkspace();
+  const { workspace, supabase } = await getWorkspace();
+
+  const [{ data: labels }, { data: labelRules }] = await Promise.all([
+    supabase
+      .from("labels")
+      .select("id, name, color")
+      .eq("workspace_id", workspace.id)
+      .order("name", { ascending: true }),
+    supabase
+      .from("label_rules")
+      .select("id, keyword, label_id")
+      .eq("workspace_id", workspace.id)
+      .order("created_at", { ascending: true }),
+  ]);
 
   return (
     <SettingsView
+      labels={labels ?? []}
+      labelRules={labelRules ?? []}
       workspace={{
         id: workspace.id,
         name: workspace.name,

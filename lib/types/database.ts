@@ -592,6 +592,27 @@ export interface Database {
         };
         Relationships: [];
       };
+      label_rules: {
+        Row: {
+          id: string;
+          workspace_id: string;
+          keyword: string;
+          label_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          workspace_id: string;
+          keyword: string;
+          label_id: string;
+          created_at?: string;
+        };
+        Update: {
+          keyword?: string;
+          label_id?: string;
+        };
+        Relationships: [];
+      };
       forms: {
         Row: {
           id: string;

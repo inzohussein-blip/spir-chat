@@ -10,6 +10,7 @@ import { parseAttachments } from "@/lib/attachments";
 import { parseBusinessHours, isOpenAt } from "@/lib/business-hours";
 import { dispatchWebhook } from "@/lib/api-keys";
 import { sendPushToWorkspace } from "@/lib/push";
+import { applyLabelRules } from "@/lib/auto-label";
 import { applyAiClassification } from "@/lib/ai/classify";
 
 export async function OPTIONS() {
@@ -139,6 +140,7 @@ export async function POST(
       .eq("id", channelId)
       .single();
     if (ch?.workspace_id) {
+      await applyLabelRules(supabase, ch.workspace_id, conversationId, message.text);
       await dispatchWebhook(ch.workspace_id, "message.created", {
         conversation_id: conversationId,
         direction: "inbound",
