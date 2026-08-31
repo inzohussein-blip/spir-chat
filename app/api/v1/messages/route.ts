@@ -219,12 +219,15 @@ export async function POST(request: NextRequest) {
 
     const messageId = (res.data as any)?.data?.messageId ?? null;
 
-    // Update conversation's last message info (SpirChat-specific metadata)
+    // Update conversation's last message info (SpirChat-specific metadata).
+    // Replying clears the unread count and the SLA escalation stamp, matching
+    // the website path, so a handled thread isn't re-flagged as breaching.
     await supabase
       .from("conversations")
       .update({
         last_message_at: new Date().toISOString(),
         last_message_preview: text.slice(0, 100),
+        unread_count: 0,
         sla_escalated_at: null,
       })
       .eq("id", conversationId);
