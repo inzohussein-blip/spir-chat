@@ -36,6 +36,40 @@ export interface PushPayload {
  * Send a push notification to every subscription in a workspace. Best-effort:
  * missing VAPID config is a no-op; expired endpoints (404/410) are pruned.
  */
+/** Send a push to specific users' subscriptions. Best-effort. */
+export async function sendPushToUsers(
+  userIds: string[],
+  payload: PushPayload
+): Promise<void> {
+  if (!ensureConfigured() || userIds.length === 0) return;
+  try {
+    const supabase = await createServiceClient();
+    const { data: subs } = await supabase
+      .from("push_subscriptions")
+      .select("id, endpoint, p256dh, auth")
+      .in("user_id", userIds);
+    if (!subs || subs.length === 0) return;
+
+    const body = JSON.stringify(payload);
+    const stale: string[] = [];
+    await Promise.allSettled(
+      subs.map((s) =>
+        webpush
+          .sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, body)
+          .catch((err: unknown) => {
+            const code = (err as { statusCode?: number }).statusCode;
+            if (code === 404 || code === 410) stale.push(s.id);
+          })
+      )
+    );
+    if (stale.length > 0) {
+      await supabase.from("push_subscriptions").delete().in("id", stale);
+    }
+  } catch {
+    // best-effort
+  }
+}
+
 export async function sendPushToWorkspace(
   workspaceId: string,
   payload: PushPayload

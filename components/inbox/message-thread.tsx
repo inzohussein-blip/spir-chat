@@ -8,6 +8,7 @@ import { resolveConversation } from "@/lib/actions/csat";
 import { runMacro } from "@/lib/actions/macros";
 import { snoozeConversation, scheduleMessage } from "@/lib/actions/conversations";
 import { assistReply } from "@/lib/actions/ai-compose";
+import { notifyMentions } from "@/lib/actions/notes";
 import { cn } from "@/lib/utils";
 import { PlatformIcon } from "@/components/platform-icon";
 import { filterCannedResponses, isCannedShortcut, type CannedResponseItem } from "@/lib/canned";
@@ -408,6 +409,8 @@ export function MessageThread({
 
     if (!error && data) {
       setNotes((prev) => prev.map((n) => (n.id === optimistic.id ? data : n)));
+      // Notify any @mentioned teammates (fire-and-forget).
+      if (body.includes("@")) void notifyMentions(conversation.id, body);
     }
     setSending(false);
   }
