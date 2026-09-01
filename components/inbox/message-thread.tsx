@@ -13,6 +13,7 @@ import { notifyMentions } from "@/lib/actions/notes";
 import { cn } from "@/lib/utils";
 import { PlatformIcon } from "@/components/platform-icon";
 import { filterCannedResponses, isCannedShortcut, type CannedResponseItem } from "@/lib/canned";
+import { renderMergeVariables } from "@/lib/merge";
 import { LabelPicker } from "@/components/inbox/label-picker";
 import { parseAttachments, isImageType, type MessageAttachment } from "@/lib/attachments";
 import { parseRichContent, type RichButton } from "@/lib/rich-content";
@@ -366,7 +367,17 @@ export function MessageThread({
   const cannedMatches = filterCannedResponses(cannedResponses, input);
 
   function insertCanned(content: string) {
-    setInput(content);
+    // Personalize {{first_name}}, {{name}}, {{email}}… against this contact so
+    // the agent sends a ready-to-go reply, not raw placeholders.
+    const c = conversation?.contacts;
+    const rendered = c
+      ? renderMergeVariables(content, {
+          display_name: c.display_name,
+          email: c.email,
+          phone: c.phone,
+        })
+      : content;
+    setInput(rendered);
     setShowCanned(false);
     textareaRef.current?.focus();
   }
