@@ -4,7 +4,7 @@ import { useI18n } from "@/components/i18n-provider";
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { MessageSquare, RefreshCw, User } from "lucide-react";
+import { MessageSquare, RefreshCw, User, X } from "lucide-react";
 import { ConversationList } from "@/components/inbox/conversation-list";
 import { MessageThread } from "@/components/inbox/message-thread";
 import { ContactPanel } from "@/components/inbox/contact-panel";
@@ -52,6 +52,28 @@ export function InboxView({
   const [showContactPanel, setShowContactPanel] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [showShortcuts, setShowShortcuts] = useState(false);
+
+  // Global "?" opens the keyboard shortcuts cheat sheet; Escape closes it.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const el = e.target as HTMLElement | null;
+      const typing =
+        !!el &&
+        (el.tagName === "INPUT" ||
+          el.tagName === "TEXTAREA" ||
+          el.tagName === "SELECT" ||
+          el.isContentEditable);
+      if (e.key === "?" && !typing) {
+        e.preventDefault();
+        setShowShortcuts(true);
+      } else if (e.key === "Escape") {
+        setShowShortcuts(false);
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   // Imports conversations that already exist in Zernio (e.g. from before the
   // webhook was registered), then refreshes the server-rendered list.
@@ -235,6 +257,53 @@ export function InboxView({
           workspaceId={workspaceId}
           onClose={() => setShowContactPanel(false)}
         />
+      )}
+
+      {/* Keyboard shortcuts help overlay (press ?) */}
+      {showShortcuts && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setShowShortcuts(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-xl border border-border bg-card p-5 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-sm font-semibold">{t.inbox.shortcutsTitle}</h2>
+              <button
+                onClick={() => setShowShortcuts(false)}
+                aria-label={t.inbox.close}
+                className="rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <ul className="space-y-2 text-sm">
+              {[
+                { keys: ["J", "K"], label: t.inbox.shortcutNav },
+                { keys: ["/"], label: t.inbox.shortcutSearch },
+                { keys: ["E"], label: t.inbox.shortcutResolve },
+                { keys: ["R"], label: t.inbox.shortcutReply },
+                { keys: ["?"], label: t.inbox.shortcutHelp },
+              ].map((row) => (
+                <li key={row.label} className="flex items-center justify-between gap-3">
+                  <span className="text-muted-foreground">{row.label}</span>
+                  <span className="flex flex-shrink-0 gap-1">
+                    {row.keys.map((k) => (
+                      <kbd
+                        key={k}
+                        className="min-w-6 rounded border border-border bg-muted px-1.5 py-0.5 text-center text-xs font-semibold"
+                      >
+                        {k}
+                      </kbd>
+                    ))}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
       )}
     </div>
   );
