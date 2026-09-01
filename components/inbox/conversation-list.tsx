@@ -71,6 +71,7 @@ export function ConversationList({
   const [channelFilter, setChannelFilter] = useState<string>("all");
   const [mineOnly, setMineOnly] = useState(false);
   const [priorityOnly, setPriorityOnly] = useState(false);
+  const [unassignedOnly, setUnassignedOnly] = useState(false);
   const [views, setViews] = useState<{ id: string; name: string; filters: Record<string, unknown> }[]>([]);
   const [historyHits, setHistoryHits] = useState<MessageSearchHit[] | null>(null);
   const [historyBusy, setHistoryBusy] = useState(false);
@@ -259,6 +260,7 @@ export function ConversationList({
       if (statusFilter !== "all" && c.status !== statusFilter) return false;
       if (channelFilter !== "all" && c.channel_id !== channelFilter) return false;
       if (mineOnly && c.assigned_to !== currentUserId) return false;
+      if (unassignedOnly && c.assigned_to !== null) return false;
       if (priorityOnly && normalizePriority(c.priority) === 0) return false;
       if (search) {
         const name = c.contacts?.display_name?.toLowerCase() ?? "";
@@ -464,6 +466,18 @@ export function ConversationList({
           </button>
         ))}
         <div className="ms-auto flex gap-1">
+          <button
+            onClick={() => setUnassignedOnly((u) => !u)}
+            title={t.inbox.unassigned}
+            className={cn(
+              "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+              unassignedOnly
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+            )}
+          >
+            {t.inbox.unassigned}
+          </button>
           <button
             onClick={() => setPriorityOnly((p) => !p)}
             title={t.inbox.priorityFilter}
