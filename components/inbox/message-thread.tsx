@@ -2,11 +2,12 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Send, Paperclip, Bot, User, MessageSquare, MessageSquareText, CheckCircle, Clock, RotateCcw, Loader2, StickyNote, UserPlus, UserCheck, PenLine, Smile, MousePointerClick, Zap } from "lucide-react";
+import { Send, Paperclip, Bot, User, MessageSquare, MessageSquareText, CheckCircle, Clock, RotateCcw, Loader2, StickyNote, UserPlus, UserCheck, PenLine, Smile, MousePointerClick, Zap, Sparkles } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { resolveConversation } from "@/lib/actions/csat";
 import { runMacro } from "@/lib/actions/macros";
 import { snoozeConversation, scheduleMessage } from "@/lib/actions/conversations";
+import { assistReply } from "@/lib/actions/ai-compose";
 import { cn } from "@/lib/utils";
 import { PlatformIcon } from "@/components/platform-icon";
 import { filterCannedResponses, isCannedShortcut, type CannedResponseItem } from "@/lib/canned";
@@ -242,6 +243,8 @@ export function MessageThread({
   const [showEmoji, setShowEmoji] = useState(false);
   const [showSchedule, setShowSchedule] = useState(false);
   const [scheduleAt, setScheduleAt] = useState("");
+  const [aiMenuOpen, setAiMenuOpen] = useState(false);
+  const [aiBusy, setAiBusy] = useState(false);
   const [notes, setNotes] = useState<Note[]>([]);
   const [mode, setMode] = useState<"reply" | "note">("reply");
   const [showUndo, setShowUndo] = useState(false);
@@ -418,6 +421,22 @@ export function MessageThread({
   function submit() {
     if (mode === "note") addNote();
     else handleSend();
+  }
+
+  async function runAssist(mode: string) {
+    if (!input.trim() || aiBusy) return;
+    setAiBusy(true);
+    const res = await assistReply(mode, input);
+    setAiBusy(false);
+    setAiMenuOpen(false);
+    if (res.error) {
+      alert(res.error);
+      return;
+    }
+    if (res.text) {
+      setInput(res.text);
+      requestAnimationFrame(autoResize);
+    }
   }
 
   async function handleScheduleSend() {
@@ -902,6 +921,46 @@ export function MessageThread({
               <Clock className="h-3.5 w-3.5" />
               Schedule
             </button>
+          )}
+          {mode === "reply" && (
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setAiMenuOpen((o) => !o)}
+                disabled={aiBusy || !input.trim()}
+                title="AI writing assistant"
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-50",
+                  aiMenuOpen ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {aiBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                AI
+              </button>
+              {aiMenuOpen && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setAiMenuOpen(false)} />
+                  <div className="absolute bottom-full z-20 mb-1 w-44 rounded-lg border border-border bg-popover p-1 shadow-lg">
+                    {[
+                      { mode: "improve", label: "Improve writing" },
+                      { mode: "shorten", label: "Make shorter" },
+                      { mode: "friendly", label: "Friendlier tone" },
+                      { mode: "translate_ar", label: "Translate → Arabic" },
+                      { mode: "translate_en", label: "Translate → English" },
+                    ].map((o) => (
+                      <button
+                        key={o.mode}
+                        type="button"
+                        onClick={() => runAssist(o.mode)}
+                        className="block w-full rounded-md px-3 py-1.5 text-start text-sm hover:bg-accent"
+                      >
+                        {o.label}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
           )}
           {mode === "reply" && currentUserName && (
             <button
