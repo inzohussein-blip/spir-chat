@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Send, Paperclip, Bot, User, MessageSquare, MessageSquareText, CheckCircle, Clock, RotateCcw, Loader2, StickyNote, UserPlus, UserCheck, PenLine, Smile, MousePointerClick, Zap, Sparkles } from "lucide-react";
+import { Send, Paperclip, Bot, User, MessageSquare, MessageSquareText, CheckCircle, Clock, RotateCcw, Loader2, StickyNote, UserPlus, UserCheck, PenLine, Smile, MousePointerClick, Zap, Sparkles, Download } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { resolveConversation } from "@/lib/actions/csat";
 import { runMacro } from "@/lib/actions/macros";
@@ -16,6 +16,7 @@ import { LabelPicker } from "@/components/inbox/label-picker";
 import { parseAttachments, isImageType, type MessageAttachment } from "@/lib/attachments";
 import { parseRichContent, type RichButton } from "@/lib/rich-content";
 import { avatarGradient } from "@/lib/avatar";
+import { buildTranscript, transcriptFilename } from "@/lib/transcript";
 import { useI18n } from "@/components/i18n-provider";
 import type { Database, ConversationStatus } from "@/lib/types/database";
 
@@ -479,6 +480,33 @@ export function MessageThread({
     setShowUndo(false);
     updateConversationStatus("open");
   }
+
+  function downloadTranscript() {
+    if (!conversation) return;
+    const name = conversation.contacts?.display_name ?? t.inbox.unknown;
+    const md = buildTranscript(
+      {
+        contactName: name,
+        platform: conversation.platform ?? undefined,
+        status: conversation.status ?? undefined,
+      },
+      messages.map((m) => ({
+        direction: m.direction === "inbound" ? "inbound" : "outbound",
+        text: m.text,
+        created_at: m.created_at,
+      })),
+      notes.map((n) => ({ body: n.body, created_at: n.created_at }))
+    );
+    const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = transcriptFilename(name);
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -757,6 +785,14 @@ export function MessageThread({
             </span>
           )}
           <div className="flex items-center gap-1.5">
+            <button
+              onClick={downloadTranscript}
+              title={t.inbox.exportTranscript}
+              aria-label={t.inbox.exportTranscript}
+              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-border text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+            >
+              <Download className="h-3.5 w-3.5" />
+            </button>
             <MacroRunner conversationId={conversation.id} onRan={() => router.refresh()} />
             {conversation.status !== "closed" ? (
               <>
