@@ -930,6 +930,28 @@ export interface Database {
           },
         ];
       };
+      contact_notes: {
+        Row: {
+          id: string;
+          contact_id: string;
+          workspace_id: string;
+          author_id: string | null;
+          body: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          contact_id: string;
+          workspace_id: string;
+          author_id?: string | null;
+          body: string;
+          created_at?: string;
+        };
+        Update: {
+          body?: string;
+        };
+        Relationships: [];
+      };
       conversation_notes: {
         Row: {
           id: string;

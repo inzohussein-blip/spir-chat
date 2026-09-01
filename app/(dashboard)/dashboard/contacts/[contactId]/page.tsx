@@ -14,6 +14,7 @@ import { CustomFieldsEditor } from "@/components/contacts/custom-fields-editor";
 import { ContactTimeline, type TimelineEvent } from "@/components/contacts/contact-timeline";
 import { MergeContact } from "@/components/contacts/merge-contact";
 import { EraseContact } from "@/components/contacts/erase-contact";
+import { ContactNotes } from "@/components/contacts/contact-notes";
 import { avatarGradient } from "@/lib/avatar";
 import { cn } from "@/lib/utils";
 
@@ -64,6 +65,14 @@ export default async function ContactDetailPage({
   for (const cf of customFieldsRes.data ?? []) {
     fieldValues[cf.field_id] = cf.value;
   }
+
+  // Contact-level notes (private team notes that persist across conversations).
+  const { data: contactNotes } = await supabase
+    .from("contact_notes")
+    .select("id, body, created_at")
+    .eq("contact_id", contactId)
+    .order("created_at", { ascending: false })
+    .limit(100);
 
   // Activity timeline sources.
   const [campaignRcptsRes, enrollmentsRes, surveysRes] = await Promise.all([
@@ -327,6 +336,10 @@ export default async function ContactDetailPage({
             definitions={fieldDefs}
             values={fieldValues}
           />
+
+          {/* Contact notes */}
+          <ContactNotes contactId={contactId} initialNotes={contactNotes ?? []} />
+
 
           {/* Activity timeline */}
           <ContactTimeline events={events} />
