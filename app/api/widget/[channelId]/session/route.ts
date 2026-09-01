@@ -68,6 +68,27 @@ export async function POST(
 
   let contactId = existingLink?.contact_id ?? null;
 
+  // Returning visitor who supplied details in the pre-chat form: backfill the
+  // contact's name/email if we don't already have them, without overwriting.
+  if (contactId && (email || (typeof body?.name === "string" && body.name.trim()))) {
+    const { data: existing } = await supabase
+      .from("contacts")
+      .select("display_name, email")
+      .eq("id", contactId)
+      .single();
+    const patch: { display_name?: string; email?: string } = {};
+    if (email && !existing?.email) patch.email = email;
+    if (
+      (!existing?.display_name || existing.display_name === "Website visitor") &&
+      displayName !== "Website visitor"
+    ) {
+      patch.display_name = displayName;
+    }
+    if (Object.keys(patch).length > 0) {
+      await supabase.from("contacts").update(patch).eq("id", contactId);
+    }
+  }
+
   if (!contactId) {
     const { data: contact, error: contactError } = await supabase
       .from("contacts")
