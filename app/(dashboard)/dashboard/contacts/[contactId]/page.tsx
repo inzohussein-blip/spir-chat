@@ -15,6 +15,7 @@ import { ContactTimeline, type TimelineEvent } from "@/components/contacts/conta
 import { MergeContact } from "@/components/contacts/merge-contact";
 import { EraseContact } from "@/components/contacts/erase-contact";
 import { ContactNotes } from "@/components/contacts/contact-notes";
+import { ContactCompany } from "@/components/contacts/contact-company";
 import { avatarGradient } from "@/lib/avatar";
 import { cn } from "@/lib/utils";
 
@@ -200,6 +201,10 @@ export default async function ContactDetailPage({
                   {contact.email}
                 </span>
               )}
+              <ContactCompany
+                contactId={contactId}
+                initialCompany={(contact as { company?: string | null }).company ?? null}
+              />
               <span className="flex items-center gap-1">
                 <Calendar className="h-3 w-3" />
                 Last active {formatDate(contact.last_interaction_at)}

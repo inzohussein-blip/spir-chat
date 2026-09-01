@@ -2189,3 +2189,13 @@ alter table contact_notes enable row level security;
 create policy "Users manage contact notes in their workspaces"
   on contact_notes for all
   using (is_workspace_member(workspace_id));
+
+-- ============================================================
+-- 00061_contact_company.sql
+-- ============================================================
+-- ============================================================
+-- Contact company/organization: a free-text field to record which company a
+-- contact belongs to, so B2B teams can see and group by account.
+-- ============================================================
+alter table contacts
+  add column if not exists company text;

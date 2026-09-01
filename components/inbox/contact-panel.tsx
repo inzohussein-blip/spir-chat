@@ -9,6 +9,7 @@ import {
   User,
   Hash,
   ShoppingBag,
+  Building2,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
@@ -234,6 +235,19 @@ export function ContactPanel({
                   {t.inbox.email}
                 </h4>
                 <p className="mt-1 text-sm">{details.contact.email}</p>
+              </div>
+            )}
+
+            {/* Company */}
+            {(details.contact as { company?: string | null }).company && (
+              <div>
+                <h4 className="flex items-center gap-1.5 text-xs font-medium uppercase text-muted-foreground">
+                  <Building2 className="h-3 w-3" />
+                  {t.inbox.company}
+                </h4>
+                <p className="mt-1 text-sm">
+                  {(details.contact as { company?: string | null }).company}
+                </p>
               </div>
             )}
 

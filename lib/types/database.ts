@@ -794,6 +794,7 @@ export interface Database {
           email: string | null;
           phone: string | null;
           avatar_url: string | null;
+          company: string | null;
           is_subscribed: boolean;
           last_interaction_at: string | null;
           metadata: Json | null;
@@ -807,6 +808,7 @@ export interface Database {
           email?: string | null;
           phone?: string | null;
           avatar_url?: string | null;
+          company?: string | null;
           is_subscribed?: boolean;
           last_interaction_at?: string | null;
           metadata?: Json | null;
@@ -818,6 +820,7 @@ export interface Database {
           email?: string | null;
           phone?: string | null;
           avatar_url?: string | null;
+          company?: string | null;
           is_subscribed?: boolean;
           last_interaction_at?: string | null;
           metadata?: Json | null;
