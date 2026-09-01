@@ -2,11 +2,12 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Send, Paperclip, Bot, User, MessageSquare, MessageSquareText, CheckCircle, Clock, RotateCcw, Loader2, StickyNote, UserPlus, UserCheck, PenLine, Smile, MousePointerClick, Zap, Sparkles, Download } from "lucide-react";
+import { Send, Paperclip, Bot, User, MessageSquare, MessageSquareText, CheckCircle, Clock, RotateCcw, Loader2, StickyNote, UserPlus, UserCheck, PenLine, Smile, MousePointerClick, Zap, Sparkles, Download, Flag } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { resolveConversation } from "@/lib/actions/csat";
 import { runMacro } from "@/lib/actions/macros";
-import { snoozeConversation, scheduleMessage } from "@/lib/actions/conversations";
+import { snoozeConversation, scheduleMessage, setConversationPriority } from "@/lib/actions/conversations";
+import { normalizePriority, type PriorityLevel } from "@/lib/priority";
 import { assistReply } from "@/lib/actions/ai-compose";
 import { notifyMentions } from "@/lib/actions/notes";
 import { cn } from "@/lib/utils";
@@ -785,6 +786,11 @@ export function MessageThread({
             </span>
           )}
           <div className="flex items-center gap-1.5">
+            <PriorityMenu
+              conversationId={conversation.id}
+              current={normalizePriority(conversation.priority)}
+              onDone={() => router.refresh()}
+            />
             <button
               onClick={downloadTranscript}
               title={t.inbox.exportTranscript}
@@ -1345,6 +1351,84 @@ function MacroRunner({
                 </button>
               ))
             )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function PriorityMenu({
+  conversationId,
+  current,
+  onDone,
+}: {
+  conversationId: string;
+  current: PriorityLevel;
+  onDone: () => void;
+}) {
+  const { t } = useI18n();
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  const options: { level: PriorityLevel; label: string; dot: string }[] = [
+    { level: 2, label: t.inbox.priorityUrgent, dot: "bg-red-500" },
+    { level: 1, label: t.inbox.priorityHigh, dot: "bg-amber-500" },
+    { level: 0, label: t.inbox.priorityNormal, dot: "bg-muted-foreground/40" },
+  ];
+
+  async function set(level: PriorityLevel) {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await setConversationPriority(conversationId, level);
+      onDone();
+    } finally {
+      setBusy(false);
+      setOpen(false);
+    }
+  }
+
+  const active = current > 0;
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        disabled={busy}
+        title={t.inbox.setPriority}
+        aria-label={t.inbox.setPriority}
+        className={cn(
+          "inline-flex h-7 w-7 items-center justify-center rounded-md border border-border transition-colors hover:bg-accent hover:text-foreground disabled:opacity-50",
+          current === 2
+            ? "text-red-600"
+            : current === 1
+            ? "text-amber-600"
+            : "text-muted-foreground"
+        )}
+      >
+        {busy ? (
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        ) : (
+          <Flag className={cn("h-3.5 w-3.5", active && "fill-current")} />
+        )}
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute end-0 z-20 mt-1 w-40 rounded-lg border border-border bg-popover p-1 shadow-lg">
+            {options.map((o) => (
+              <button
+                key={o.level}
+                onClick={() => set(o.level)}
+                className={cn(
+                  "flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-start text-sm hover:bg-accent",
+                  o.level === current && "font-semibold"
+                )}
+              >
+                <span className={cn("h-2 w-2 rounded-full", o.dot)} />
+                {o.label}
+              </button>
+            ))}
           </div>
         </>
       )}

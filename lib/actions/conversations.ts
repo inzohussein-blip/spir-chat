@@ -49,3 +49,20 @@ export async function snoozeConversation(conversationId: string, untilIso: strin
   revalidatePath("/dashboard/inbox");
   return { ok: true };
 }
+
+/** Set a conversation's priority (0 normal, 1 high, 2 urgent). */
+export async function setConversationPriority(
+  conversationId: string,
+  priority: number
+) {
+  const { workspace, supabase } = await getWorkspace();
+  const level = priority === 1 || priority === 2 ? priority : 0;
+  const { error } = await supabase
+    .from("conversations")
+    .update({ priority: level })
+    .eq("id", conversationId)
+    .eq("workspace_id", workspace.id);
+  if (error) return { error: error.message };
+  revalidatePath("/dashboard/inbox");
+  return { ok: true };
+}

@@ -9,6 +9,7 @@ import { PlatformIcon } from "@/components/platform-icon";
 import { useI18n } from "@/components/i18n-provider";
 import { Bookmark, Plus, X } from "lucide-react";
 import { createInboxView, deleteInboxView } from "@/lib/actions/inbox-views";
+import { comparePriority, normalizePriority, PRIORITY_BADGE, PRIORITY_LABEL } from "@/lib/priority";
 import type { Database, Platform, ConversationStatus } from "@/lib/types/database";
 
 type Conversation = Database["public"]["Tables"]["conversations"]["Row"] & {
@@ -67,6 +68,7 @@ export function ConversationList({
   const [statusFilter, setStatusFilter] = useState<ConversationStatus | "all">("open");
   const [channelFilter, setChannelFilter] = useState<string>("all");
   const [mineOnly, setMineOnly] = useState(false);
+  const [priorityOnly, setPriorityOnly] = useState(false);
   const [views, setViews] = useState<{ id: string; name: string; filters: Record<string, unknown> }[]>([]);
 
   // Load saved inbox views (shared across the workspace).
@@ -188,18 +190,27 @@ export function ConversationList({
 
   const channelMap = new Map(channels.map((c) => [c.id, channelLabel(c)]));
 
-  const filtered = conversations.filter((c) => {
-    if (statusFilter !== "all" && c.status !== statusFilter) return false;
-    if (channelFilter !== "all" && c.channel_id !== channelFilter) return false;
-    if (mineOnly && c.assigned_to !== currentUserId) return false;
-    if (search) {
-      const name = c.contacts?.display_name?.toLowerCase() ?? "";
-      const preview = c.last_message_preview?.toLowerCase() ?? "";
-      const q = search.toLowerCase();
-      if (!name.includes(q) && !preview.includes(q)) return false;
-    }
-    return true;
-  });
+  const filtered = conversations
+    .filter((c) => {
+      if (statusFilter !== "all" && c.status !== statusFilter) return false;
+      if (channelFilter !== "all" && c.channel_id !== channelFilter) return false;
+      if (mineOnly && c.assigned_to !== currentUserId) return false;
+      if (priorityOnly && normalizePriority(c.priority) === 0) return false;
+      if (search) {
+        const name = c.contacts?.display_name?.toLowerCase() ?? "";
+        const preview = c.last_message_preview?.toLowerCase() ?? "";
+        const q = search.toLowerCase();
+        if (!name.includes(q) && !preview.includes(q)) return false;
+      }
+      return true;
+    })
+    // High/urgent float to the top, then most recent activity.
+    .sort((a, b) =>
+      comparePriority(
+        { priority: a.priority, at: a.last_message_at ?? a.created_at },
+        { priority: b.priority, at: b.last_message_at ?? b.created_at }
+      )
+    );
 
   return (
     <div className="flex h-full flex-col border-e border-border bg-card">
@@ -276,19 +287,33 @@ export function ConversationList({
               : t.inbox.filterSnoozed}
           </button>
         ))}
-        {currentUserId && (
+        <div className="ms-auto flex gap-1">
           <button
-            onClick={() => setMineOnly((m) => !m)}
+            onClick={() => setPriorityOnly((p) => !p)}
+            title={t.inbox.priorityFilter}
             className={cn(
-              "ms-auto rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
-              mineOnly
-                ? "bg-primary text-primary-foreground"
+              "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+              priorityOnly
+                ? "bg-red-600 text-white"
                 : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
             )}
           >
-            {t.inbox.mine}
+            {t.inbox.priorityFilter}
           </button>
-        )}
+          {currentUserId && (
+            <button
+              onClick={() => setMineOnly((m) => !m)}
+              className={cn(
+                "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+                mineOnly
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+              )}
+            >
+              {t.inbox.mine}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Channel filter */}
@@ -380,6 +405,16 @@ export function ConversationList({
                     {name}
                   </p>
                   <div className="flex flex-shrink-0 items-center gap-1.5">
+                    {normalizePriority(conversation.priority) > 0 && (
+                      <span
+                        className={cn(
+                          "rounded px-1.5 py-0.5 text-[9px] font-bold uppercase",
+                          PRIORITY_BADGE[normalizePriority(conversation.priority)]
+                        )}
+                      >
+                        {PRIORITY_LABEL[normalizePriority(conversation.priority)]}
+                      </span>
+                    )}
                     {mounted && slaBreached(conversation) && (
                       <span
                         title="First-response SLA exceeded"

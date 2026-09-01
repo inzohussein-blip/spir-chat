@@ -1341,6 +1341,7 @@ export interface Database {
           snooze_until: string | null;
           sla_escalated_at: string | null;
           followup_sent_at: string | null;
+          priority: number;
           created_at: string;
           updated_at: string;
         };
@@ -1364,6 +1365,7 @@ export interface Database {
           snooze_until?: string | null;
           sla_escalated_at?: string | null;
           followup_sent_at?: string | null;
+          priority?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -1382,6 +1384,7 @@ export interface Database {
           snooze_until?: string | null;
           sla_escalated_at?: string | null;
           followup_sent_at?: string | null;
+          priority?: number;
           updated_at?: string;
         };
         Relationships: [
