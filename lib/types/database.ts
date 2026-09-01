@@ -143,16 +143,19 @@ export interface Database {
           workspace_id: string;
           user_id: string;
           role: string;
+          last_seen_at: string | null;
           created_at: string;
         };
         Insert: {
           workspace_id: string;
           user_id: string;
           role?: string;
+          last_seen_at?: string | null;
           created_at?: string;
         };
         Update: {
           role?: string;
+          last_seen_at?: string | null;
         };
         Relationships: [
           {

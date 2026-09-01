@@ -1,6 +1,7 @@
 import { getWorkspace } from "@/lib/workspace";
 import { Sidebar } from "@/components/sidebar";
 import { Topbar } from "@/components/topbar";
+import { PresenceHeartbeat } from "@/components/presence-heartbeat";
 
 export default async function DashboardLayout({
   children,
@@ -30,6 +31,7 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex h-screen">
+      <PresenceHeartbeat />
       <Sidebar workspace={workspace} user={user} workspaces={workspaces} />
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar userEmail={user.email} unreadCount={unreadCount ?? 0} />

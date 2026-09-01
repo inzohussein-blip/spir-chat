@@ -28,8 +28,15 @@ interface MemberDetail {
   userId: string;
   role: string;
   joinedAt: string;
+  lastSeenAt: string | null;
   email: string;
   name: string;
+}
+
+/** Online when the last heartbeat is within the last ~90 seconds. */
+function isOnline(lastSeenAt: string | null): boolean {
+  if (!lastSeenAt) return false;
+  return Date.now() - new Date(lastSeenAt).getTime() < 90_000;
 }
 
 interface PendingInvite {
@@ -174,8 +181,16 @@ export function TeamView({
                   className="flex items-center justify-between rounded-xl border border-border bg-card shadow-card p-4"
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-medium text-muted-foreground">
-                      {member.name.charAt(0).toUpperCase()}
+                    <div className="relative shrink-0">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-sm font-medium text-muted-foreground">
+                        {member.name.charAt(0).toUpperCase()}
+                      </div>
+                      {isOnline(member.lastSeenAt) && (
+                        <span
+                          title="Online"
+                          className="absolute -bottom-0.5 -end-0.5 h-3 w-3 rounded-full border-2 border-card bg-green-500"
+                        />
+                      )}
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
@@ -185,6 +200,11 @@ export function TeamView({
                         {member.userId === currentUserId && (
                           <span className="shrink-0 text-[10px] text-muted-foreground">
                             (you)
+                          </span>
+                        )}
+                        {isOnline(member.lastSeenAt) && (
+                          <span className="shrink-0 text-[10px] font-medium text-green-600">
+                            Online
                           </span>
                         )}
                       </div>

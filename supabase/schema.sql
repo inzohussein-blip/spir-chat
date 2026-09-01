@@ -2199,3 +2199,13 @@ create policy "Users manage contact notes in their workspaces"
 -- ============================================================
 alter table contacts
   add column if not exists company text;
+
+-- ============================================================
+-- 00062_agent_presence.sql
+-- ============================================================
+-- ============================================================
+-- Agent presence: track when each member was last active so the team can see
+-- who is online. Updated by a lightweight heartbeat while the dashboard is open.
+-- ============================================================
+alter table workspace_members
+  add column if not exists last_seen_at timestamptz;
