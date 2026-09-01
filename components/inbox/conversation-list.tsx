@@ -7,9 +7,10 @@ import { cn } from "@/lib/utils";
 import { avatarGradient } from "@/lib/avatar";
 import { PlatformIcon } from "@/components/platform-icon";
 import { useI18n } from "@/components/i18n-provider";
-import { Bookmark, Plus, X } from "lucide-react";
+import { Bookmark, Plus, X, Check, CheckCircle, RotateCcw, Flag } from "lucide-react";
 import { createInboxView, deleteInboxView } from "@/lib/actions/inbox-views";
 import { searchMessages, type MessageSearchHit } from "@/lib/actions/search";
+import { bulkUpdateConversations } from "@/lib/actions/conversations";
 import { comparePriority, normalizePriority, PRIORITY_BADGE, PRIORITY_LABEL } from "@/lib/priority";
 import type { Database, Platform, ConversationStatus } from "@/lib/types/database";
 
@@ -73,6 +74,40 @@ export function ConversationList({
   const [views, setViews] = useState<{ id: string; name: string; filters: Record<string, unknown> }[]>([]);
   const [historyHits, setHistoryHits] = useState<MessageSearchHit[] | null>(null);
   const [historyBusy, setHistoryBusy] = useState(false);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
+
+  const isSelected = (id: string) => selected.has(id);
+
+  function toggleSelected(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function exitSelectMode() {
+    setSelectMode(false);
+    setSelected(new Set());
+  }
+
+  async function runBulk(change: { status?: "open" | "closed"; priority?: number }) {
+    if (bulkBusy || selected.size === 0) return;
+    setBulkBusy(true);
+    const ids = [...selected];
+    const res = await bulkUpdateConversations(ids, change);
+    if (res.ok) {
+      // Reflect the change locally so the list updates without a full refresh.
+      setConversations((prev) =>
+        prev.map((c) => (selected.has(c.id) ? { ...c, ...change } : c))
+      );
+      exitSelectMode();
+    }
+    setBulkBusy(false);
+  }
 
   async function runHistorySearch() {
     if (historyBusy || search.trim().length < 2) return;
@@ -245,9 +280,22 @@ export function ConversationList({
       {/* Header */}
       <div className="flex h-14 items-center justify-between border-b border-border px-4">
         <h2 className="text-base font-bold tracking-tight">{t.inbox.title}</h2>
-        <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-          {filtered.length}
-        </span>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => (selectMode ? exitSelectMode() : setSelectMode(true))}
+            className={cn(
+              "rounded-md px-2 py-0.5 text-xs font-medium transition-colors",
+              selectMode
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:bg-accent hover:text-foreground"
+            )}
+          >
+            {selectMode ? t.inbox.cancelSelect : t.inbox.select}
+          </button>
+          <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+            {filtered.length}
+          </span>
+        </div>
       </div>
 
       {/* Search */}
@@ -421,6 +469,41 @@ export function ConversationList({
         </div>
       )}
 
+      {/* Bulk action bar */}
+      {selectMode && (
+        <div className="flex flex-wrap items-center gap-1.5 border-y border-border bg-muted/40 px-3 py-2">
+          <span className="text-xs font-medium text-muted-foreground">
+            {selected.size} {t.inbox.selected}
+          </span>
+          <div className="ms-auto flex items-center gap-1">
+            <button
+              onClick={() => runBulk({ status: "closed" })}
+              disabled={bulkBusy || selected.size === 0}
+              title={t.inbox.resolve}
+              className="inline-flex items-center gap-1 rounded-md bg-emerald-600 px-2 py-1 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+            >
+              <CheckCircle className="h-3.5 w-3.5" /> {t.inbox.resolve}
+            </button>
+            <button
+              onClick={() => runBulk({ status: "open" })}
+              disabled={bulkBusy || selected.size === 0}
+              title={t.inbox.reopen}
+              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs font-medium hover:bg-accent disabled:opacity-50"
+            >
+              <RotateCcw className="h-3.5 w-3.5" /> {t.inbox.reopen}
+            </button>
+            <button
+              onClick={() => runBulk({ priority: 2 })}
+              disabled={bulkBusy || selected.size === 0}
+              title={t.inbox.priorityUrgent}
+              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 disabled:opacity-50"
+            >
+              <Flag className="h-3.5 w-3.5" /> {t.inbox.priorityUrgent}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Conversation list */}
       <div className="flex-1 space-y-0.5 overflow-y-auto p-2">
         {filtered.length === 0 ? (
@@ -436,7 +519,9 @@ export function ConversationList({
             return (
             <button
               key={conversation.id}
-              onClick={() => onSelect(conversation)}
+              onClick={() =>
+                selectMode ? toggleSelected(conversation.id) : onSelect(conversation)
+              }
               onMouseEnter={() => onPrefetch?.(conversation.id)}
               onFocus={() => onPrefetch?.(conversation.id)}
               className={cn(
@@ -448,6 +533,18 @@ export function ConversationList({
             >
               {selected && (
                 <span className="absolute inset-y-2 start-0 w-1 rounded-full bg-primary" />
+              )}
+              {selectMode && (
+                <span
+                  className={cn(
+                    "mt-3 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded border",
+                    isSelected(conversation.id)
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border"
+                  )}
+                >
+                  {isSelected(conversation.id) && <Check className="h-3 w-3" />}
+                </span>
               )}
               {/* Avatar with platform badge */}
               <div className="relative flex-shrink-0">

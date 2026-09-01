@@ -50,6 +50,38 @@ export async function snoozeConversation(conversationId: string, untilIso: strin
   return { ok: true };
 }
 
+const MAX_BULK_CONVERSATIONS = 200;
+
+/**
+ * Apply one change to many conversations at once (bulk inbox actions). Only a
+ * whitelisted set of fields can be set; everything is scoped to the workspace.
+ */
+export async function bulkUpdateConversations(
+  conversationIds: string[],
+  change: { status?: "open" | "closed"; priority?: number }
+) {
+  const { workspace, supabase } = await getWorkspace();
+  const ids = conversationIds.slice(0, MAX_BULK_CONVERSATIONS);
+  if (ids.length === 0) return { error: "No conversations selected" };
+
+  const patch: { status?: "open" | "closed"; priority?: number } = {};
+  if (change.status === "open" || change.status === "closed") patch.status = change.status;
+  if (change.priority === 0 || change.priority === 1 || change.priority === 2) {
+    patch.priority = change.priority;
+  }
+  if (Object.keys(patch).length === 0) return { error: "Nothing to change" };
+
+  const { error } = await supabase
+    .from("conversations")
+    .update(patch)
+    .eq("workspace_id", workspace.id)
+    .in("id", ids);
+  if (error) return { error: error.message };
+
+  revalidatePath("/dashboard/inbox");
+  return { ok: true, count: ids.length };
+}
+
 /** Set a conversation's priority (0 normal, 1 high, 2 urgent). */
 export async function setConversationPriority(
   conversationId: string,
