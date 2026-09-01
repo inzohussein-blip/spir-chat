@@ -9,15 +9,18 @@ export function RoutingSection({
   initialAutoAssign,
   initialSlaMinutes,
   initialCsatEnabled,
+  initialAgentCap,
 }: {
   workspaceId: string;
   initialAutoAssign: string;
   initialSlaMinutes: number;
   initialCsatEnabled: boolean;
+  initialAgentCap: number;
 }) {
   const [autoAssign, setAutoAssign] = useState(initialAutoAssign);
   const [slaMinutes, setSlaMinutes] = useState(initialSlaMinutes);
   const [csatEnabled, setCsatEnabled] = useState(initialCsatEnabled);
+  const [agentCap, setAgentCap] = useState(initialAgentCap);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -30,6 +33,7 @@ export function RoutingSection({
         auto_assign: autoAssign === "round_robin" ? "round_robin" : "off",
         sla_minutes: Number.isFinite(slaMinutes) && slaMinutes > 0 ? Math.round(slaMinutes) : 0,
         csat_enabled: csatEnabled,
+        agent_conversation_cap: Number.isFinite(agentCap) && agentCap > 0 ? Math.round(agentCap) : 0,
       })
       .eq("id", workspaceId);
     setSaving(false);
@@ -77,6 +81,23 @@ export function RoutingSection({
           <p className="mt-1 text-[11px] text-muted-foreground">
             0 disables. Conversations awaiting a reply past this show an SLA badge
             in the inbox.
+          </p>
+        </div>
+
+        <div>
+          <label className="text-xs font-medium text-muted-foreground">
+            Max open conversations per agent
+          </label>
+          <input
+            type="number"
+            min={0}
+            value={agentCap}
+            onChange={(e) => setAgentCap(Number(e.target.value))}
+            className="mt-1 w-32 rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+          />
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            0 = no cap. Round-robin skips agents already at this many open
+            conversations (leaving new ones unassigned).
           </p>
         </div>
 

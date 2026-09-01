@@ -88,6 +88,7 @@ project run the new files in order in the SQL Editor. Summary:
 | `00052_merge_contacts` | Transactional merge of duplicate contacts |
 | `00053_inbox_views` | Saved inbox filter views (shared per workspace) |
 | `00054_ai_replies` | AI auto-reply from Help Center (per-workspace toggle) |
+| `00055_agent_cap` | Per-agent open-conversation cap for round-robin |
 
 Optional environment variables (each feature degrades to a safe no-op when its
 keys are absent):

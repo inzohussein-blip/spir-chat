@@ -40,6 +40,7 @@ interface WorkspaceSettings {
   autoAssign: string;
   slaMinutes: number;
   csatEnabled: boolean;
+  agentCap: number;
   weeklyReportEmail: string | null;
   aiRepliesEnabled: boolean;
 }
@@ -224,6 +225,7 @@ export function SettingsView({
             initialAutoAssign={workspace.autoAssign}
             initialSlaMinutes={workspace.slaMinutes}
             initialCsatEnabled={workspace.csatEnabled}
+            initialAgentCap={workspace.agentCap}
           />
 
           <hr className="border-border" />

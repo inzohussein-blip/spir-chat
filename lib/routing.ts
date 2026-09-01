@@ -17,10 +17,11 @@ export async function autoAssignConversation(
   try {
     const { data: ws } = await supabase
       .from("workspaces")
-      .select("auto_assign")
+      .select("auto_assign, agent_conversation_cap")
       .eq("id", workspaceId)
       .single();
     if (ws?.auto_assign !== "round_robin") return;
+    const cap = (ws as { agent_conversation_cap?: number }).agent_conversation_cap ?? 0;
 
     const { data: members } = await supabase
       .from("workspace_members")
@@ -44,16 +45,17 @@ export async function autoAssignConversation(
       }
     }
 
-    // Pick the member with the smallest load.
+    // Pick the member with the smallest load, skipping any at/over the cap.
     let best: string | null = null;
     let bestLoad = Infinity;
     for (const [userId, count] of load) {
+      if (cap > 0 && count >= cap) continue;
       if (count < bestLoad) {
         best = userId;
         bestLoad = count;
       }
     }
-    if (!best) return;
+    if (!best) return; // everyone is at capacity — leave it unassigned.
 
     await supabase
       .from("conversations")

@@ -35,6 +35,8 @@ export default async function SettingsPage() {
           (workspace as { auto_assign?: string }).auto_assign ?? "off",
         slaMinutes: (workspace as { sla_minutes?: number }).sla_minutes ?? 0,
         csatEnabled: (workspace as { csat_enabled?: boolean }).csat_enabled ?? false,
+        agentCap:
+          (workspace as { agent_conversation_cap?: number }).agent_conversation_cap ?? 0,
         weeklyReportEmail:
           (workspace as { weekly_report_email?: string | null }).weekly_report_email ?? null,
         aiRepliesEnabled:

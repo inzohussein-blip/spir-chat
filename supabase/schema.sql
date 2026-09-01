@@ -2045,3 +2045,13 @@ create policy "Members manage inbox views in their workspaces"
 -- ============================================================
 alter table workspaces
   add column if not exists ai_replies_enabled boolean not null default false;
+
+-- ============================================================
+-- 00055_agent_cap.sql
+-- ============================================================
+-- ============================================================
+-- Round-robin auto-assign respects a per-agent open-conversation cap.
+-- 0 means no cap.
+-- ============================================================
+alter table workspaces
+  add column if not exists agent_conversation_cap integer not null default 0;

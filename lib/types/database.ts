@@ -86,6 +86,7 @@ export interface Database {
           auto_assign: string;
           sla_minutes: number;
           csat_enabled: boolean;
+          agent_conversation_cap: number;
           weekly_report_email: string | null;
           last_report_sent_at: string | null;
           ai_replies_enabled: boolean;
@@ -104,6 +105,7 @@ export interface Database {
           auto_assign?: string;
           sla_minutes?: number;
           csat_enabled?: boolean;
+          agent_conversation_cap?: number;
           weekly_report_email?: string | null;
           last_report_sent_at?: string | null;
           ai_replies_enabled?: boolean;
@@ -122,6 +124,7 @@ export interface Database {
           auto_assign?: string;
           sla_minutes?: number;
           csat_enabled?: boolean;
+          agent_conversation_cap?: number;
           weekly_report_email?: string | null;
           last_report_sent_at?: string | null;
           ai_replies_enabled?: boolean;
