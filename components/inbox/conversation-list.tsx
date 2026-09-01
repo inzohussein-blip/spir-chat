@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, MessageSquare, Filter } from "lucide-react";
+import { Search, MessageSquare, Filter, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { avatarGradient } from "@/lib/avatar";
@@ -9,6 +9,7 @@ import { PlatformIcon } from "@/components/platform-icon";
 import { useI18n } from "@/components/i18n-provider";
 import { Bookmark, Plus, X } from "lucide-react";
 import { createInboxView, deleteInboxView } from "@/lib/actions/inbox-views";
+import { searchMessages, type MessageSearchHit } from "@/lib/actions/search";
 import { comparePriority, normalizePriority, PRIORITY_BADGE, PRIORITY_LABEL } from "@/lib/priority";
 import type { Database, Platform, ConversationStatus } from "@/lib/types/database";
 
@@ -70,6 +71,33 @@ export function ConversationList({
   const [mineOnly, setMineOnly] = useState(false);
   const [priorityOnly, setPriorityOnly] = useState(false);
   const [views, setViews] = useState<{ id: string; name: string; filters: Record<string, unknown> }[]>([]);
+  const [historyHits, setHistoryHits] = useState<MessageSearchHit[] | null>(null);
+  const [historyBusy, setHistoryBusy] = useState(false);
+
+  async function runHistorySearch() {
+    if (historyBusy || search.trim().length < 2) return;
+    setHistoryBusy(true);
+    const res = await searchMessages(search);
+    setHistoryBusy(false);
+    setHistoryHits(res.hits);
+  }
+
+  async function openHit(hit: MessageSearchHit) {
+    const { data } = await createClient()
+      .from("conversations")
+      .select("*, contacts(*)")
+      .eq("id", hit.conversationId)
+      .single();
+    if (data) {
+      onSelect(data as Conversation);
+      setHistoryHits(null);
+    }
+  }
+
+  // A change to the query invalidates any prior history results.
+  useEffect(() => {
+    setHistoryHits(null);
+  }, [search]);
 
   // Load saved inbox views (shared across the workspace).
   useEffect(() => {
@@ -231,9 +259,65 @@ export function ConversationList({
             placeholder={t.inbox.searchConversations}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") runHistorySearch();
+            }}
             className="w-full rounded-lg border border-input bg-background py-2 ps-9 pe-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
+        {search.trim().length >= 2 && (
+          <button
+            onClick={runHistorySearch}
+            disabled={historyBusy}
+            className="mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-border py-1.5 text-xs font-medium text-muted-foreground hover:border-primary/40 hover:text-foreground disabled:opacity-50"
+          >
+            {historyBusy ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Search className="h-3.5 w-3.5" />
+            )}
+            {t.inbox.searchHistory}
+          </button>
+        )}
+        {historyHits !== null && (
+          <div className="mt-2 rounded-lg border border-border bg-background">
+            <div className="flex items-center justify-between border-b border-border px-3 py-1.5">
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                {t.inbox.searchHistoryResults} · {historyHits.length}
+              </span>
+              <button
+                onClick={() => setHistoryHits(null)}
+                aria-label="Close"
+                className="text-muted-foreground/60 hover:text-foreground"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            {historyHits.length === 0 ? (
+              <p className="px-3 py-3 text-xs text-muted-foreground">
+                {t.inbox.noResults}
+              </p>
+            ) : (
+              <div className="max-h-64 overflow-y-auto p-1">
+                {historyHits.map((h) => (
+                  <button
+                    key={h.conversationId}
+                    onClick={() => openHit(h)}
+                    className="flex w-full flex-col gap-0.5 rounded-md px-2.5 py-1.5 text-start hover:bg-accent"
+                  >
+                    <span className="flex items-center gap-1.5 text-xs font-medium">
+                      <PlatformIcon platform={h.platform} className="h-3 w-3" size={12} />
+                      {h.contactName}
+                    </span>
+                    <span className="truncate text-[11px] text-muted-foreground">
+                      {h.snippet}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Saved views */}
