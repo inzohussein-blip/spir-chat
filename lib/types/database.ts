@@ -87,6 +87,8 @@ export interface Database {
           sla_minutes: number;
           csat_enabled: boolean;
           agent_conversation_cap: number;
+          visitor_followup_minutes: number;
+          visitor_followup_message: string | null;
           weekly_report_email: string | null;
           last_report_sent_at: string | null;
           ai_replies_enabled: boolean;
@@ -106,6 +108,8 @@ export interface Database {
           sla_minutes?: number;
           csat_enabled?: boolean;
           agent_conversation_cap?: number;
+          visitor_followup_minutes?: number;
+          visitor_followup_message?: string | null;
           weekly_report_email?: string | null;
           last_report_sent_at?: string | null;
           ai_replies_enabled?: boolean;
@@ -125,6 +129,8 @@ export interface Database {
           sla_minutes?: number;
           csat_enabled?: boolean;
           agent_conversation_cap?: number;
+          visitor_followup_minutes?: number;
+          visitor_followup_message?: string | null;
           weekly_report_email?: string | null;
           last_report_sent_at?: string | null;
           ai_replies_enabled?: boolean;
@@ -1307,6 +1313,7 @@ export interface Database {
           auto_reply_sent_at: string | null;
           snooze_until: string | null;
           sla_escalated_at: string | null;
+          followup_sent_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -1329,6 +1336,7 @@ export interface Database {
           auto_reply_sent_at?: string | null;
           snooze_until?: string | null;
           sla_escalated_at?: string | null;
+          followup_sent_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -1346,6 +1354,7 @@ export interface Database {
           auto_reply_sent_at?: string | null;
           snooze_until?: string | null;
           sla_escalated_at?: string | null;
+          followup_sent_at?: string | null;
           updated_at?: string;
         };
         Relationships: [

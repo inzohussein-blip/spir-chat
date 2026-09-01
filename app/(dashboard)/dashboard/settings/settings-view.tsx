@@ -27,6 +27,7 @@ import { RoutingSection } from "@/components/settings/routing-section";
 import { WeeklyReportSection } from "@/components/settings/weekly-report-section";
 import { LabelRulesSection } from "@/components/settings/label-rules-section";
 import { AiRepliesSection } from "@/components/settings/ai-replies-section";
+import { FollowupSection } from "@/components/settings/followup-section";
 import type { BusinessHours } from "@/lib/business-hours";
 import { createClient } from "@/lib/supabase/client";
 
@@ -41,6 +42,8 @@ interface WorkspaceSettings {
   slaMinutes: number;
   csatEnabled: boolean;
   agentCap: number;
+  followupMinutes: number;
+  followupMessage: string | null;
   weeklyReportEmail: string | null;
   aiRepliesEnabled: boolean;
 }
@@ -233,6 +236,14 @@ export function SettingsView({
           <WeeklyReportSection
             workspaceId={workspace.id}
             initialEmail={workspace.weeklyReportEmail}
+          />
+
+          <hr className="border-border" />
+
+          <FollowupSection
+            workspaceId={workspace.id}
+            initialMinutes={workspace.followupMinutes}
+            initialMessage={workspace.followupMessage}
           />
 
           <hr className="border-border" />

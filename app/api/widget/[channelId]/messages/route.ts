@@ -123,6 +123,11 @@ export async function POST(
     conv_id: conversationId,
     preview: preview.slice(0, 100),
   });
+  // A fresh visitor message re-arms the follow-up for the next idle period.
+  await supabase
+    .from("conversations")
+    .update({ followup_sent_at: null })
+    .eq("id", conversationId);
   await supabase
     .from("contacts")
     .update({ last_interaction_at: new Date().toISOString() })

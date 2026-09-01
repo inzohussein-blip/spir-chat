@@ -37,6 +37,10 @@ export default async function SettingsPage() {
         csatEnabled: (workspace as { csat_enabled?: boolean }).csat_enabled ?? false,
         agentCap:
           (workspace as { agent_conversation_cap?: number }).agent_conversation_cap ?? 0,
+        followupMinutes:
+          (workspace as { visitor_followup_minutes?: number }).visitor_followup_minutes ?? 0,
+        followupMessage:
+          (workspace as { visitor_followup_message?: string | null }).visitor_followup_message ?? null,
         weeklyReportEmail:
           (workspace as { weekly_report_email?: string | null }).weekly_report_email ?? null,
         aiRepliesEnabled:
