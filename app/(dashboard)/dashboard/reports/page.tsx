@@ -16,6 +16,7 @@ import {
 import { PageTitle } from "@/components/page-title";
 import { csatStats } from "@/lib/csat";
 import { agentStats } from "@/lib/agent-stats";
+import { dailyBuckets, hourlyBuckets } from "@/lib/volume";
 import { avatarGradient } from "@/lib/avatar";
 import { cn } from "@/lib/utils";
 
@@ -111,6 +112,28 @@ export default async function ReportsPage() {
       rating: s.rating,
     }))
   ).filter((a) => a.assigned > 0 || a.replies > 0);
+
+  // Conversation volume: new conversations per day (14d) and inbound-message
+  // hour-of-day distribution (30d).
+  const [{ data: convDates }, { data: inboundDates }] = await Promise.all([
+    supabase
+      .from("conversations")
+      .select("created_at")
+      .eq("workspace_id", wsId)
+      .gte("created_at", new Date(Date.now() - 14 * DAY).toISOString())
+      .limit(5000),
+    supabase
+      .from("messages")
+      .select("created_at")
+      .eq("direction", "inbound")
+      .gte("created_at", new Date(Date.now() - 30 * DAY).toISOString())
+      .limit(10000),
+  ]);
+  const daily = dailyBuckets((convDates ?? []).map((c) => c.created_at), 14);
+  const dailyMax = Math.max(1, ...daily.map((d) => d.count));
+  const hours = hourlyBuckets((inboundDates ?? []).map((m) => m.created_at));
+  const hoursMax = Math.max(1, ...hours);
+  const hasVolume = daily.some((d) => d.count > 0) || hours.some((h) => h > 0);
 
   // First-response time: for each website conversation, seconds from the first
   // inbound message to the first outbound reply after it. (Website threads store
@@ -241,6 +264,49 @@ export default async function ReportsPage() {
                 </ul>
               </div>
             )}
+          </div>
+        )}
+
+        {hasVolume && (
+          <div className="mt-8 grid gap-6 lg:grid-cols-2">
+            <div className="rounded-xl border border-border bg-card p-5 shadow-card">
+              <h2 className="mb-4 text-sm font-semibold">New conversations · 14 days</h2>
+              <div className="flex h-32 items-end gap-1">
+                {daily.map((d) => (
+                  <div key={d.day} className="group flex flex-1 flex-col items-center justify-end gap-1">
+                    <span className="text-[10px] text-muted-foreground opacity-0 group-hover:opacity-100">
+                      {d.count}
+                    </span>
+                    <div
+                      className="w-full rounded-t bg-primary/70"
+                      style={{ height: `${Math.max(2, (d.count / dailyMax) * 100)}%` }}
+                    />
+                    <span className="text-[9px] text-muted-foreground">
+                      {new Date(d.day).getDate()}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-border bg-card p-5 shadow-card">
+              <h2 className="mb-4 text-sm font-semibold">Busiest hours · inbound (30d)</h2>
+              <div className="flex h-32 items-end gap-[2px]">
+                {hours.map((count, h) => (
+                  <div key={h} className="group flex flex-1 flex-col items-center justify-end gap-1">
+                    <div
+                      className="w-full rounded-t bg-cyan-500/70"
+                      style={{ height: `${Math.max(2, (count / hoursMax) * 100)}%` }}
+                      title={`${h}:00 — ${count}`}
+                    />
+                    {h % 6 === 0 && (
+                      <span className="text-[9px] text-muted-foreground">{h}</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <p className="mt-1 text-[10px] text-muted-foreground">Hour of day (local)</p>
+            </div>
           </div>
         )}
 
