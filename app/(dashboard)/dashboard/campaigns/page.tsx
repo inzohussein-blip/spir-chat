@@ -1,8 +1,13 @@
 import { getWorkspace } from "@/lib/workspace";
 import { CampaignsView } from "./campaigns-view";
 
-export default async function CampaignsPage() {
+export default async function CampaignsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ segment?: string }>;
+}) {
   const { workspace, supabase } = await getWorkspace();
+  const { segment: initialSegmentId } = await searchParams;
 
   const [{ data: campaigns }, { data: segments }] = await Promise.all([
     supabase
@@ -17,7 +22,16 @@ export default async function CampaignsPage() {
       .order("name", { ascending: true }),
   ]);
 
+  // Only honor the query param if it names a real segment in this workspace.
+  const validSegment = (segments ?? []).some((s) => s.id === initialSegmentId)
+    ? initialSegmentId
+    : undefined;
+
   return (
-    <CampaignsView campaigns={campaigns ?? []} segments={segments ?? []} />
+    <CampaignsView
+      campaigns={campaigns ?? []}
+      segments={segments ?? []}
+      initialSegmentId={validSegment}
+    />
   );
 }

@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Filter, Plus, Trash2, Save, X, Users } from "lucide-react";
+import Link from "next/link";
+import { Filter, Plus, Trash2, Save, X, Users, Megaphone } from "lucide-react";
 import {
   createSegment,
   updateSegment,
@@ -104,6 +105,12 @@ export function SegmentsView({ segments }: { segments: Segment[] }) {
                   </p>
                 </div>
                 <div className="flex flex-shrink-0 items-center gap-1">
+                  <Link
+                    href={`/dashboard/campaigns?segment=${s.id}`}
+                    className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-primary hover:bg-primary/10"
+                  >
+                    <Megaphone className="h-3.5 w-3.5" /> Campaign
+                  </Link>
                   <button
                     onClick={() => {
                       setCreating(false);

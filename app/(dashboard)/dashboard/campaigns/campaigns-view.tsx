@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Megaphone, Plus, Send, Trash2, Loader2, Mail, MessageCircle, CalendarClock, X, Sparkles } from "lucide-react";
 import { createCampaign, sendCampaign, deleteCampaign, cancelSchedule } from "@/lib/actions/campaigns";
@@ -52,16 +52,18 @@ function formatSchedule(iso: string): string {
 export function CampaignsView({
   campaigns,
   segments,
+  initialSegmentId,
 }: {
   campaigns: Campaign[];
   segments: { id: string; name: string }[];
+  initialSegmentId?: string;
 }) {
   const router = useRouter();
   const [name, setName] = useState("");
   const [channel, setChannel] = useState("email");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
-  const [segmentId, setSegmentId] = useState("");
+  const [segmentId, setSegmentId] = useState(initialSegmentId ?? "");
   const [scheduledAt, setScheduledAt] = useState("");
   const [abEnabled, setAbEnabled] = useState(false);
   const [bodyB, setBodyB] = useState("");
@@ -70,6 +72,13 @@ export function CampaignsView({
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+
+  // Arrived here from a segment's "Create campaign" action: point it out.
+  useEffect(() => {
+    if (!initialSegmentId) return;
+    const seg = segments.find((s) => s.id === initialSegmentId);
+    if (seg) setNotice(`Targeting segment “${seg.name}”. Compose your message below.`);
+  }, [initialSegmentId, segments]);
 
   function applyTemplate(t: CampaignTemplate) {
     setName(t.campaignName);
