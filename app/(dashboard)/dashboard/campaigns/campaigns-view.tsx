@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Megaphone, Plus, Send, Trash2, Loader2, Mail, MessageCircle, CalendarClock, X } from "lucide-react";
+import { Megaphone, Plus, Send, Trash2, Loader2, Mail, MessageCircle, CalendarClock, X, Sparkles } from "lucide-react";
 import { createCampaign, sendCampaign, deleteCampaign, cancelSchedule } from "@/lib/actions/campaigns";
 import { renderMergeVariables } from "@/lib/merge";
+import { CAMPAIGN_TEMPLATES, type CampaignTemplate } from "@/lib/campaign-templates";
 import { PageTitle } from "@/components/page-title";
 import { cn } from "@/lib/utils";
 
@@ -70,6 +71,17 @@ export function CampaignsView({
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
+  function applyTemplate(t: CampaignTemplate) {
+    setName(t.campaignName);
+    setChannel(t.channel);
+    setSubject(t.subject);
+    setBody(t.body);
+    setAbEnabled(false);
+    setBodyB("");
+    setError(null);
+    setNotice(`Loaded the “${t.name}” template — edit it, then create the draft.`);
+  }
+
   async function handleCreate() {
     if (!name.trim() || !body.trim() || creating) return;
     setCreating(true);
@@ -129,6 +141,27 @@ export function CampaignsView({
               {notice}
             </p>
           )}
+
+          {/* Templates */}
+          <div>
+            <div className="mb-2 flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" />
+              <h2 className="text-sm font-semibold">Start from a template</h2>
+            </div>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {CAMPAIGN_TEMPLATES.map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => applyTemplate(t)}
+                  className="group flex flex-col items-start gap-1 rounded-xl border border-border bg-card p-3 text-start shadow-card transition hover:border-primary hover:shadow-md"
+                >
+                  <span className="text-lg leading-none">{t.icon}</span>
+                  <span className="text-sm font-medium">{t.name}</span>
+                  <span className="text-xs text-muted-foreground">{t.description}</span>
+                </button>
+              ))}
+            </div>
+          </div>
 
           {/* Composer */}
           <div className="rounded-xl border border-border bg-card p-5 shadow-card">
