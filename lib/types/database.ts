@@ -604,6 +604,33 @@ export interface Database {
         };
         Relationships: [];
       };
+      audit_log: {
+        Row: {
+          id: string;
+          workspace_id: string;
+          actor_id: string | null;
+          actor_label: string | null;
+          action: string;
+          target_label: string | null;
+          metadata: Json | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          workspace_id: string;
+          actor_id?: string | null;
+          actor_label?: string | null;
+          action: string;
+          target_label?: string | null;
+          metadata?: Json | null;
+          created_at?: string;
+        };
+        Update: {
+          target_label?: string | null;
+          metadata?: Json | null;
+        };
+        Relationships: [];
+      };
       label_rules: {
         Row: {
           id: string;

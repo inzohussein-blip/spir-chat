@@ -6,6 +6,7 @@ import { type CampaignChannel } from "@/lib/campaigns/providers";
 import { deliverCampaign } from "@/lib/campaigns/send";
 import { createTrackedLink } from "@/lib/actions/tracking";
 import { isValidUrl } from "@/lib/tracking";
+import { recordAudit } from "@/lib/audit-server";
 
 const CHANNELS: CampaignChannel[] = ["email", "sms", "whatsapp"];
 
@@ -86,17 +87,27 @@ export async function cancelSchedule(id: string) {
 
 /** Send a draft (or scheduled) campaign now to all reachable subscribers. */
 export async function sendCampaign(id: string) {
-  const { workspace, supabase } = await getWorkspace();
+  const { workspace, user, supabase } = await getWorkspace();
 
   const { data: campaign } = await supabase
     .from("campaigns")
-    .select("id, workspace_id, channel, subject, body, body_b, segment_id, status")
+    .select("id, workspace_id, name, channel, subject, body, body_b, segment_id, status")
     .eq("id", id)
     .eq("workspace_id", workspace.id)
     .single();
   if (!campaign) return { error: "Campaign not found" };
 
   const result = await deliverCampaign(supabase, campaign);
+  if (!("error" in result)) {
+    await recordAudit({
+      workspaceId: workspace.id,
+      actorId: user.id,
+      actorLabel: user.email ?? null,
+      action: "campaign.sent",
+      targetLabel: campaign.name,
+      metadata: { sent: result.sent, failed: result.failed },
+    });
+  }
   revalidatePath("/dashboard/campaigns");
   return result;
 }

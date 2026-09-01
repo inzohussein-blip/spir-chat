@@ -2,6 +2,7 @@
 
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { getWorkspace } from "@/lib/workspace";
+import { recordAudit } from "@/lib/audit-server";
 
 export async function inviteTeamMember(
   workspaceId: string,
@@ -74,6 +75,14 @@ export async function inviteTeamMember(
     return { error: insertError.message };
   }
 
+  await recordAudit({
+    workspaceId,
+    actorId: user.id,
+    actorLabel: user.email ?? null,
+    action: "member.invited",
+    targetLabel: trimmedEmail,
+    metadata: { role },
+  });
   return { ok: true, invite };
 }
 
@@ -114,6 +123,13 @@ export async function removeTeamMember(
     return { error: deleteError.message };
   }
 
+  await recordAudit({
+    workspaceId,
+    actorId: user.id,
+    actorLabel: user.email ?? null,
+    action: "member.removed",
+    metadata: { removed_user_id: userId },
+  });
   return { ok: true };
 }
 

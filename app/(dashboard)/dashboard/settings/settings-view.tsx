@@ -28,6 +28,7 @@ import { WeeklyReportSection } from "@/components/settings/weekly-report-section
 import { LabelRulesSection } from "@/components/settings/label-rules-section";
 import { AiRepliesSection } from "@/components/settings/ai-replies-section";
 import { FollowupSection } from "@/components/settings/followup-section";
+import { AuditLogSection } from "@/components/settings/audit-log-section";
 import type { BusinessHours } from "@/lib/business-hours";
 import { createClient } from "@/lib/supabase/client";
 
@@ -256,6 +257,10 @@ export function SettingsView({
             workspaceId={workspace.id}
             initialEnabled={workspace.aiRepliesEnabled}
           />
+
+          <hr className="border-border" />
+
+          <AuditLogSection workspaceId={workspace.id} />
 
           <hr className="border-border" />
 

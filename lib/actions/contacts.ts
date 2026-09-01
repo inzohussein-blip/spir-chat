@@ -3,6 +3,12 @@
 import { getWorkspace } from "@/lib/workspace";
 import { revalidatePath } from "next/cache";
 import type { ImportedContact } from "@/lib/csv";
+import { recordAudit } from "@/lib/audit-server";
+
+/** Best-effort display label for the acting user. */
+function actorLabel(user: { email?: string | null }): string | null {
+  return user.email ?? null;
+}
 
 // Cap a single bulk operation to keep the request bounded.
 const MAX_BULK = 500;
@@ -173,18 +179,32 @@ export async function mergeContacts(primaryId: string, duplicateId: string) {
  * sequence history, custom fields, analytics). Irreversible.
  */
 export async function eraseContact(contactId: string) {
-  const { workspace, supabase } = await getWorkspace();
+  const { workspace, supabase, user } = await getWorkspace();
+  // Capture a label before the row is gone, for the audit trail.
+  const { data: target } = await supabase
+    .from("contacts")
+    .select("display_name, email")
+    .eq("id", contactId)
+    .eq("workspace_id", workspace.id)
+    .maybeSingle();
   const { error } = await supabase.rpc("erase_contact", {
     p_contact: contactId,
     p_ws: workspace.id,
   });
   if (error) return { error: error.message };
+  await recordAudit({
+    workspaceId: workspace.id,
+    actorId: user.id,
+    actorLabel: actorLabel(user),
+    action: "contact.erased",
+    targetLabel: target?.display_name || target?.email || "a contact",
+  });
   revalidatePath("/dashboard/contacts");
   return { ok: true };
 }
 
 export async function bulkDeleteContacts(contactIds: string[]) {
-  const { workspace, supabase } = await getWorkspace();
+  const { workspace, supabase, user } = await getWorkspace();
   const ids = await scopeToWorkspace(supabase, workspace.id, contactIds);
   if (ids.length === 0) return { error: "No contacts selected" };
 
@@ -195,6 +215,14 @@ export async function bulkDeleteContacts(contactIds: string[]) {
     .in("id", ids);
   if (error) return { error: error.message };
 
+  await recordAudit({
+    workspaceId: workspace.id,
+    actorId: user.id,
+    actorLabel: actorLabel(user),
+    action: "contacts.deleted",
+    targetLabel: `${ids.length} contact${ids.length === 1 ? "" : "s"}`,
+    metadata: { count: ids.length },
+  });
   revalidatePath("/dashboard/contacts");
   return { ok: true, count: ids.length };
 }
