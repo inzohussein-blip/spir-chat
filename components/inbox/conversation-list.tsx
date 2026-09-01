@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Search, MessageSquare, Filter, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
@@ -77,6 +77,7 @@ export function ConversationList({
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
+  const searchRef = useRef<HTMLInputElement>(null);
 
   const isSelected = (id: string) => selected.has(id);
 
@@ -275,6 +276,47 @@ export function ConversationList({
       )
     );
 
+  // Keyboard navigation (j/k or arrows to move, / to focus search). Kept in
+  // refs so the global listener binds once and always sees the latest list.
+  const filteredRef = useRef(filtered);
+  filteredRef.current = filtered;
+  const selectedIdRef = useRef(selectedId);
+  selectedIdRef.current = selectedId;
+
+  useEffect(() => {
+    function move(delta: number) {
+      const list = filteredRef.current;
+      if (list.length === 0) return;
+      const idx = list.findIndex((c) => c.id === selectedIdRef.current);
+      const next = idx < 0 ? 0 : Math.min(Math.max(idx + delta, 0), list.length - 1);
+      onSelect(list[next]);
+    }
+    function onKey(e: KeyboardEvent) {
+      const el = e.target as HTMLElement | null;
+      const typing =
+        !!el &&
+        (el.tagName === "INPUT" ||
+          el.tagName === "TEXTAREA" ||
+          el.tagName === "SELECT" ||
+          el.isContentEditable);
+      if (e.key === "/" && !typing) {
+        e.preventDefault();
+        searchRef.current?.focus();
+        return;
+      }
+      if (typing || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key === "j" || e.key === "ArrowDown") {
+        e.preventDefault();
+        move(1);
+      } else if (e.key === "k" || e.key === "ArrowUp") {
+        e.preventDefault();
+        move(-1);
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onSelect]);
+
   return (
     <div className="flex h-full flex-col border-e border-border bg-card">
       {/* Header */}
@@ -303,12 +345,14 @@ export function ConversationList({
         <div className="relative">
           <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input
+            ref={searchRef}
             type="text"
             placeholder={t.inbox.searchConversations}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter") runHistorySearch();
+              if (e.key === "Escape") (e.target as HTMLInputElement).blur();
             }}
             className="w-full rounded-lg border border-input bg-background py-2 ps-9 pe-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           />
