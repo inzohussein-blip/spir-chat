@@ -167,6 +167,22 @@ export async function mergeContacts(primaryId: string, duplicateId: string) {
   return { ok: true };
 }
 
+/**
+ * GDPR right-to-erasure: permanently delete a contact and every row that
+ * references them (conversations, messages, survey responses, campaign and
+ * sequence history, custom fields, analytics). Irreversible.
+ */
+export async function eraseContact(contactId: string) {
+  const { workspace, supabase } = await getWorkspace();
+  const { error } = await supabase.rpc("erase_contact", {
+    p_contact: contactId,
+    p_ws: workspace.id,
+  });
+  if (error) return { error: error.message };
+  revalidatePath("/dashboard/contacts");
+  return { ok: true };
+}
+
 export async function bulkDeleteContacts(contactIds: string[]) {
   const { workspace, supabase } = await getWorkspace();
   const ids = await scopeToWorkspace(supabase, workspace.id, contactIds);

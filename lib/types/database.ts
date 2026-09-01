@@ -1822,6 +1822,13 @@ export interface Database {
         };
         Returns: undefined;
       };
+      erase_contact: {
+        Args: {
+          p_contact: string;
+          p_ws: string;
+        };
+        Returns: undefined;
+      };
       increment_unread: {
         Args: {
           conv_id: string;

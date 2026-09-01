@@ -13,6 +13,7 @@ import { PlatformIcon } from "@/components/platform-icon";
 import { CustomFieldsEditor } from "@/components/contacts/custom-fields-editor";
 import { ContactTimeline, type TimelineEvent } from "@/components/contacts/contact-timeline";
 import { MergeContact } from "@/components/contacts/merge-contact";
+import { EraseContact } from "@/components/contacts/erase-contact";
 import { avatarGradient } from "@/lib/avatar";
 import { cn } from "@/lib/utils";
 
@@ -332,6 +333,12 @@ export default async function ContactDetailPage({
 
           {/* Merge duplicate */}
           <MergeContact primaryId={contactId} others={otherContacts} />
+
+          {/* GDPR erasure */}
+          <EraseContact
+            contactId={contactId}
+            contactName={contact.display_name ?? ""}
+          />
         </div>
       </div>
     </div>
