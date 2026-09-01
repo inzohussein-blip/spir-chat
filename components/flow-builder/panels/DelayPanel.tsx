@@ -182,7 +182,7 @@ export function DelayPanel({ data: rawData, onChange }: DelayPanelProps) {
               ? `Wait ${duration} ${unit} before continuing`
               : "No delay configured"
             : data.waitUntil
-              ? `Wait until ${new Date(data.waitUntil).toLocaleString()}`
+              ? `Wait until ${new Date(data.waitUntil).toLocaleString("en-US")}`
               : "No date selected"}
         </p>
       </div>

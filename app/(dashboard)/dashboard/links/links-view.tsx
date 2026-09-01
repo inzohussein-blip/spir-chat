@@ -253,7 +253,7 @@ export function LinksView({
                     )}
                     {l.lastClick && (
                       <span className="text-muted-foreground">
-                        last {new Date(l.lastClick).toLocaleDateString()}
+                        last {new Date(l.lastClick).toLocaleDateString("en-US")}
                       </span>
                     )}
                   </div>

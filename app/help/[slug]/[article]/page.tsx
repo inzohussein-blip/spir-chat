@@ -46,7 +46,7 @@ export default async function HelpArticlePage({
           )}
           <h1 className="mt-1 text-3xl font-bold">{doc.title}</h1>
           <p className="mt-1 text-xs text-muted-foreground">
-            Updated {new Date(doc.updated_at).toLocaleDateString()}
+            Updated {new Date(doc.updated_at).toLocaleDateString("en-US")}
           </p>
           <div className="mt-6 whitespace-pre-wrap text-[15px] leading-relaxed text-foreground">
             {doc.body}

@@ -151,7 +151,7 @@ export default async function ContactDetailPage({
 
   function formatDate(dateStr: string | null): string {
     if (!dateStr) return "Never";
-    return new Date(dateStr).toLocaleDateString([], {
+    return new Date(dateStr).toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
       year: "numeric",

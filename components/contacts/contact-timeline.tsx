@@ -26,7 +26,7 @@ const TONES: Record<TimelineKind, string> = {
 };
 
 function fmt(at: string): string {
-  return new Date(at).toLocaleDateString([], {
+  return new Date(at).toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
     year: "numeric",

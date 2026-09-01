@@ -75,7 +75,7 @@ export default async function PublicReportPage({
           <p className="text-sm text-white/80">Link performance report</p>
           <h1 className="mt-1 text-3xl font-bold">{report.title || "Tracked links"}</h1>
           <p className="mt-1 text-sm text-white/80">
-            Generated {new Date(report.created_at).toLocaleDateString()}
+            Generated {new Date(report.created_at).toLocaleDateString("en-US")}
           </p>
         </div>
       </div>

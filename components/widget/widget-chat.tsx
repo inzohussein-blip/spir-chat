@@ -97,7 +97,8 @@ const POLL_MS = 3000;
 // Short HH:MM stamp in the visitor's locale, shown under each bubble.
 function formatTime(iso: string, lang: "en" | "ar"): string {
   try {
-    return new Date(iso).toLocaleTimeString(lang === "ar" ? "ar" : "en", {
+    // Arabic locale but Latin digits (nu-latn) — keep numerals as 1,2,3.
+    return new Date(iso).toLocaleTimeString(lang === "ar" ? "ar-u-nu-latn" : "en-US", {
       hour: "2-digit",
       minute: "2-digit",
     });

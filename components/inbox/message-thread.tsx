@@ -40,7 +40,7 @@ const EMOJIS = [
 
 function formatMessageTime(dateStr: string): string {
   const date = new Date(dateStr);
-  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return date.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
 }
 
 function formatDateSeparator(
@@ -54,7 +54,7 @@ function formatDateSeparator(
 
   if (diffDays === 0) return labels.today;
   if (diffDays === 1) return labels.yesterday;
-  return date.toLocaleDateString([], {
+  return date.toLocaleDateString("en-US", {
     weekday: "long",
     month: "short",
     day: "numeric",
@@ -79,10 +79,24 @@ function NoteBubble({ note }: { note: Note }) {
   );
 }
 
-function MessageBubble({ message }: { message: Message }) {
+function MessageBubble({
+  message,
+  platform,
+  contactName,
+}: {
+  message: Message;
+  platform: string;
+  contactName: string;
+}) {
   const { t } = useI18n();
   const isInbound = message.direction === "inbound";
   const isBot = message.sent_by_flow_id !== null;
+  // Who sent it — the customer (with their platform) vs the team/bot.
+  const senderLabel = isInbound
+    ? contactName || t.inbox.customerLabel
+    : isBot
+    ? t.inbox.botReply
+    : t.inbox.teamReply;
 
   return (
     <div
@@ -93,11 +107,23 @@ function MessageBubble({ message }: { message: Message }) {
     >
       {isInbound && (
         <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-muted">
-          <User className="h-3.5 w-3.5 text-muted-foreground" />
+          <PlatformIcon platform={platform} className="h-3.5 w-3.5" size={14} />
         </div>
       )}
 
       <div className="max-w-[70%]">
+        {/* Sender header: customer name + source platform, or team/bot. */}
+        <div
+          className={cn(
+            "mb-0.5 flex items-center gap-1 text-[10px] font-medium",
+            isInbound ? "justify-start text-muted-foreground" : "justify-end text-primary"
+          )}
+        >
+          {isInbound && (
+            <PlatformIcon platform={platform} className="h-2.5 w-2.5" size={10} />
+          )}
+          <span>{senderLabel}</span>
+        </div>
         <div
           className={cn(
             "rounded-2xl px-4 py-2 text-sm",
@@ -908,7 +934,11 @@ export function MessageThread({
                   </div>
                 )}
                 {item.kind === "message" ? (
-                  <MessageBubble message={item.message} />
+                  <MessageBubble
+                    message={item.message}
+                    platform={conversation.platform}
+                    contactName={conversation.contacts?.display_name ?? t.inbox.unknown}
+                  />
                 ) : (
                   <NoteBubble note={item.note} />
                 )}

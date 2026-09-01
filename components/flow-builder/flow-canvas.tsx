@@ -323,7 +323,7 @@ function FlowCanvasInner({ flow }: FlowCanvasProps) {
           )}
           {!saveError && lastSaved && (
             <span className="text-xs text-muted-foreground">
-              Saved {lastSaved.toLocaleTimeString()}
+              Saved {lastSaved.toLocaleTimeString("en-US")}
             </span>
           )}
           <button

@@ -207,7 +207,7 @@ export function TeamView({
 
                     <span className="text-[10px] text-muted-foreground whitespace-nowrap">
                       Joined{" "}
-                      {new Date(member.joinedAt).toLocaleDateString([], {
+                      {new Date(member.joinedAt).toLocaleDateString("en-US", {
                         month: "short",
                         day: "numeric",
                         year: "numeric",
@@ -348,7 +348,7 @@ export function TeamView({
                                   Expires{" "}
                                   {new Date(
                                     invite.expires_at
-                                  ).toLocaleDateString([], {
+                                  ).toLocaleDateString("en-US", {
                                     month: "short",
                                     day: "numeric",
                                   })}

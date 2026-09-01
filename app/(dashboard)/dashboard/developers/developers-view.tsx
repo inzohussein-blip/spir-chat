@@ -192,7 +192,7 @@ export function DevelopersView({
                         <p className="text-xs text-muted-foreground">
                           <code>{k.key_prefix}…</code>
                           {k.last_used_at
-                            ? ` · last used ${new Date(k.last_used_at).toLocaleDateString()}`
+                            ? ` · last used ${new Date(k.last_used_at).toLocaleDateString("en-US")}`
                             : " · never used"}
                         </p>
                       </div>
