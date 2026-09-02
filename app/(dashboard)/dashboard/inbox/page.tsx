@@ -1,4 +1,5 @@
 import { getWorkspace } from "@/lib/workspace";
+import { createServiceClient } from "@/lib/supabase/server";
 import { InboxView } from "./inbox-view";
 
 export default async function InboxPage() {
@@ -37,12 +38,33 @@ export default async function InboxPage() {
   const currentUserName =
     meta.full_name || meta.name || user.email?.split("@")[0] || "Agent";
 
+  // Map of workspace agent id → display name, so replies can be attributed to
+  // the specific teammate who sent them. Names live in auth.users (service role).
+  const serviceClient = await createServiceClient();
+  const { data: memberRows } = await serviceClient
+    .from("workspace_members")
+    .select("user_id")
+    .eq("workspace_id", workspace.id);
+  const agentEntries = await Promise.all(
+    (memberRows ?? []).map(async (m) => {
+      const {
+        data: { user: u },
+      } = await serviceClient.auth.admin.getUserById(m.user_id);
+      const um = (u?.user_metadata ?? {}) as { full_name?: string; name?: string };
+      const name =
+        um.full_name || um.name || u?.email?.split("@")[0] || "Agent";
+      return [m.user_id, name] as const;
+    })
+  );
+  const agentNames = Object.fromEntries(agentEntries);
+
   return (
     <InboxView
       conversations={conversations ?? []}
       workspaceId={workspace.id}
       currentUserId={user.id}
       currentUserName={currentUserName}
+      agentNames={agentNames}
       cannedResponses={cannedResponses ?? []}
       labels={labels ?? []}
       channels={channels ?? []}

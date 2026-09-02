@@ -84,20 +84,23 @@ function MessageBubble({
   message,
   platform,
   contactName,
+  agentName,
 }: {
   message: Message;
   platform: string;
   contactName: string;
+  agentName?: string;
 }) {
   const { t } = useI18n();
   const isInbound = message.direction === "inbound";
   const isBot = message.sent_by_flow_id !== null;
-  // Who sent it — the customer (with their platform) vs the team/bot.
+  // Who sent it — the customer (with their platform), the specific teammate who
+  // replied, or the bot.
   const senderLabel = isInbound
     ? contactName || t.inbox.customerLabel
     : isBot
     ? t.inbox.botReply
-    : t.inbox.teamReply;
+    : agentName || t.inbox.teamReply;
 
   return (
     <div
@@ -254,6 +257,7 @@ export function MessageThread({
   labels = [],
   currentUserId,
   currentUserName,
+  agentNames = {},
 }: {
   conversation: Conversation | null;
   messages: Message[];
@@ -262,6 +266,7 @@ export function MessageThread({
   labels?: Label[];
   currentUserId?: string;
   currentUserName?: string;
+  agentNames?: Record<string, string>;
 }) {
   const { t } = useI18n();
   const router = useRouter();
@@ -949,6 +954,11 @@ export function MessageThread({
                     message={item.message}
                     platform={conversation.platform}
                     contactName={conversation.contacts?.display_name ?? t.inbox.unknown}
+                    agentName={
+                      item.message.sent_by_user_id
+                        ? agentNames[item.message.sent_by_user_id]
+                        : undefined
+                    }
                   />
                 ) : (
                   <NoteBubble note={item.note} />

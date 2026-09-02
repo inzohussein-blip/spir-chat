@@ -30,6 +30,7 @@ export function InboxView({
   workspaceId,
   currentUserId,
   currentUserName,
+  agentNames = {},
   cannedResponses,
   labels,
   channels,
@@ -39,6 +40,7 @@ export function InboxView({
   workspaceId: string;
   currentUserId: string;
   currentUserName: string;
+  agentNames?: Record<string, string>;
   cannedResponses: CannedResponse[];
   labels: Label[];
   channels: ChannelOption[];
@@ -245,6 +247,7 @@ export function InboxView({
               labels={labels}
               currentUserId={currentUserId}
               currentUserName={currentUserName}
+              agentNames={agentNames}
             />
           )}
         </div>
