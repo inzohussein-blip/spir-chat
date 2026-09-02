@@ -7,10 +7,10 @@ import { cn } from "@/lib/utils";
 import { avatarGradient } from "@/lib/avatar";
 import { PlatformIcon } from "@/components/platform-icon";
 import { useI18n } from "@/components/i18n-provider";
-import { Bookmark, Plus, X, Check, CheckCircle, RotateCcw, Flag, UserPlus } from "lucide-react";
+import { Bookmark, Plus, X, Check, CheckCircle, RotateCcw, Flag, UserPlus, Trash2 } from "lucide-react";
 import { createInboxView, deleteInboxView } from "@/lib/actions/inbox-views";
 import { searchMessages, type MessageSearchHit } from "@/lib/actions/search";
-import { bulkUpdateConversations, bulkAddLabel } from "@/lib/actions/conversations";
+import { bulkUpdateConversations, bulkAddLabel, bulkDeleteConversations } from "@/lib/actions/conversations";
 import { comparePriority, normalizePriority, PRIORITY_BADGE, PRIORITY_LABEL } from "@/lib/priority";
 import type { Database, Platform, ConversationStatus } from "@/lib/types/database";
 
@@ -98,6 +98,19 @@ export function ConversationList({
   function exitSelectMode() {
     setSelectMode(false);
     setSelected(new Set());
+  }
+
+  async function deleteBulk() {
+    if (bulkBusy || selected.size === 0) return;
+    if (!window.confirm(t.inbox.confirmDelete)) return;
+    setBulkBusy(true);
+    const ids = [...selected];
+    const res = await bulkDeleteConversations(ids);
+    if (res.ok) {
+      setConversations((prev) => prev.filter((c) => !selected.has(c.id)));
+      exitSelectMode();
+    }
+    setBulkBusy(false);
   }
 
   async function applyBulkLabel(labelId: string) {
@@ -606,6 +619,15 @@ export function ConversationList({
               className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 disabled:opacity-50"
             >
               <Flag className="h-3.5 w-3.5" /> {t.inbox.priorityUrgent}
+            </button>
+            <button
+              onClick={deleteBulk}
+              disabled={bulkBusy || selected.size === 0}
+              title={t.inbox.delete}
+              aria-label={t.inbox.delete}
+              className="inline-flex items-center justify-center rounded-md border border-border p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
             </button>
           </div>
         </div>

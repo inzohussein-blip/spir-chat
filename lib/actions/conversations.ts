@@ -83,6 +83,23 @@ export async function bulkUpdateConversations(
   return { ok: true, count: ids.length };
 }
 
+/** Permanently delete many conversations at once (workspace-scoped). */
+export async function bulkDeleteConversations(conversationIds: string[]) {
+  const { workspace, supabase } = await getWorkspace();
+  const ids = conversationIds.slice(0, MAX_BULK_CONVERSATIONS);
+  if (ids.length === 0) return { error: "No conversations selected" };
+
+  const { error } = await supabase
+    .from("conversations")
+    .delete()
+    .eq("workspace_id", workspace.id)
+    .in("id", ids);
+  if (error) return { error: error.message };
+
+  revalidatePath("/dashboard/inbox");
+  return { ok: true, count: ids.length };
+}
+
 /** Apply a label to many conversations at once. Verifies label ownership. */
 export async function bulkAddLabel(conversationIds: string[], labelId: string) {
   const { workspace, supabase } = await getWorkspace();
