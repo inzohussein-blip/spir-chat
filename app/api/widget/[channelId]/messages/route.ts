@@ -56,18 +56,30 @@ export async function GET(
   const { data: rows } = await query;
 
   // Is an agent currently typing? True when agent_typing_at is fresh (~6s).
+  // Also expose the assigned agent's first name so the widget can show who is
+  // helping the visitor.
   let agentTyping = false;
+  let agentName: string | null = null;
   const { data: conv } = await supabase
     .from("conversations")
-    .select("agent_typing_at")
+    .select("agent_typing_at, assigned_to")
     .eq("id", q.get("conversationId") as string)
     .single();
   if (conv?.agent_typing_at) {
     agentTyping = Date.now() - new Date(conv.agent_typing_at).getTime() < 6000;
   }
+  if (conv?.assigned_to) {
+    const {
+      data: { user: agent },
+    } = await supabase.auth.admin.getUserById(conv.assigned_to);
+    const meta = (agent?.user_metadata ?? {}) as { full_name?: string; name?: string };
+    const full = meta.full_name || meta.name || agent?.email?.split("@")[0] || null;
+    // First name only, to keep it friendly and avoid leaking full identity.
+    agentName = full ? full.split(" ")[0] : null;
+  }
 
   return NextResponse.json(
-    { messages: (rows ?? []).map(mapDbMessageToWidget), agentTyping },
+    { messages: (rows ?? []).map(mapDbMessageToWidget), agentTyping, agentName },
     { headers: WIDGET_CORS_HEADERS }
   );
 }

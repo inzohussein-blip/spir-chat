@@ -168,6 +168,7 @@ export function WidgetChat({
   const formStarted = useRef(false);
   const [messages, setMessages] = useState<WidgetMessage[]>([]);
   const [agentTyping, setAgentTyping] = useState(false);
+  const [agentName, setAgentName] = useState<string | null>(null);
   const [input, setInput] = useState("");
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -350,6 +351,7 @@ export function WidgetChat({
           const data = await res.json();
           merge(data.messages ?? []);
           setAgentTyping(data.agentTyping === true);
+          setAgentName(typeof data.agentName === "string" ? data.agentName : null);
         }
       } catch {
         // transient; try again next tick
@@ -606,9 +608,17 @@ export function WidgetChat({
           />
         </div>
         <div>
-          <p className="text-sm font-semibold leading-tight">SpirChat</p>
+          <p className="text-sm font-semibold leading-tight">
+            {agentName ?? "SpirChat"}
+          </p>
           <p className="text-xs text-white/80 leading-tight">
-            {away ? awayMessage ?? s.away : s.subtitle}
+            {agentName
+              ? lang === "ar"
+                ? "في خدمتك"
+                : "is here to help"
+              : away
+              ? awayMessage ?? s.away
+              : s.subtitle}
           </p>
         </div>
       </div>
