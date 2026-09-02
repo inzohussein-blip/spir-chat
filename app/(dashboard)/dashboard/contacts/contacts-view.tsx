@@ -86,6 +86,7 @@ export function ContactsView({
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [selectedTagId, setSelectedTagId] = useState<string | null>(null);
+  const [companyFilter, setCompanyFilter] = useState("");
   const [showSegmentBuilder, setShowSegmentBuilder] = useState(false);
   const [segmentFilter, setSegmentFilter] = useState<SegmentFilter>(
     createEmptyFilter()
@@ -149,7 +150,8 @@ export function ContactsView({
       const q = search.toLowerCase();
       const name = contact.display_name?.toLowerCase() ?? "";
       const email = contact.email?.toLowerCase() ?? "";
-      if (!name.includes(q) && !email.includes(q)) return false;
+      const company = contact.company?.toLowerCase() ?? "";
+      if (!name.includes(q) && !email.includes(q) && !company.includes(q)) return false;
     }
     // Tag filter
     if (selectedTagId) {
@@ -158,8 +160,19 @@ export function ContactsView({
       );
       if (!hasTag) return false;
     }
+    // Company filter
+    if (companyFilter && contact.company !== companyFilter) return false;
     return true;
   });
+
+  // Distinct companies present in the loaded contacts, for the filter dropdown.
+  const companies = Array.from(
+    new Set(
+      contacts
+        .map((c) => c.company?.trim())
+        .filter((v): v is string => !!v)
+    )
+  ).sort((a, b) => a.localeCompare(b));
 
   const filteredIds = filtered.map((c) => c.id);
   const allSelected = filteredIds.length > 0 && filteredIds.every((id) => selectedIds.has(id));
@@ -326,6 +339,24 @@ export function ContactsView({
                 {tag.name}
               </button>
             ))}
+          </div>
+        )}
+
+        {/* Company filter */}
+        {companies.length > 0 && (
+          <div className="mt-3">
+            <select
+              value={companyFilter}
+              onChange={(e) => setCompanyFilter(e.target.value)}
+              className="rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium outline-none focus:border-primary"
+            >
+              <option value="">All companies</option>
+              {companies.map((co) => (
+                <option key={co} value={co}>
+                  {co}
+                </option>
+              ))}
+            </select>
           </div>
         )}
       </div>
