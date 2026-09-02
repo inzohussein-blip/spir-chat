@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Search, MessageSquare, Filter, Loader2 } from "lucide-react";
+import { Search, MessageSquare, Filter, Loader2, Volume2, VolumeX } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { avatarGradient } from "@/lib/avatar";
@@ -78,6 +78,55 @@ export function ConversationList({
   const [unassignedOnly, setUnassignedOnly] = useState(false);
   const [labelFilter, setLabelFilter] = useState("");
   const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
+
+  // New-message sound (per-agent, remembered in localStorage; default off).
+  const [soundOn, setSoundOn] = useState(false);
+  const soundOnRef = useRef(false);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  useEffect(() => {
+    try {
+      const on = localStorage.getItem("spirchat_sound") === "1";
+      setSoundOn(on);
+      soundOnRef.current = on;
+    } catch {
+      // ignore
+    }
+  }, []);
+  function playBeep() {
+    try {
+      const Ctx =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!Ctx) return;
+      if (!audioCtxRef.current) audioCtxRef.current = new Ctx();
+      const ctx = audioCtxRef.current;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.frequency.value = 660;
+      gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.15, ctx.currentTime + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.25);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.26);
+    } catch {
+      // audio is best-effort
+    }
+  }
+  function toggleSound() {
+    setSoundOn((prev) => {
+      const next = !prev;
+      soundOnRef.current = next;
+      try {
+        localStorage.setItem("spirchat_sound", next ? "1" : "0");
+      } catch {
+        // ignore
+      }
+      if (next) playBeep(); // confirm audibly + unlock AudioContext on this gesture
+      return next;
+    });
+  }
   const [convLabels, setConvLabels] = useState<Map<string, Set<string>>>(new Map());
   const [views, setViews] = useState<{ id: string; name: string; filters: Record<string, unknown> }[]>([]);
   const [historyHits, setHistoryHits] = useState<MessageSearchHit[] | null>(null);
@@ -290,15 +339,26 @@ export function ConversationList({
         async (payload) => {
           if (payload.eventType === "UPDATE") {
             const updated = payload.new as Database["public"]["Tables"]["conversations"]["Row"];
-            setConversations((prev) =>
-              prev
+            setConversations((prev) => {
+              // A rising unread count on a conversation you're not viewing means
+              // a new inbound message arrived — chime if the agent enabled it.
+              const existing = prev.find((c) => c.id === updated.id);
+              if (
+                soundOnRef.current &&
+                existing &&
+                updated.unread_count > existing.unread_count &&
+                updated.id !== selectedIdRef.current
+              ) {
+                playBeep();
+              }
+              return prev
                 .map((c) => (c.id === updated.id ? { ...c, ...updated } : c))
                 .sort((a, b) => {
                   const aTime = a.last_message_at ?? a.created_at;
                   const bTime = b.last_message_at ?? b.created_at;
                   return new Date(bTime).getTime() - new Date(aTime).getTime();
-                })
-            );
+                });
+            });
           } else if (payload.eventType === "INSERT") {
             const inserted = payload.new as Database["public"]["Tables"]["conversations"]["Row"];
             // Fetch full conversation with contact
@@ -308,6 +368,7 @@ export function ConversationList({
               .eq("id", inserted.id)
               .single();
             if (data) {
+              if (soundOnRef.current) playBeep();
               setConversations((prev) => [data as Conversation, ...prev]);
             }
           }
@@ -395,6 +456,17 @@ export function ConversationList({
       <div className="flex h-14 items-center justify-between border-b border-border px-4">
         <h2 className="text-base font-bold tracking-tight">{t.inbox.title}</h2>
         <div className="flex items-center gap-2">
+          <button
+            onClick={toggleSound}
+            title={soundOn ? t.inbox.soundOn : t.inbox.soundOff}
+            aria-label={soundOn ? t.inbox.soundOn : t.inbox.soundOff}
+            className={cn(
+              "rounded-md p-1 transition-colors hover:bg-accent",
+              soundOn ? "text-primary" : "text-muted-foreground"
+            )}
+          >
+            {soundOn ? <Volume2 className="h-3.5 w-3.5" /> : <VolumeX className="h-3.5 w-3.5" />}
+          </button>
           <button
             onClick={() => setSortOrder((s) => (s === "newest" ? "oldest" : "newest"))}
             title={sortOrder === "newest" ? t.inbox.sortNewest : t.inbox.sortOldest}
