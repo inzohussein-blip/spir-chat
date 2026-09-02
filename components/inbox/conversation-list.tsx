@@ -11,7 +11,7 @@ import { Bookmark, Plus, X, Check, CheckCircle, RotateCcw, Flag, UserPlus, Trash
 import { createInboxView, deleteInboxView } from "@/lib/actions/inbox-views";
 import { searchMessages, type MessageSearchHit } from "@/lib/actions/search";
 import { bulkUpdateConversations, bulkAddLabel, bulkDeleteConversations } from "@/lib/actions/conversations";
-import { comparePriority, normalizePriority, PRIORITY_BADGE, PRIORITY_LABEL } from "@/lib/priority";
+import { normalizePriority, PRIORITY_BADGE, PRIORITY_LABEL } from "@/lib/priority";
 import type { Database, Platform, ConversationStatus } from "@/lib/types/database";
 
 type Conversation = Database["public"]["Tables"]["conversations"]["Row"] & {
@@ -77,6 +77,7 @@ export function ConversationList({
   const [priorityOnly, setPriorityOnly] = useState(false);
   const [unassignedOnly, setUnassignedOnly] = useState(false);
   const [labelFilter, setLabelFilter] = useState("");
+  const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
   const [convLabels, setConvLabels] = useState<Map<string, Set<string>>>(new Map());
   const [views, setViews] = useState<{ id: string; name: string; filters: Record<string, unknown> }[]>([]);
   const [historyHits, setHistoryHits] = useState<MessageSearchHit[] | null>(null);
@@ -337,13 +338,15 @@ export function ConversationList({
       }
       return true;
     })
-    // High/urgent float to the top, then most recent activity.
-    .sort((a, b) =>
-      comparePriority(
-        { priority: a.priority, at: a.last_message_at ?? a.created_at },
-        { priority: b.priority, at: b.last_message_at ?? b.created_at }
-      )
-    );
+    // High/urgent float to the top, then by activity in the chosen direction.
+    .sort((a, b) => {
+      const pa = normalizePriority(a.priority);
+      const pb = normalizePriority(b.priority);
+      if (pa !== pb) return pb - pa;
+      const ta = new Date(a.last_message_at ?? a.created_at).getTime();
+      const tb = new Date(b.last_message_at ?? b.created_at).getTime();
+      return sortOrder === "oldest" ? ta - tb : tb - ta;
+    });
 
   // Keyboard navigation (j/k or arrows to move, / to focus search). Kept in
   // refs so the global listener binds once and always sees the latest list.
@@ -392,6 +395,13 @@ export function ConversationList({
       <div className="flex h-14 items-center justify-between border-b border-border px-4">
         <h2 className="text-base font-bold tracking-tight">{t.inbox.title}</h2>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setSortOrder((s) => (s === "newest" ? "oldest" : "newest"))}
+            title={sortOrder === "newest" ? t.inbox.sortNewest : t.inbox.sortOldest}
+            className="rounded-md px-2 py-0.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          >
+            {sortOrder === "newest" ? t.inbox.sortNewest : t.inbox.sortOldest}
+          </button>
           <button
             onClick={() => (selectMode ? exitSelectMode() : setSelectMode(true))}
             className={cn(
