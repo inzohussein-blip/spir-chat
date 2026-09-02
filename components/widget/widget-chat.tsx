@@ -123,6 +123,7 @@ const WIDGET_STRINGS = {
     attach: "Attach a file",
     emoji: "Emoji",
     away: "We're away right now — leave a message.",
+    typing: "typing…",
   },
   ar: {
     subtitle: "نردّ عادةً خلال وقت قصير",
@@ -136,6 +137,7 @@ const WIDGET_STRINGS = {
     attach: "إرفاق ملف",
     emoji: "إيموجي",
     away: "نحن غير متواجدين حالياً — اترك رسالة وسنعاود التواصل.",
+    typing: "يكتب…",
   },
 } as const;
 
@@ -165,6 +167,7 @@ export function WidgetChat({
   const formAnswers = useRef<Record<string, string>>({});
   const formStarted = useRef(false);
   const [messages, setMessages] = useState<WidgetMessage[]>([]);
+  const [agentTyping, setAgentTyping] = useState(false);
   const [input, setInput] = useState("");
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -346,6 +349,7 @@ export function WidgetChat({
         if (res.ok) {
           const data = await res.json();
           merge(data.messages ?? []);
+          setAgentTyping(data.agentTyping === true);
         }
       } catch {
         // transient; try again next tick
@@ -742,6 +746,16 @@ export function WidgetChat({
                 </div>
               );
             })}
+            {agentTyping && (
+              <div className="flex justify-start">
+                <div className="flex items-center gap-1 rounded-2xl rounded-bl-sm bg-gray-100 px-3 py-2">
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-400 [animation-delay:-0.3s]" />
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-400 [animation-delay:-0.15s]" />
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-400" />
+                  <span className="ms-1 text-[10px] text-gray-400">{s.typing}</span>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Composer */}

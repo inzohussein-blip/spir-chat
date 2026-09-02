@@ -554,6 +554,20 @@ export function MessageThread({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  // Let a website visitor see "agent is typing…". Throttled to ~1 ping / 2.5s.
+  const lastTypingPing = useRef(0);
+  function pingAgentTyping() {
+    if (!conversation || !isWebsite || mode !== "reply") return;
+    const now = Date.now();
+    if (now - lastTypingPing.current < 2500) return;
+    lastTypingPing.current = now;
+    createClient()
+      .from("conversations")
+      .update({ agent_typing_at: new Date().toISOString() })
+      .eq("id", conversation.id)
+      .then(() => {});
+  }
+
   // Keyboard shortcuts: "e" resolves the open conversation, "r" focuses the
   // reply box. Ignored while typing in a field.
   useEffect(() => {
@@ -1295,6 +1309,7 @@ export function MessageThread({
                 const value = e.target.value;
                 setInput(value);
                 autoResize();
+                pingAgentTyping();
                 setShowCanned(
                   mode === "reply" && cannedResponses.length > 0 && isCannedShortcut(value)
                 );

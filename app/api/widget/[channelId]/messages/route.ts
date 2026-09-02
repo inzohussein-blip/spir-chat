@@ -54,8 +54,20 @@ export async function GET(
   if (since) query = query.gt("created_at", since);
 
   const { data: rows } = await query;
+
+  // Is an agent currently typing? True when agent_typing_at is fresh (~6s).
+  let agentTyping = false;
+  const { data: conv } = await supabase
+    .from("conversations")
+    .select("agent_typing_at")
+    .eq("id", q.get("conversationId") as string)
+    .single();
+  if (conv?.agent_typing_at) {
+    agentTyping = Date.now() - new Date(conv.agent_typing_at).getTime() < 6000;
+  }
+
   return NextResponse.json(
-    { messages: (rows ?? []).map(mapDbMessageToWidget) },
+    { messages: (rows ?? []).map(mapDbMessageToWidget), agentTyping },
     { headers: WIDGET_CORS_HEADERS }
   );
 }

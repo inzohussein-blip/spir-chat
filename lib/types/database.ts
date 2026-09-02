@@ -1368,6 +1368,7 @@ export interface Database {
           visitor_last_seen_at: string | null;
           visitor_current_page: string | null;
           visitor_typing_at: string | null;
+          agent_typing_at: string | null;
           auto_reply_sent_at: string | null;
           snooze_until: string | null;
           sla_escalated_at: string | null;
@@ -1392,6 +1393,7 @@ export interface Database {
           visitor_last_seen_at?: string | null;
           visitor_current_page?: string | null;
           visitor_typing_at?: string | null;
+          agent_typing_at?: string | null;
           auto_reply_sent_at?: string | null;
           snooze_until?: string | null;
           sla_escalated_at?: string | null;
@@ -1411,6 +1413,7 @@ export interface Database {
           visitor_last_seen_at?: string | null;
           visitor_current_page?: string | null;
           visitor_typing_at?: string | null;
+          agent_typing_at?: string | null;
           auto_reply_sent_at?: string | null;
           snooze_until?: string | null;
           sla_escalated_at?: string | null;
