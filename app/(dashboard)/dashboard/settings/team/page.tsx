@@ -12,7 +12,7 @@ export default async function TeamPage() {
   // Use service client to bypass RLS (workspace_members SELECT policy only returns own rows)
   const { data: members } = await serviceClient
     .from("workspace_members")
-    .select("workspace_id, user_id, role, created_at, last_seen_at")
+    .select("workspace_id, user_id, role, created_at, last_seen_at, is_away")
     .eq("workspace_id", workspace.id);
 
   // Fetch user details for each member via service client (auth.users is not accessible via RLS)
@@ -27,6 +27,7 @@ export default async function TeamPage() {
         role: member.role,
         joinedAt: member.created_at,
         lastSeenAt: member.last_seen_at ?? null,
+        isAway: (member as { is_away?: boolean }).is_away ?? false,
         email: memberUser?.email ?? "Unknown",
         name:
           memberUser?.user_metadata?.full_name ??

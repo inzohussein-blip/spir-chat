@@ -29,6 +29,7 @@ interface MemberDetail {
   role: string;
   joinedAt: string;
   lastSeenAt: string | null;
+  isAway: boolean;
   email: string;
   name: string;
 }
@@ -37,6 +38,18 @@ interface MemberDetail {
 function isOnline(lastSeenAt: string | null): boolean {
   if (!lastSeenAt) return false;
   return Date.now() - new Date(lastSeenAt).getTime() < 90_000;
+}
+
+/** Compact "active X ago" for a last-seen timestamp. */
+function lastActive(lastSeenAt: string | null): string | null {
+  if (!lastSeenAt) return null;
+  const mins = Math.floor((Date.now() - new Date(lastSeenAt).getTime()) / 60_000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
 }
 
 interface PendingInvite {
@@ -187,8 +200,11 @@ export function TeamView({
                       </div>
                       {isOnline(member.lastSeenAt) && (
                         <span
-                          title="Online"
-                          className="absolute -bottom-0.5 -end-0.5 h-3 w-3 rounded-full border-2 border-card bg-green-500"
+                          title={member.isAway ? "Away" : "Online"}
+                          className={cn(
+                            "absolute -bottom-0.5 -end-0.5 h-3 w-3 rounded-full border-2 border-card",
+                            member.isAway ? "bg-amber-500" : "bg-green-500"
+                          )}
                         />
                       )}
                     </div>
@@ -202,10 +218,20 @@ export function TeamView({
                             (you)
                           </span>
                         )}
-                        {isOnline(member.lastSeenAt) && (
+                        {member.isAway ? (
+                          <span className="shrink-0 text-[10px] font-medium text-amber-600">
+                            Away
+                          </span>
+                        ) : isOnline(member.lastSeenAt) ? (
                           <span className="shrink-0 text-[10px] font-medium text-green-600">
                             Online
                           </span>
+                        ) : (
+                          lastActive(member.lastSeenAt) && (
+                            <span className="shrink-0 text-[10px] text-muted-foreground">
+                              active {lastActive(member.lastSeenAt)}
+                            </span>
+                          )
                         )}
                       </div>
                       <p className="text-xs text-muted-foreground truncate">
