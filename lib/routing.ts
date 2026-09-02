@@ -25,9 +25,15 @@ export async function autoAssignConversation(
 
     const { data: members } = await supabase
       .from("workspace_members")
-      .select("user_id")
+      .select("user_id, is_away")
       .eq("workspace_id", workspaceId);
     if (!members || members.length === 0) return;
+
+    // Only agents who are marked available are eligible for new work.
+    const available = members.filter(
+      (m) => !(m as { is_away?: boolean }).is_away
+    );
+    if (available.length === 0) return;
 
     // Count each member's currently open, assigned conversations.
     const { data: openConvs } = await supabase
@@ -38,7 +44,7 @@ export async function autoAssignConversation(
       .not("assigned_to", "is", null);
 
     const load = new Map<string, number>();
-    for (const m of members) load.set(m.user_id, 0);
+    for (const m of available) load.set(m.user_id, 0);
     for (const c of openConvs ?? []) {
       if (c.assigned_to && load.has(c.assigned_to)) {
         load.set(c.assigned_to, (load.get(c.assigned_to) ?? 0) + 1);

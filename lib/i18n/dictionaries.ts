@@ -82,6 +82,10 @@ const en = {
     allCaughtUp: "You're all caught up.",
     viewInbox: "Open inbox",
     signOut: "Sign out",
+    available: "Available",
+    away: "Away",
+    setAvailable: "Set available",
+    setAway: "Set away",
   },
   widget: {
     title: "SpirChat",
@@ -364,6 +368,10 @@ const ar: Dictionary = {
     allCaughtUp: "لا جديد لديك.",
     viewInbox: "فتح الوارد",
     signOut: "تسجيل الخروج",
+    available: "متاح",
+    away: "غير متاح",
+    setAvailable: "تعيين متاح",
+    setAway: "تعيين غير متاح",
   },
   widget: {
     title: "SpirChat",

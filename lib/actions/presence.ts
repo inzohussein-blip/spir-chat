@@ -22,3 +22,22 @@ export async function recordHeartbeat() {
     return { ok: false };
   }
 }
+
+/**
+ * Set the current agent's availability. Away agents are skipped by round-robin
+ * auto-assignment.
+ */
+export async function setAwayStatus(away: boolean) {
+  try {
+    const { workspace, user } = await getWorkspace();
+    const supabase = await createServiceClient();
+    await supabase
+      .from("workspace_members")
+      .update({ is_away: away })
+      .eq("workspace_id", workspace.id)
+      .eq("user_id", user.id);
+    return { ok: true };
+  } catch {
+    return { ok: false };
+  }
+}

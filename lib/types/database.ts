@@ -144,6 +144,7 @@ export interface Database {
           user_id: string;
           role: string;
           last_seen_at: string | null;
+          is_away: boolean;
           created_at: string;
         };
         Insert: {
@@ -151,11 +152,13 @@ export interface Database {
           user_id: string;
           role?: string;
           last_seen_at?: string | null;
+          is_away?: boolean;
           created_at?: string;
         };
         Update: {
           role?: string;
           last_seen_at?: string | null;
+          is_away?: boolean;
         };
         Relationships: [
           {

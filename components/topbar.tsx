@@ -3,8 +3,9 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Search, Bell, LogOut, ArrowRight } from "lucide-react";
+import { Search, Bell, LogOut, ArrowRight, Circle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { setAwayStatus } from "@/lib/actions/presence";
 import { useI18n } from "@/components/i18n-provider";
 import { cn } from "@/lib/utils";
 import type { Dictionary } from "@/lib/i18n/dictionaries";
@@ -38,9 +39,11 @@ const DESTINATIONS: { key: keyof Dictionary["sidebar"]; href: string }[] = [
 export function Topbar({
   userEmail,
   unreadCount,
+  initialAway = false,
 }: {
   userEmail?: string;
   unreadCount: number;
+  initialAway?: boolean;
 }) {
   const { t } = useI18n();
   const router = useRouter();
@@ -49,6 +52,13 @@ export function Topbar({
   const [notifOpen, setNotifOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
   const [active, setActive] = useState(0);
+  const [away, setAway] = useState(initialAway);
+
+  async function toggleAway() {
+    const next = !away;
+    setAway(next);
+    await setAwayStatus(next);
+  }
   const searchRef = useRef<HTMLDivElement>(null);
 
   const results = useMemo(() => {
@@ -204,6 +214,23 @@ export function Topbar({
               <div className="fixed inset-0 z-30" onClick={() => setUserOpen(false)} />
               <div className="absolute end-0 z-40 mt-1 w-56 rounded-lg border border-border bg-popover p-1 shadow-lg">
                 <p className="truncate px-3 py-2 text-xs text-muted-foreground">{userEmail}</p>
+                <button
+                  onClick={toggleAway}
+                  className="flex w-full items-center justify-between gap-2 rounded-md px-3 py-2 text-start text-sm hover:bg-accent"
+                >
+                  <span className="flex items-center gap-2">
+                    <Circle
+                      className={cn(
+                        "h-2.5 w-2.5",
+                        away ? "fill-amber-500 text-amber-500" : "fill-green-500 text-green-500"
+                      )}
+                    />
+                    {away ? t.topbar.away : t.topbar.available}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">
+                    {away ? t.topbar.setAvailable : t.topbar.setAway}
+                  </span>
+                </button>
                 <Link
                   href="/dashboard/settings"
                   onClick={() => setUserOpen(false)}
