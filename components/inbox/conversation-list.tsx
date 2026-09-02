@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { avatarGradient } from "@/lib/avatar";
 import { PlatformIcon } from "@/components/platform-icon";
 import { useI18n } from "@/components/i18n-provider";
-import { Bookmark, Plus, X, Check, CheckCircle, RotateCcw, Flag } from "lucide-react";
+import { Bookmark, Plus, X, Check, CheckCircle, RotateCcw, Flag, UserPlus } from "lucide-react";
 import { createInboxView, deleteInboxView } from "@/lib/actions/inbox-views";
 import { searchMessages, type MessageSearchHit } from "@/lib/actions/search";
 import { bulkUpdateConversations } from "@/lib/actions/conversations";
@@ -96,15 +96,24 @@ export function ConversationList({
     setSelected(new Set());
   }
 
-  async function runBulk(change: { status?: "open" | "closed"; priority?: number }) {
+  async function runBulk(change: {
+    status?: "open" | "closed";
+    priority?: number;
+    assignedTo?: string | null;
+  }) {
     if (bulkBusy || selected.size === 0) return;
     setBulkBusy(true);
     const ids = [...selected];
     const res = await bulkUpdateConversations(ids, change);
     if (res.ok) {
       // Reflect the change locally so the list updates without a full refresh.
+      // assignedTo maps to the row's assigned_to column.
+      const localPatch: Partial<Conversation> = {};
+      if (change.status) localPatch.status = change.status;
+      if (change.priority !== undefined) localPatch.priority = change.priority;
+      if (change.assignedTo !== undefined) localPatch.assigned_to = change.assignedTo;
       setConversations((prev) =>
-        prev.map((c) => (selected.has(c.id) ? { ...c, ...change } : c))
+        prev.map((c) => (selected.has(c.id) ? { ...c, ...localPatch } : c))
       );
       exitSelectMode();
     }
@@ -534,6 +543,16 @@ export function ConversationList({
             {selected.size} {t.inbox.selected}
           </span>
           <div className="ms-auto flex items-center gap-1">
+            {currentUserId && (
+              <button
+                onClick={() => runBulk({ assignedTo: currentUserId })}
+                disabled={bulkBusy || selected.size === 0}
+                title={t.inbox.assignToMe}
+                className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs font-medium hover:bg-accent disabled:opacity-50"
+              >
+                <UserPlus className="h-3.5 w-3.5" /> {t.inbox.assignToMe}
+              </button>
+            )}
             <button
               onClick={() => runBulk({ status: "closed" })}
               disabled={bulkBusy || selected.size === 0}
