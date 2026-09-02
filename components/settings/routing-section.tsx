@@ -10,17 +10,20 @@ export function RoutingSection({
   initialSlaMinutes,
   initialCsatEnabled,
   initialAgentCap,
+  initialAutoCloseDays,
 }: {
   workspaceId: string;
   initialAutoAssign: string;
   initialSlaMinutes: number;
   initialCsatEnabled: boolean;
   initialAgentCap: number;
+  initialAutoCloseDays: number;
 }) {
   const [autoAssign, setAutoAssign] = useState(initialAutoAssign);
   const [slaMinutes, setSlaMinutes] = useState(initialSlaMinutes);
   const [csatEnabled, setCsatEnabled] = useState(initialCsatEnabled);
   const [agentCap, setAgentCap] = useState(initialAgentCap);
+  const [autoCloseDays, setAutoCloseDays] = useState(initialAutoCloseDays);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -34,6 +37,8 @@ export function RoutingSection({
         sla_minutes: Number.isFinite(slaMinutes) && slaMinutes > 0 ? Math.round(slaMinutes) : 0,
         csat_enabled: csatEnabled,
         agent_conversation_cap: Number.isFinite(agentCap) && agentCap > 0 ? Math.round(agentCap) : 0,
+        auto_close_days:
+          Number.isFinite(autoCloseDays) && autoCloseDays > 0 ? Math.round(autoCloseDays) : 0,
       })
       .eq("id", workspaceId);
     setSaving(false);
@@ -98,6 +103,23 @@ export function RoutingSection({
           <p className="mt-1 text-[11px] text-muted-foreground">
             0 = no cap. Round-robin skips agents already at this many open
             conversations (leaving new ones unassigned).
+          </p>
+        </div>
+
+        <div>
+          <label className="text-xs font-medium text-muted-foreground">
+            Auto-close inactive conversations (days)
+          </label>
+          <input
+            type="number"
+            min={0}
+            value={autoCloseDays}
+            onChange={(e) => setAutoCloseDays(Number(e.target.value))}
+            className="mt-1 w-32 rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+          />
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            0 disables. Open conversations with no activity for this many days are
+            resolved automatically by the daily job.
           </p>
         </div>
 

@@ -43,6 +43,7 @@ interface WorkspaceSettings {
   slaMinutes: number;
   csatEnabled: boolean;
   agentCap: number;
+  autoCloseDays: number;
   followupMinutes: number;
   followupMessage: string | null;
   weeklyReportEmail: string | null;
@@ -230,6 +231,7 @@ export function SettingsView({
             initialSlaMinutes={workspace.slaMinutes}
             initialCsatEnabled={workspace.csatEnabled}
             initialAgentCap={workspace.agentCap}
+            initialAutoCloseDays={workspace.autoCloseDays}
           />
 
           <hr className="border-border" />

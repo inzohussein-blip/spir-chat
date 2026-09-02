@@ -87,6 +87,7 @@ export interface Database {
           sla_minutes: number;
           csat_enabled: boolean;
           agent_conversation_cap: number;
+          auto_close_days: number;
           visitor_followup_minutes: number;
           visitor_followup_message: string | null;
           weekly_report_email: string | null;
@@ -108,6 +109,7 @@ export interface Database {
           sla_minutes?: number;
           csat_enabled?: boolean;
           agent_conversation_cap?: number;
+          auto_close_days?: number;
           visitor_followup_minutes?: number;
           visitor_followup_message?: string | null;
           weekly_report_email?: string | null;
@@ -129,6 +131,7 @@ export interface Database {
           sla_minutes?: number;
           csat_enabled?: boolean;
           agent_conversation_cap?: number;
+          auto_close_days?: number;
           visitor_followup_minutes?: number;
           visitor_followup_message?: string | null;
           weekly_report_email?: string | null;
