@@ -1,6 +1,7 @@
 // Auto-assignment (feature 13). Server-only — called with a service client.
 
 import type { createServiceClient } from "@/lib/supabase/server";
+import { sendPushToUsers } from "@/lib/push";
 
 type ServiceClient = Awaited<ReturnType<typeof createServiceClient>>;
 
@@ -63,11 +64,22 @@ export async function autoAssignConversation(
     }
     if (!best) return; // everyone is at capacity — leave it unassigned.
 
-    await supabase
+    const { data: assigned } = await supabase
       .from("conversations")
       .update({ assigned_to: best })
       .eq("id", conversationId)
-      .is("assigned_to", null);
+      .is("assigned_to", null)
+      .select("id, last_message_preview");
+    // Only notify if this call actually made the assignment (the null guard
+    // means a concurrent assign could have won).
+    if (assigned && assigned.length > 0) {
+      await sendPushToUsers([best], {
+        title: "New conversation assigned to you",
+        body: (assigned[0].last_message_preview || "Open your inbox to reply.").slice(0, 120),
+        url: "/dashboard/inbox",
+        tag: `assign-${conversationId}`,
+      });
+    }
   } catch {
     // best-effort
   }
