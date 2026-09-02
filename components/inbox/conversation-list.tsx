@@ -53,6 +53,7 @@ export function ConversationList({
   onPrefetch,
   channels = [],
   currentUserId,
+  agentNames = {},
   slaMinutes = 0,
 }: {
   conversations: Conversation[];
@@ -62,6 +63,7 @@ export function ConversationList({
   onPrefetch?: (conversationId: string) => void;
   channels?: ChannelOption[];
   currentUserId?: string;
+  agentNames?: Record<string, string>;
   slaMinutes?: number;
 }) {
   const { t } = useI18n();
@@ -708,6 +710,17 @@ export function ConversationList({
                     >
                       {conversation.last_message_preview ?? t.inbox.noMessages}
                     </p>
+                  )}
+                  {conversation.assigned_to && (
+                    <span
+                      title={agentNames[conversation.assigned_to] ?? "Assigned"}
+                      className={cn(
+                        "ms-2 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-[9px] font-bold text-white shadow-sm",
+                        avatarGradient(agentNames[conversation.assigned_to] ?? "?")
+                      )}
+                    >
+                      {(agentNames[conversation.assigned_to] ?? "?").charAt(0).toUpperCase()}
+                    </span>
                   )}
                   {unread && (
                     <span className="ms-2 flex h-5 min-w-5 flex-shrink-0 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground shadow-sm">

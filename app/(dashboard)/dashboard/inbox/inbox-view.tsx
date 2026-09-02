@@ -191,6 +191,7 @@ export function InboxView({
           onPrefetch={prefetch}
           channels={channels}
           currentUserId={currentUserId}
+          agentNames={agentNames}
           slaMinutes={slaMinutes}
         />
       </div>
