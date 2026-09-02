@@ -76,6 +76,8 @@ export function ConversationList({
   const [mineOnly, setMineOnly] = useState(false);
   const [priorityOnly, setPriorityOnly] = useState(false);
   const [unassignedOnly, setUnassignedOnly] = useState(false);
+  const [labelFilter, setLabelFilter] = useState("");
+  const [convLabels, setConvLabels] = useState<Map<string, Set<string>>>(new Map());
   const [views, setViews] = useState<{ id: string; name: string; filters: Record<string, unknown> }[]>([]);
   const [historyHits, setHistoryHits] = useState<MessageSearchHit[] | null>(null);
   const [historyBusy, setHistoryBusy] = useState(false);
@@ -179,6 +181,36 @@ export function ConversationList({
       .order("created_at", { ascending: true })
       .then(({ data }) => setViews((data as typeof views) ?? []));
   }, [workspaceId]);
+
+  // Load which labels are on each loaded conversation, for the label filter.
+  useEffect(() => {
+    if (labels.length === 0) return;
+    const ids = conversations.map((c) => c.id);
+    if (ids.length === 0) {
+      setConvLabels(new Map());
+      return;
+    }
+    let cancelled = false;
+    createClient()
+      .from("conversation_labels")
+      .select("conversation_id, label_id")
+      .in("conversation_id", ids)
+      .then(({ data }) => {
+        if (cancelled) return;
+        const map = new Map<string, Set<string>>();
+        for (const row of data ?? []) {
+          const set = map.get(row.conversation_id) ?? new Set<string>();
+          set.add(row.label_id);
+          map.set(row.conversation_id, set);
+        }
+        setConvLabels(map);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // Refetch when the set of conversations changes size (new/removed threads).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conversations.length, labels.length]);
 
   function applyView(f: Record<string, unknown>) {
     setStatusFilter((f.status as ConversationStatus | "all") ?? "all");
@@ -296,6 +328,7 @@ export function ConversationList({
       if (mineOnly && c.assigned_to !== currentUserId) return false;
       if (unassignedOnly && c.assigned_to !== null) return false;
       if (priorityOnly && normalizePriority(c.priority) === 0) return false;
+      if (labelFilter && !convLabels.get(c.id)?.has(labelFilter)) return false;
       if (search) {
         const name = c.contacts?.display_name?.toLowerCase() ?? "";
         const preview = c.last_message_preview?.toLowerCase() ?? "";
@@ -554,6 +587,27 @@ export function ConversationList({
               {channels.map((c) => (
                 <option key={c.id} value={c.id}>
                   {channelLabel(c)}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
+
+      {/* Label filter */}
+      {labels.length > 0 && (
+        <div className="px-3 pb-2">
+          <div className="relative">
+            <Filter className="pointer-events-none absolute start-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <select
+              value={labelFilter}
+              onChange={(e) => setLabelFilter(e.target.value)}
+              className="w-full appearance-none rounded-lg border border-input bg-background py-2 ps-9 pe-3 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              <option value="">{t.inbox.allLabels}</option>
+              {labels.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.name}
                 </option>
               ))}
             </select>
