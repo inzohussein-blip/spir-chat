@@ -53,9 +53,14 @@ describe("contactsFromCsv", () => {
       "Full Name,Email,Phone,Subscribed\nSara,sara@x.com,,yes\nNoContact,,,\nOmar,,+100,no"
     );
     expect(contactsFromCsv(rows)).toEqual([
-      { display_name: "Sara", email: "sara@x.com", phone: null, is_subscribed: true },
-      { display_name: "Omar", email: null, phone: "+100", is_subscribed: false },
+      { display_name: "Sara", email: "sara@x.com", phone: null, company: null, is_subscribed: true },
+      { display_name: "Omar", email: null, phone: "+100", company: null, is_subscribed: false },
     ]);
+  });
+
+  it("maps the company/organization column", () => {
+    const rows = parseCsv("email,company\na@x.com,Acme Inc");
+    expect(contactsFromCsv(rows)[0].company).toBe("Acme Inc");
   });
 
   it("defaults subscribed to true when the column is absent", () => {
@@ -70,7 +75,7 @@ describe("contactsFromCsv", () => {
   it("ignores unknown columns", () => {
     const rows = parseCsv("email,junk\na@x.com,whatever");
     expect(contactsFromCsv(rows)).toEqual([
-      { display_name: null, email: "a@x.com", phone: null, is_subscribed: true },
+      { display_name: null, email: "a@x.com", phone: null, company: null, is_subscribed: true },
     ]);
   });
 });

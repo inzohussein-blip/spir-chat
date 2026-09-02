@@ -100,6 +100,7 @@ export async function importContacts(records: ImportedContact[]) {
     display_name: string | null;
     email: string | null;
     phone: string | null;
+    company: string | null;
     is_subscribed: boolean;
   }[] = [];
   const updates: { id: string; rec: ImportedContact }[] = [];
@@ -125,6 +126,7 @@ export async function importContacts(records: ImportedContact[]) {
         display_name: rec.display_name,
         email: rec.email,
         phone: rec.phone,
+        company: rec.company,
         is_subscribed: rec.is_subscribed,
       });
     }
@@ -147,6 +149,7 @@ export async function importContacts(records: ImportedContact[]) {
     if (rec.display_name) patch.display_name = rec.display_name;
     if (rec.email) patch.email = rec.email;
     if (rec.phone) patch.phone = rec.phone;
+    if (rec.company) patch.company = rec.company;
     const { error } = await supabase
       .from("contacts")
       .update(patch)

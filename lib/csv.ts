@@ -64,6 +64,7 @@ export interface ImportedContact {
   display_name: string | null;
   email: string | null;
   phone: string | null;
+  company: string | null;
   is_subscribed: boolean;
 }
 
@@ -78,6 +79,9 @@ const HEADER_ALIASES: Record<string, keyof ImportedContact> = {
   phone: "phone",
   "phone number": "phone",
   mobile: "phone",
+  company: "company",
+  organization: "company",
+  organisation: "company",
   subscribed: "is_subscribed",
   "is subscribed": "is_subscribed",
 };
@@ -101,6 +105,7 @@ export function contactsFromCsv(rows: string[][]): ImportedContact[] {
       display_name: null,
       email: null,
       phone: null,
+      company: null,
       is_subscribed: true,
     };
     let sawSubscribed = false;

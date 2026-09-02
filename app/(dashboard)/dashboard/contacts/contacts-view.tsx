@@ -101,11 +101,12 @@ export function ContactsView({
   const [importNotice, setImportNotice] = useState<string | null>(null);
 
   function exportCsv() {
-    const header = ["Name", "Email", "Phone", "Subscribed", "Tags", "Created"];
+    const header = ["Name", "Email", "Phone", "Company", "Subscribed", "Tags", "Created"];
     const rows = filtered.map((c) => [
       c.display_name,
       c.email,
       c.phone,
+      c.company,
       c.is_subscribed ? "yes" : "no",
       (c.contact_tags.map((ct) => ct.tags?.name).filter(Boolean) as string[]).join("; "),
       c.created_at,
