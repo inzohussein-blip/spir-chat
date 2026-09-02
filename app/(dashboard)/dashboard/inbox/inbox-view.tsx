@@ -192,6 +192,7 @@ export function InboxView({
           channels={channels}
           currentUserId={currentUserId}
           agentNames={agentNames}
+          labels={labels}
           slaMinutes={slaMinutes}
         />
       </div>

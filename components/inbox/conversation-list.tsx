@@ -10,7 +10,7 @@ import { useI18n } from "@/components/i18n-provider";
 import { Bookmark, Plus, X, Check, CheckCircle, RotateCcw, Flag, UserPlus } from "lucide-react";
 import { createInboxView, deleteInboxView } from "@/lib/actions/inbox-views";
 import { searchMessages, type MessageSearchHit } from "@/lib/actions/search";
-import { bulkUpdateConversations } from "@/lib/actions/conversations";
+import { bulkUpdateConversations, bulkAddLabel } from "@/lib/actions/conversations";
 import { comparePriority, normalizePriority, PRIORITY_BADGE, PRIORITY_LABEL } from "@/lib/priority";
 import type { Database, Platform, ConversationStatus } from "@/lib/types/database";
 
@@ -54,6 +54,7 @@ export function ConversationList({
   channels = [],
   currentUserId,
   agentNames = {},
+  labels = [],
   slaMinutes = 0,
 }: {
   conversations: Conversation[];
@@ -64,6 +65,7 @@ export function ConversationList({
   channels?: ChannelOption[];
   currentUserId?: string;
   agentNames?: Record<string, string>;
+  labels?: { id: string; name: string }[];
   slaMinutes?: number;
 }) {
   const { t } = useI18n();
@@ -96,6 +98,14 @@ export function ConversationList({
   function exitSelectMode() {
     setSelectMode(false);
     setSelected(new Set());
+  }
+
+  async function applyBulkLabel(labelId: string) {
+    if (bulkBusy || selected.size === 0 || !labelId) return;
+    setBulkBusy(true);
+    const res = await bulkAddLabel([...selected], labelId);
+    if (res.ok) exitSelectMode();
+    setBulkBusy(false);
   }
 
   async function runBulk(change: {
@@ -545,6 +555,24 @@ export function ConversationList({
             {selected.size} {t.inbox.selected}
           </span>
           <div className="ms-auto flex items-center gap-1">
+            {labels.length > 0 && (
+              <select
+                value=""
+                disabled={bulkBusy || selected.size === 0}
+                onChange={(e) => {
+                  applyBulkLabel(e.target.value);
+                  e.target.value = "";
+                }}
+                className="rounded-md border border-border bg-background px-2 py-1 text-xs font-medium outline-none focus:border-primary disabled:opacity-50"
+              >
+                <option value="">{t.inbox.addLabel}</option>
+                {labels.map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.name}
+                  </option>
+                ))}
+              </select>
+            )}
             {currentUserId && (
               <button
                 onClick={() => runBulk({ assignedTo: currentUserId })}

@@ -83,6 +83,41 @@ export async function bulkUpdateConversations(
   return { ok: true, count: ids.length };
 }
 
+/** Apply a label to many conversations at once. Verifies label ownership. */
+export async function bulkAddLabel(conversationIds: string[], labelId: string) {
+  const { workspace, supabase } = await getWorkspace();
+  if (!labelId) return { error: "Choose a label" };
+  const ids = conversationIds.slice(0, MAX_BULK_CONVERSATIONS);
+  if (ids.length === 0) return { error: "No conversations selected" };
+
+  // The label must belong to this workspace.
+  const { data: label } = await supabase
+    .from("labels")
+    .select("id")
+    .eq("id", labelId)
+    .eq("workspace_id", workspace.id)
+    .maybeSingle();
+  if (!label) return { error: "Label not found" };
+
+  // Restrict to conversations actually in this workspace.
+  const { data: convs } = await supabase
+    .from("conversations")
+    .select("id")
+    .eq("workspace_id", workspace.id)
+    .in("id", ids);
+  const scoped = (convs ?? []).map((c) => c.id);
+  if (scoped.length === 0) return { error: "No conversations selected" };
+
+  const rows = scoped.map((conversation_id) => ({ conversation_id, label_id: labelId }));
+  const { error } = await supabase
+    .from("conversation_labels")
+    .upsert(rows, { onConflict: "conversation_id,label_id", ignoreDuplicates: true });
+  if (error) return { error: error.message };
+
+  revalidatePath("/dashboard/inbox");
+  return { ok: true, count: scoped.length };
+}
+
 /** Set a conversation's priority (0 normal, 1 high, 2 urgent). */
 export async function setConversationPriority(
   conversationId: string,
