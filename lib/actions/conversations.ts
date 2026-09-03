@@ -2,6 +2,7 @@
 
 import { getWorkspace } from "@/lib/workspace";
 import { revalidatePath } from "next/cache";
+import { sendPushToUsers } from "@/lib/push";
 
 /** Schedule a one-off message to a conversation, delivered by the jobs cron. */
 export async function scheduleMessage(conversationId: string, text: string, atIso: string) {
@@ -81,6 +82,52 @@ export async function bulkUpdateConversations(
 
   revalidatePath("/dashboard/inbox");
   return { ok: true, count: ids.length };
+}
+
+/**
+ * Assign a conversation to a teammate (or unassign with null). Verifies the
+ * assignee is a workspace member and notifies them (unless they assigned it to
+ * themselves).
+ */
+export async function assignConversation(
+  conversationId: string,
+  assigneeId: string | null
+) {
+  const { workspace, user, supabase } = await getWorkspace();
+
+  if (assigneeId) {
+    const { data: member } = await supabase
+      .from("workspace_members")
+      .select("user_id")
+      .eq("workspace_id", workspace.id)
+      .eq("user_id", assigneeId)
+      .maybeSingle();
+    if (!member) return { error: "Not a workspace member" };
+  }
+
+  const { error } = await supabase
+    .from("conversations")
+    .update({ assigned_to: assigneeId })
+    .eq("id", conversationId)
+    .eq("workspace_id", workspace.id);
+  if (error) return { error: error.message };
+
+  if (assigneeId && assigneeId !== user.id) {
+    const { data: conv } = await supabase
+      .from("conversations")
+      .select("last_message_preview")
+      .eq("id", conversationId)
+      .maybeSingle();
+    await sendPushToUsers([assigneeId], {
+      title: "A conversation was assigned to you",
+      body: (conv?.last_message_preview || "Open your inbox to reply.").slice(0, 120),
+      url: "/dashboard/inbox",
+      tag: `assign-${conversationId}`,
+    });
+  }
+
+  revalidatePath("/dashboard/inbox");
+  return { ok: true };
 }
 
 /** Permanently delete many conversations at once (workspace-scoped). */

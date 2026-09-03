@@ -6,7 +6,7 @@ import { Send, Paperclip, Bot, User, MessageSquare, MessageSquareText, CheckCirc
 import { createClient } from "@/lib/supabase/client";
 import { resolveConversation } from "@/lib/actions/csat";
 import { runMacro } from "@/lib/actions/macros";
-import { snoozeConversation, scheduleMessage, setConversationPriority } from "@/lib/actions/conversations";
+import { snoozeConversation, scheduleMessage, setConversationPriority, assignConversation } from "@/lib/actions/conversations";
 import { normalizePriority, type PriorityLevel } from "@/lib/priority";
 import { assistReply } from "@/lib/actions/ai-compose";
 import { notifyMentions } from "@/lib/actions/notes";
@@ -358,16 +358,6 @@ export function MessageThread({
   useEffect(() => {
     setAssignedTo(conversation?.assigned_to ?? null);
   }, [conversation?.id, conversation?.assigned_to]);
-
-  async function toggleAssign() {
-    if (!conversation || !currentUserId) return;
-    const next = assignedTo === currentUserId ? null : currentUserId;
-    setAssignedTo(next);
-    await createClient()
-      .from("conversations")
-      .update({ assigned_to: next })
-      .eq("id", conversation.id);
-  }
 
   const cannedMatches = filterCannedResponses(cannedResponses, input);
 
@@ -815,36 +805,13 @@ export function MessageThread({
 
         <div className="flex items-center gap-2">
           {currentUserId && (
-            <button
-              onClick={toggleAssign}
-              title={
-                assignedTo === currentUserId
-                  ? t.inbox.assignedToYou
-                  : assignedTo
-                  ? t.inbox.assignedTeammate
-                  : t.inbox.assignToMe
-              }
-              className={cn(
-                "inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium transition-colors",
-                assignedTo === currentUserId
-                  ? "bg-primary/10 text-primary hover:bg-primary/20"
-                  : "text-muted-foreground hover:bg-accent hover:text-foreground"
-              )}
-            >
-              {assignedTo === currentUserId ? (
-                <>
-                  <UserCheck className="h-3.5 w-3.5" /> {t.inbox.you}
-                </>
-              ) : assignedTo ? (
-                <>
-                  <User className="h-3.5 w-3.5" /> {t.inbox.assigned}
-                </>
-              ) : (
-                <>
-                  <UserPlus className="h-3.5 w-3.5" /> {t.inbox.assignToMe}
-                </>
-              )}
-            </button>
+            <AssignMenu
+              conversationId={conversation.id}
+              currentUserId={currentUserId}
+              assignedTo={assignedTo}
+              agentNames={agentNames}
+              onAssigned={(id) => setAssignedTo(id)}
+            />
           )}
           <span
             className={cn(
@@ -1442,6 +1409,109 @@ function MacroRunner({
                   <span className="truncate">{m.name}</span>
                 </button>
               ))
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function AssignMenu({
+  conversationId,
+  currentUserId,
+  assignedTo,
+  agentNames,
+  onAssigned,
+}: {
+  conversationId: string;
+  currentUserId: string;
+  assignedTo: string | null;
+  agentNames: Record<string, string>;
+  onAssigned: (assigneeId: string | null) => void;
+}) {
+  const { t } = useI18n();
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  async function assign(assigneeId: string | null) {
+    if (busy) return;
+    setBusy(true);
+    onAssigned(assigneeId); // optimistic
+    try {
+      await assignConversation(conversationId, assigneeId);
+    } finally {
+      setBusy(false);
+      setOpen(false);
+    }
+  }
+
+  // Teammates other than the current user, sorted by name.
+  const teammates = Object.entries(agentNames)
+    .filter(([id]) => id !== currentUserId)
+    .sort((a, b) => a[1].localeCompare(b[1]));
+
+  const label =
+    assignedTo === currentUserId
+      ? t.inbox.you
+      : assignedTo
+      ? agentNames[assignedTo] ?? t.inbox.assigned
+      : t.inbox.assignToMe;
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        disabled={busy}
+        title={t.inbox.assign}
+        className={cn(
+          "inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium transition-colors disabled:opacity-50",
+          assignedTo
+            ? "bg-primary/10 text-primary hover:bg-primary/20"
+            : "text-muted-foreground hover:bg-accent hover:text-foreground"
+        )}
+      >
+        {busy ? (
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        ) : assignedTo === currentUserId ? (
+          <UserCheck className="h-3.5 w-3.5" />
+        ) : assignedTo ? (
+          <User className="h-3.5 w-3.5" />
+        ) : (
+          <UserPlus className="h-3.5 w-3.5" />
+        )}
+        <span className="max-w-24 truncate">{label}</span>
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute end-0 z-20 mt-1 max-h-64 w-48 overflow-y-auto rounded-lg border border-border bg-popover p-1 shadow-lg">
+            <button
+              onClick={() => assign(currentUserId)}
+              className="flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-start text-sm hover:bg-accent"
+            >
+              <UserCheck className="h-3.5 w-3.5 text-muted-foreground" /> {t.inbox.assignToMe}
+            </button>
+            {teammates.map(([id, name]) => (
+              <button
+                key={id}
+                onClick={() => assign(id)}
+                className={cn(
+                  "flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-start text-sm hover:bg-accent",
+                  assignedTo === id && "font-semibold"
+                )}
+              >
+                <User className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="truncate">{name}</span>
+              </button>
+            ))}
+            {assignedTo && (
+              <button
+                onClick={() => assign(null)}
+                className="mt-1 flex w-full items-center gap-2 rounded-md border-t border-border px-3 py-1.5 text-start text-sm text-muted-foreground hover:bg-accent"
+              >
+                {t.inbox.unassign}
+              </button>
             )}
           </div>
         </>
