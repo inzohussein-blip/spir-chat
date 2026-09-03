@@ -12,6 +12,7 @@ import {
   Building2,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { TagEditor } from "@/components/inbox/tag-editor";
 import { cn } from "@/lib/utils";
 import { avatarGradient } from "@/lib/avatar";
 import { PlatformIcon } from "@/components/platform-icon";
@@ -305,29 +306,11 @@ export function ContactPanel({
                 <Tag className="h-3 w-3" />
                 {t.inbox.tags}
               </h4>
-              {details.tags.length > 0 ? (
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {details.tags.map((tag) => (
-                    <span
-                      key={tag.id}
-                      className="inline-flex items-center rounded-full border border-border px-2 py-0.5 text-xs"
-                      style={
-                        tag.color
-                          ? {
-                              backgroundColor: `${tag.color}20`,
-                              borderColor: `${tag.color}40`,
-                              color: tag.color,
-                            }
-                          : undefined
-                      }
-                    >
-                      {tag.name}
-                    </span>
-                  ))}
-                </div>
-              ) : (
-                <p className="mt-1 text-xs text-muted-foreground">{t.inbox.noTags}</p>
-              )}
+              <TagEditor
+                contactId={details.contact.id}
+                workspaceId={workspaceId}
+                initialTags={details.tags}
+              />
             </div>
 
             {/* Custom fields */}
