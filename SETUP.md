@@ -118,7 +118,33 @@ TWILIO_WHATSAPP_FROM=+1234567890
 # see services/telegram-gateway/README.md
 TELEGRAM_GATEWAY_URL=https://your-gateway.example.com
 TELEGRAM_GATEWAY_TOKEN=<same secret as the gateway's GATEWAY_TOKEN>
+
+# Official WhatsApp (Meta Cloud API) — two-way in the unified inbox
+META_WHATSAPP_TOKEN=<permanent access token>
+META_PHONE_NUMBER_ID=<sending number's phone_number_id>
+META_WORKSPACE_ID=<workspace UUID that owns this number>
+META_VERIFY_TOKEN=<any secret you choose, entered in the Meta webhook setup>
+META_APP_SECRET=<Meta app secret, verifies inbound signatures>
 ```
+
+### Official WhatsApp (Meta Cloud API)
+
+For a stable, official WhatsApp channel (vs the Twilio path used by campaigns),
+connect Meta's Cloud API:
+
+1. Create a **Meta app** (Business type) at <https://developers.facebook.com>,
+   add the **WhatsApp** product, and link a Meta Business account. Meta gives you
+   a test number + token to start; add your real number + billing for production.
+2. Set the env vars above (`META_*`).
+3. In the app's **WhatsApp → Configuration → Webhook**, set the callback URL to
+   `https://<your-domain>/api/webhooks/whatsapp` and the verify token to your
+   `META_VERIFY_TOKEN`, then subscribe to the **messages** field.
+4. Create and get approval for **message templates** (WhatsApp Manager →
+   Message Templates) — Meta requires an approved template to *start* a
+   conversation; free-form replies work within the 24-hour service window.
+
+Inbound customer messages then appear in the unified **Inbox** (stored locally
+like the website widget), and agent replies are delivered via the Cloud API.
 
 **Direct campaigns** (`/dashboard/outreach`) reuse the same providers to send a
 template to a pasted/uploaded list of raw phone numbers, emails, or Telegram

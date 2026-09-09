@@ -4,6 +4,7 @@ import { createZernioClient } from "@/lib/zernio-client";
 import { parseAttachments } from "@/lib/attachments";
 import { parseRichContent } from "@/lib/rich-content";
 import { renderMergeVariables } from "@/lib/merge";
+import { sendCloudText } from "@/lib/whatsapp-cloud";
 
 /**
  * GET /api/v1/messages?conversationId=...
@@ -29,9 +30,13 @@ export async function GET(request: NextRequest) {
     .eq("id", conversationId)
     .single();
 
-  // Website conversations are served entirely from Supabase (no Zernio) — the
-  // messages table is the source of truth. RLS scopes this to workspace members.
-  if (conversation?.platform === "website") {
+  // Locally-stored conversations (website widget, or WhatsApp Cloud API) are
+  // served from Supabase — the messages table is the source of truth. RLS
+  // scopes this to workspace members. Zernio-backed social threads fall through.
+  if (
+    conversation?.platform === "website" ||
+    (conversation && !conversation.late_conversation_id)
+  ) {
     const { data: rows } = await supabase
       .from("messages")
       .select("*")
@@ -184,6 +189,47 @@ export async function POST(request: NextRequest) {
       })
       .eq("id", conversationId);
 
+    return NextResponse.json(message, { status: 201 });
+  }
+
+  // WhatsApp Cloud API conversations: store the reply locally (source of truth)
+  // and deliver it via the Cloud API. Free-form text only reaches the customer
+  // inside the 24h service window; outside it, an approved template is required.
+  if (conversation.platform === "whatsapp" && !conversation.late_conversation_id) {
+    const phone = contact?.phone;
+    if (!phone) {
+      return NextResponse.json({ error: "Contact has no phone number" }, { status: 400 });
+    }
+    const sendRes = await sendCloudText(phone, text || "");
+    const { data: message } = await supabase
+      .from("messages")
+      .insert({
+        conversation_id: conversationId,
+        direction: "outbound",
+        text: text || null,
+        sent_by_user_id: user.id,
+        platform_message_id: sendRes.id ?? null,
+        status: sendRes.ok ? "sent" : "failed",
+      })
+      .select("*")
+      .single();
+
+    await supabase
+      .from("conversations")
+      .update({
+        last_message_at: new Date().toISOString(),
+        last_message_preview: (text || "").slice(0, 100),
+        unread_count: 0,
+        sla_escalated_at: null,
+      })
+      .eq("id", conversationId);
+
+    if (!sendRes.ok) {
+      return NextResponse.json(
+        { error: `WhatsApp: ${sendRes.error ?? "send failed"}` },
+        { status: 502 }
+      );
+    }
     return NextResponse.json(message, { status: 201 });
   }
 
