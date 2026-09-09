@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useI18n } from "@/components/i18n-provider";
 import { LanguageSwitcher } from "@/components/language-switcher";
+import { OAuthButtons } from "@/components/auth/oauth-buttons";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -77,12 +78,17 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label
-              htmlFor="password"
-              className="block text-sm font-medium mb-1.5"
-            >
-              {t.auth.password}
-            </label>
+            <div className="mb-1.5 flex items-center justify-between">
+              <label htmlFor="password" className="block text-sm font-medium">
+                {t.auth.password}
+              </label>
+              <Link
+                href="/forgot-password"
+                className="text-xs font-medium text-muted-foreground hover:text-foreground hover:underline"
+              >
+                {t.auth.forgotPassword}
+              </Link>
+            </div>
             <input
               id="password"
               type="password"
@@ -105,6 +111,8 @@ export default function LoginPage() {
           >
             {loading ? t.auth.loggingIn : t.auth.loginCta}
           </button>
+
+          <OAuthButtons />
         </form>
 
         <p className="text-center text-sm text-muted-foreground">

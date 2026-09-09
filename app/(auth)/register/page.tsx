@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useI18n } from "@/components/i18n-provider";
 import { LanguageSwitcher } from "@/components/language-switcher";
+import { OAuthButtons } from "@/components/auth/oauth-buttons";
 
 export default function RegisterPage() {
   const [name, setName] = useState("");
@@ -37,7 +38,8 @@ export default function RegisterPage() {
       return;
     }
 
-    router.push("/dashboard");
+    // First-run: let new users name their workspace before entering the app.
+    router.push("/onboarding");
     router.refresh();
   }
 
@@ -125,6 +127,8 @@ export default function RegisterPage() {
           >
             {loading ? t.auth.creatingAccount : t.auth.registerCta}
           </button>
+
+          <OAuthButtons />
         </form>
 
         <p className="text-center text-sm text-muted-foreground">
