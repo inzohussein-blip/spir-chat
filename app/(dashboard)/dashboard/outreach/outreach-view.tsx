@@ -60,10 +60,12 @@ export function OutreachView({
   templates,
   batches,
   configured,
+  metaWhatsApp,
 }: {
   templates: Template[];
   batches: Batch[];
   configured: Record<OutreachChannel, boolean>;
+  metaWhatsApp: boolean;
 }) {
   const router = useRouter();
   const [channel, setChannel] = useState<OutreachChannel>("whatsapp");
@@ -73,6 +75,11 @@ export function OutreachView({
   const [message, setMessage] = useState("");
   const [saveContacts, setSaveContacts] = useState(false);
   const [scheduledAt, setScheduledAt] = useState("");
+  // WhatsApp Cloud approved-template mode.
+  const [useTemplate, setUseTemplate] = useState(false);
+  const [tplName, setTplName] = useState("");
+  const [tplLang, setTplLang] = useState("ar");
+  const [tplParams, setTplParams] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{
@@ -86,6 +93,8 @@ export function OutreachView({
   const fileRef = useRef<HTMLInputElement>(null);
 
   const isEmail = channel === "email";
+  const canTemplate = channel === "whatsapp" && metaWhatsApp;
+  const templateMode = canTemplate && useTemplate;
   const parsed = useMemo(
     () => parseRecipients(recipientsRaw, channel, countryCode),
     [recipientsRaw, channel, countryCode]
@@ -130,8 +139,12 @@ export function OutreachView({
     if (fileRef.current) fileRef.current.value = "";
   }
 
+  const canSend =
+    parsed.valid.length > 0 &&
+    (templateMode ? !!tplName.trim() && metaWhatsApp : !!message.trim() && configured[channel]);
+
   async function send() {
-    if (sending || parsed.valid.length === 0 || !message.trim()) return;
+    if (sending || !canSend) return;
     setSending(true);
     setError(null);
     setResult(null);
@@ -143,6 +156,11 @@ export function OutreachView({
       subject,
       saveContacts,
       scheduledAt: scheduledAt ? new Date(scheduledAt).toISOString() : null,
+      templateName: templateMode ? tplName : undefined,
+      templateLang: templateMode ? tplLang : undefined,
+      templateParams: templateMode
+        ? tplParams.split(",").map((p) => p.trim()).filter(Boolean)
+        : undefined,
     });
     setSending(false);
     if ("error" in res && res.error) {
@@ -203,7 +221,8 @@ export function OutreachView({
               <div className="flex flex-wrap gap-2">
                 {CHANNELS.map((c) => {
                   const Icon = c.icon;
-                  const ok = configured[c.value];
+                  const ok =
+                    configured[c.value] || (c.value === "whatsapp" && metaWhatsApp);
                   return (
                     <button
                       key={c.value}
@@ -227,11 +246,56 @@ export function OutreachView({
                   );
                 })}
               </div>
-              {!configured[channel] && (
+              {!configured[channel] && !(channel === "whatsapp" && metaWhatsApp) && (
                 <p className="mt-2 flex items-center gap-1.5 text-xs text-amber-600">
                   <AlertTriangle className="h-3.5 w-3.5" />
                   The {channel} provider isn&apos;t configured — add its API keys to send.
                 </p>
+              )}
+
+              {/* WhatsApp Cloud approved-template mode */}
+              {canTemplate && (
+                <div className="mt-3 rounded-lg border border-border bg-muted/30 p-3">
+                  <label className="flex items-start gap-2 text-sm font-medium">
+                    <input
+                      type="checkbox"
+                      checked={useTemplate}
+                      onChange={(e) => setUseTemplate(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 rounded border-border"
+                    />
+                    <span>
+                      Send an approved template (Cloud API)
+                      <span className="mt-0.5 block text-[11px] font-normal text-muted-foreground">
+                        Required to start conversations with cold numbers. Approve the
+                        template in WhatsApp Manager first.
+                      </span>
+                    </span>
+                  </label>
+                  {useTemplate && (
+                    <div className="mt-3 space-y-2">
+                      <div className="flex gap-2">
+                        <input
+                          value={tplName}
+                          onChange={(e) => setTplName(e.target.value)}
+                          placeholder="Template name (e.g. welcome_message)"
+                          className="min-w-0 flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+                        />
+                        <input
+                          value={tplLang}
+                          onChange={(e) => setTplLang(e.target.value)}
+                          placeholder="ar"
+                          className="w-20 rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+                        />
+                      </div>
+                      <input
+                        value={tplParams}
+                        onChange={(e) => setTplParams(e.target.value)}
+                        placeholder="Body params for {{1}}, {{2}}… comma-separated ({{phone}} allowed)"
+                        className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+                      />
+                    </div>
+                  )}
+                </div>
               )}
 
               {/* Recipients */}
@@ -298,8 +362,8 @@ export function OutreachView({
                 </div>
               </div>
 
-              {/* Template + message */}
-              <div className="mt-4">
+              {/* Template + message (hidden in Cloud-template mode) */}
+              <div className="mt-4" hidden={templateMode}>
                 <div className="mb-1 flex items-center justify-between">
                   <label className="text-xs font-medium text-muted-foreground">Message</label>
                   <button
@@ -391,12 +455,7 @@ export function OutreachView({
                 </p>
                 <button
                   onClick={send}
-                  disabled={
-                    sending ||
-                    parsed.valid.length === 0 ||
-                    !message.trim() ||
-                    !configured[channel]
-                  }
+                  disabled={sending || !canSend}
                   className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
                 >
                   {sending ? (

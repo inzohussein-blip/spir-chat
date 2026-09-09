@@ -1,5 +1,6 @@
 import { getWorkspace } from "@/lib/workspace";
 import { channelConfigured } from "@/lib/campaigns/providers";
+import { metaConfigured } from "@/lib/whatsapp-cloud";
 import { OutreachView } from "./outreach-view";
 
 export default async function OutreachPage() {
@@ -32,6 +33,7 @@ export default async function OutreachPage() {
       templates={templates ?? []}
       batches={batches ?? []}
       configured={configured}
+      metaWhatsApp={metaConfigured()}
     />
   );
 }

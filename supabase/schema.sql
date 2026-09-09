@@ -2332,3 +2332,16 @@ alter table outreach_templates enable row level security;
 create policy "Members manage outreach templates in their workspaces"
   on outreach_templates for all
   using (is_workspace_member(workspace_id));
+
+-- ============================================================
+-- 00069_outreach_template_fields.sql
+-- ============================================================
+-- ============================================================
+-- WhatsApp Cloud template campaigns: a direct-campaign batch can send an
+-- approved Meta message template (the compliant way to start conversations)
+-- instead of free text. Stores the template name, language, and body params.
+-- ============================================================
+alter table outreach_batches
+  add column if not exists template_name text,
+  add column if not exists template_lang text,
+  add column if not exists template_params jsonb;

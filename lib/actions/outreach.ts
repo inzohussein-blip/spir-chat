@@ -4,6 +4,7 @@ import { getWorkspace } from "@/lib/workspace";
 import { revalidatePath } from "next/cache";
 import { parseRecipients, type OutreachChannel } from "@/lib/outreach";
 import { channelConfigured } from "@/lib/campaigns/providers";
+import { metaConfigured } from "@/lib/whatsapp-cloud";
 import { processOutreachBatch } from "@/lib/outreach-process";
 import { recordAudit } from "@/lib/audit-server";
 
@@ -45,6 +46,11 @@ export interface OutreachInput {
   saveContacts?: boolean;
   /** ISO time to send later; null/empty sends immediately. */
   scheduledAt?: string | null;
+  /** WhatsApp Cloud approved template (compliant cold outreach). */
+  templateName?: string;
+  templateLang?: string;
+  /** Body params for {{1}}, {{2}}… — may contain {{phone}} merge tokens. */
+  templateParams?: string[];
 }
 
 /**
@@ -60,11 +66,27 @@ export async function sendOutreach(input: OutreachInput) {
   if (!["email", "sms", "whatsapp", "telegram"].includes(channel)) {
     return { error: "Unsupported channel" };
   }
-  if (!input.message.trim()) return { error: "Message is required" };
-  if (!channelConfigured(channel)) {
-    return {
-      error: `The ${channel} provider isn't configured. Add its API keys to the environment.`,
-    };
+
+  // WhatsApp Cloud template mode: an approved Meta template instead of free text
+  // (the compliant way to start conversations with cold numbers).
+  const templateName = channel === "whatsapp" ? input.templateName?.trim() : "";
+  const useTemplate = !!templateName;
+  const templateParams = (input.templateParams ?? [])
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .slice(0, 10);
+
+  if (useTemplate) {
+    if (!metaConfigured()) {
+      return { error: "WhatsApp Cloud API isn't configured. Add the META_* keys." };
+    }
+  } else {
+    if (!input.message.trim()) return { error: "Message is required" };
+    if (!channelConfigured(channel)) {
+      return {
+        error: `The ${channel} provider isn't configured. Add its API keys to the environment.`,
+      };
+    }
   }
 
   // Validate a schedule time if provided.
@@ -88,12 +110,17 @@ export async function sendOutreach(input: OutreachInput) {
       workspace_id: workspace.id,
       created_by: user.id,
       channel,
-      message: input.message.slice(0, 4000),
+      message: useTemplate
+        ? `Template: ${templateName}`
+        : input.message.slice(0, 4000),
       subject: channel === "email" ? input.subject?.slice(0, 300) ?? null : null,
       total: recipients.length,
       status: scheduledAt ? "scheduled" : "sending",
       scheduled_at: scheduledAt,
       save_contacts: !!input.saveContacts,
+      template_name: useTemplate ? templateName : null,
+      template_lang: useTemplate ? (input.templateLang?.trim() || "ar") : null,
+      template_params: useTemplate ? (templateParams as never) : null,
     })
     .select("id")
     .single();

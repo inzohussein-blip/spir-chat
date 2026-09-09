@@ -651,6 +651,9 @@ export interface Database {
           status: string;
           scheduled_at: string | null;
           save_contacts: boolean;
+          template_name: string | null;
+          template_lang: string | null;
+          template_params: Json | null;
           created_at: string;
         };
         Insert: {
@@ -666,6 +669,9 @@ export interface Database {
           status?: string;
           scheduled_at?: string | null;
           save_contacts?: boolean;
+          template_name?: string | null;
+          template_lang?: string | null;
+          template_params?: Json | null;
           created_at?: string;
         };
         Update: {
@@ -675,6 +681,9 @@ export interface Database {
           status?: string;
           scheduled_at?: string | null;
           save_contacts?: boolean;
+          template_name?: string | null;
+          template_lang?: string | null;
+          template_params?: Json | null;
         };
         Relationships: [];
       };

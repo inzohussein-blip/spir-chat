@@ -2,6 +2,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/types/database";
 import { sendCampaignMessage, type CampaignChannel } from "@/lib/campaigns/providers";
+import { sendCloudTemplate } from "@/lib/whatsapp-cloud";
 import { renderMergeVariables } from "@/lib/merge";
 
 type Client = SupabaseClient<Database>;
@@ -57,6 +58,13 @@ export async function processOutreachBatch(
   const isEmail = channel === "email";
   const canFileContact = channel !== "telegram"; // usernames don't map to phone/email
 
+  // WhatsApp Cloud approved-template mode (compliant cold outreach).
+  const templateName = (batch as { template_name?: string | null }).template_name || null;
+  const templateLang = (batch as { template_lang?: string | null }).template_lang || "ar";
+  const templateParams = Array.isArray((batch as { template_params?: unknown }).template_params)
+    ? ((batch as { template_params?: unknown }).template_params as string[])
+    : [];
+
   const { data: recipients } = await supabase
     .from("outreach_recipients")
     .select("id, recipient, contact_id")
@@ -71,12 +79,21 @@ export async function processOutreachBatch(
     if (batch.save_contacts && canFileContact && !contactId) {
       contactId = await upsertContact(supabase, batch.workspace_id, isEmail, r.recipient);
     }
-    const body = renderMergeVariables(batch.message, {
-      display_name: null,
-      email: isEmail ? r.recipient : null,
-      phone: isEmail ? null : r.recipient,
-    });
-    const res = await sendCampaignMessage(channel, r.recipient, batch.subject ?? "", body);
+    let res;
+    if (templateName) {
+      // Render each body param per recipient (supports {{phone}} tokens).
+      const params = templateParams.map((p) =>
+        renderMergeVariables(p, { display_name: null, email: null, phone: r.recipient })
+      );
+      res = await sendCloudTemplate(r.recipient, templateName, templateLang, params);
+    } else {
+      const body = renderMergeVariables(batch.message, {
+        display_name: null,
+        email: isEmail ? r.recipient : null,
+        phone: isEmail ? null : r.recipient,
+      });
+      res = await sendCampaignMessage(channel, r.recipient, batch.subject ?? "", body);
+    }
     if (res.ok) sent++;
     else failed++;
     await supabase
