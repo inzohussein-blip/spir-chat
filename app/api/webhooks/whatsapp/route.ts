@@ -77,8 +77,18 @@ async function processWebhook(body: unknown) {
     for (const change of changes) {
       const value = (change as { value?: Record<string, unknown> })?.value;
       if (!value) continue;
+
+      // Delivery/read receipts: update the matching outbound message's status.
+      const statuses =
+        (value.statuses as
+          | { id?: string; status?: string }[]
+          | undefined) ?? [];
+      for (const s of statuses) {
+        if (s.id && s.status) await applyStatus(supabase, s.id, s.status);
+      }
+
       const messages = (value.messages as WaMessage[] | undefined) ?? [];
-      if (messages.length === 0) continue; // ignore status callbacks
+      if (messages.length === 0) continue;
 
       const phoneNumberId =
         (value.metadata as { phone_number_id?: string } | undefined)?.phone_number_id;
@@ -99,6 +109,28 @@ async function processWebhook(body: unknown) {
       }
     }
   }
+}
+
+// Map WhatsApp status → our MessageStatus enum (which has no "read", so a read
+// receipt is recorded as delivered).
+function mapStatus(s: string): "sent" | "delivered" | "failed" | null {
+  if (s === "sent") return "sent";
+  if (s === "delivered" || s === "read") return "delivered";
+  if (s === "failed") return "failed";
+  return null;
+}
+
+async function applyStatus(
+  supabase: Awaited<ReturnType<typeof createServiceClient>>,
+  wamid: string,
+  status: string
+) {
+  const mapped = mapStatus(status);
+  if (!mapped) return;
+  await supabase
+    .from("messages")
+    .update({ status: mapped })
+    .eq("platform_message_id", wamid);
 }
 
 async function findOrCreateChannel(

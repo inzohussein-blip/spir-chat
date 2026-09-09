@@ -613,6 +613,32 @@ export interface Database {
         };
         Relationships: [];
       };
+      whatsapp_templates: {
+        Row: {
+          id: string;
+          workspace_id: string;
+          name: string;
+          language: string;
+          status: string | null;
+          category: string | null;
+          synced_at: string;
+        };
+        Insert: {
+          id?: string;
+          workspace_id: string;
+          name: string;
+          language: string;
+          status?: string | null;
+          category?: string | null;
+          synced_at?: string;
+        };
+        Update: {
+          status?: string | null;
+          category?: string | null;
+          synced_at?: string;
+        };
+        Relationships: [];
+      };
       whatsapp_credentials: {
         Row: {
           workspace_id: string;

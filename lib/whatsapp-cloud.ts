@@ -172,6 +172,41 @@ export async function verifyPhoneNumber(
   }
 }
 
+export interface WaTemplate {
+  name: string;
+  language: string;
+  status: string | null;
+  category: string | null;
+}
+
+/** List message templates on a WABA (approved + others). */
+export async function listMessageTemplates(
+  token: string,
+  wabaId: string
+): Promise<{ ok: true; templates: WaTemplate[] } | { ok: false; error: string }> {
+  try {
+    const res = await fetch(
+      `${GRAPH}/${wabaId}/message_templates?fields=name,status,language,category&limit=200`,
+      { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(12000) }
+    );
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const msg = (data as { error?: { message?: string } })?.error?.message;
+      return { ok: false, error: msg || `Meta ${res.status}` };
+    }
+    const rows = (data as { data?: Record<string, string>[] }).data ?? [];
+    const templates: WaTemplate[] = rows.map((r) => ({
+      name: r.name,
+      language: r.language,
+      status: r.status ?? null,
+      category: r.category ?? null,
+    }));
+    return { ok: true, templates };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "list failed" };
+  }
+}
+
 /** Constant-time verification of Meta's X-Hub-Signature-256 over the raw body. */
 export function verifyMetaSignature(rawBody: string, signature: string | null): boolean {
   const secret = process.env.META_APP_SECRET;

@@ -61,11 +61,13 @@ export function OutreachView({
   batches,
   configured,
   metaWhatsApp,
+  waTemplates,
 }: {
   templates: Template[];
   batches: Batch[];
   configured: Record<OutreachChannel, boolean>;
   metaWhatsApp: boolean;
+  waTemplates: { name: string; language: string }[];
 }) {
   const router = useRouter();
   const [channel, setChannel] = useState<OutreachChannel>("whatsapp");
@@ -273,6 +275,26 @@ export function OutreachView({
                   </label>
                   {useTemplate && (
                     <div className="mt-3 space-y-2">
+                      {waTemplates.length > 0 && (
+                        <select
+                          value=""
+                          onChange={(e) => {
+                            const t = waTemplates.find((x) => x.name === e.target.value);
+                            if (t) {
+                              setTplName(t.name);
+                              setTplLang(t.language);
+                            }
+                          }}
+                          className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+                        >
+                          <option value="">Pick an approved template…</option>
+                          {waTemplates.map((t) => (
+                            <option key={t.name + t.language} value={t.name}>
+                              {t.name} ({t.language})
+                            </option>
+                          ))}
+                        </select>
+                      )}
                       <div className="flex gap-2">
                         <input
                           value={tplName}

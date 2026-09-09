@@ -1,9 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { MessageCircle, Check, Loader2, Plug, Unplug } from "lucide-react";
-import { connectWhatsAppCloud, disconnectWhatsAppCloud } from "@/lib/actions/whatsapp-connect";
+import { MessageCircle, Check, Loader2, Plug, Unplug, RefreshCw } from "lucide-react";
+import {
+  connectWhatsAppCloud,
+  disconnectWhatsAppCloud,
+  syncWhatsAppTemplates,
+} from "@/lib/actions/whatsapp-connect";
 import { useRouter } from "next/navigation";
+import { EmbeddedSignupButton } from "@/components/settings/embedded-signup-button";
 
 export function WhatsAppSection({
   connection,
@@ -13,14 +18,16 @@ export function WhatsAppSection({
   const router = useRouter();
   const [token, setToken] = useState("");
   const [phoneNumberId, setPhoneNumberId] = useState("");
+  const [wabaId, setWabaId] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   async function connect() {
     if (busy || !token.trim() || !phoneNumberId.trim()) return;
     setBusy(true);
     setError(null);
-    const res = await connectWhatsAppCloud({ token, phoneNumberId });
+    const res = await connectWhatsAppCloud({ token, phoneNumberId, wabaId });
     setBusy(false);
     if ("error" in res && res.error) {
       setError(res.error);
@@ -39,6 +46,18 @@ export function WhatsAppSection({
     router.refresh();
   }
 
+  async function syncTemplates() {
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    const res = await syncWhatsAppTemplates();
+    setBusy(false);
+    if ("error" in res && res.error) setError(res.error);
+    else if ("ok" in res && res.ok)
+      setNotice(`Synced ${res.total} templates (${res.approved} approved).`);
+    router.refresh();
+  }
+
   return (
     <section>
       <div className="flex items-center gap-2">
@@ -50,6 +69,9 @@ export function WhatsAppSection({
         two-way chat lands in the Inbox and you can run template campaigns.
       </p>
 
+      {notice && (
+        <p className="mt-2 text-xs text-emerald-600">{notice}</p>
+      )}
       <div className="mt-4 rounded-xl border border-border bg-card p-5 shadow-card">
         {connection ? (
           <div className="flex items-center justify-between gap-3">
@@ -66,20 +88,36 @@ export function WhatsAppSection({
                 </p>
               </div>
             </div>
-            <button
-              onClick={disconnect}
-              disabled={busy}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted disabled:opacity-50"
-            >
-              <Unplug className="h-3.5 w-3.5" /> Disconnect
-            </button>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={syncTemplates}
+                disabled={busy}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted disabled:opacity-50"
+              >
+                <RefreshCw className={busy ? "h-3.5 w-3.5 animate-spin" : "h-3.5 w-3.5"} /> Sync templates
+              </button>
+              <button
+                onClick={disconnect}
+                disabled={busy}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted disabled:opacity-50"
+              >
+                <Unplug className="h-3.5 w-3.5" /> Disconnect
+              </button>
+            </div>
           </div>
         ) : (
           <div className="space-y-2">
+            <EmbeddedSignupButton />
             <input
               value={phoneNumberId}
               onChange={(e) => setPhoneNumberId(e.target.value)}
               placeholder="Phone number ID (from Meta WhatsApp dashboard)"
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+            />
+            <input
+              value={wabaId}
+              onChange={(e) => setWabaId(e.target.value)}
+              placeholder="WhatsApp Business Account ID (for template sync — optional)"
               className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
             />
             <input

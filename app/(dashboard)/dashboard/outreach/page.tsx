@@ -20,6 +20,13 @@ export default async function OutreachPage() {
       .limit(20),
   ]);
 
+  const { data: waTemplates } = await supabase
+    .from("whatsapp_templates")
+    .select("name, language, status")
+    .eq("workspace_id", workspace.id)
+    .eq("status", "APPROVED")
+    .order("name", { ascending: true });
+
   // Which channels actually have provider credentials (computed server-side).
   const configured = {
     email: channelConfigured("email"),
@@ -34,6 +41,7 @@ export default async function OutreachPage() {
       batches={batches ?? []}
       configured={configured}
       metaWhatsApp={await workspaceHasMeta(supabase, workspace.id)}
+      waTemplates={(waTemplates ?? []).map((t) => ({ name: t.name, language: t.language }))}
     />
   );
 }

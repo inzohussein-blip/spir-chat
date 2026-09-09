@@ -3,8 +3,8 @@
 import { getWorkspace } from "@/lib/workspace";
 import { createServiceClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import { encryptToken } from "@/lib/meta/oauth";
-import { verifyPhoneNumber } from "@/lib/whatsapp-cloud";
+import { encryptToken, decryptToken } from "@/lib/meta/oauth";
+import { verifyPhoneNumber, listMessageTemplates } from "@/lib/whatsapp-cloud";
 
 /**
  * Connect a workspace's official WhatsApp (Meta Cloud API) number. The token +
@@ -21,6 +21,56 @@ export async function connectWhatsAppCloud(input: {
   const token = input.token.trim();
   const phoneNumberId = input.phoneNumberId.trim();
   if (!token || !phoneNumberId) return { error: "Token and phone number ID are required" };
+  return storeConnection(workspace.id, { token, phoneNumberId, wabaId: input.wabaId });
+}
+
+/**
+ * Finish Meta Embedded Signup: exchange the returned code for a business token,
+ * then store the connection. `phoneNumberId`/`wabaId` come from the signup
+ * session (the WA_EMBEDDED_SIGNUP browser event).
+ */
+export async function completeEmbeddedSignup(input: {
+  code: string;
+  phoneNumberId: string;
+  wabaId?: string;
+}) {
+  const { workspace } = await getWorkspace();
+  const appId = process.env.META_APP_ID;
+  const appSecret = process.env.META_APP_SECRET;
+  if (!appId || !appSecret) return { error: "Meta app credentials not configured" };
+  if (!input.code || !input.phoneNumberId) return { error: "Missing signup data" };
+
+  // Exchange the code for a business access token.
+  let token = "";
+  try {
+    const res = await fetch(
+      `https://graph.facebook.com/v21.0/oauth/access_token?client_id=${appId}` +
+        `&client_secret=${appSecret}&code=${encodeURIComponent(input.code)}`,
+      { signal: AbortSignal.timeout(12000) }
+    );
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.access_token) {
+      return { error: data?.error?.message || "Token exchange failed" };
+    }
+    token = data.access_token as string;
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Token exchange failed" };
+  }
+
+  return storeConnection(workspace.id, {
+    token,
+    phoneNumberId: input.phoneNumberId,
+    wabaId: input.wabaId,
+  });
+}
+
+/** Verify + persist a WhatsApp connection and provision its inbox channel. */
+async function storeConnection(
+  workspaceId: string,
+  input: { token: string; phoneNumberId: string; wabaId?: string }
+) {
+  const token = input.token.trim();
+  const phoneNumberId = input.phoneNumberId.trim();
 
   const check = await verifyPhoneNumber(token, phoneNumberId);
   if (!check.ok) return { error: `Could not verify: ${check.error}` };
@@ -28,7 +78,7 @@ export async function connectWhatsAppCloud(input: {
   const service = await createServiceClient();
   const { error } = await service.from("whatsapp_credentials").upsert(
     {
-      workspace_id: workspace.id,
+      workspace_id: workspaceId,
       phone_number_id: phoneNumberId,
       waba_id: input.wabaId?.trim() || null,
       display_number: check.displayNumber,
@@ -40,17 +90,16 @@ export async function connectWhatsAppCloud(input: {
   );
   if (error) return { error: error.message };
 
-  // Provision the whatsapp channel (idempotent) for inbound routing.
   const { data: existingChannel } = await service
     .from("channels")
     .select("id")
-    .eq("workspace_id", workspace.id)
+    .eq("workspace_id", workspaceId)
     .eq("platform", "whatsapp")
     .eq("late_account_id", phoneNumberId)
     .maybeSingle();
   if (!existingChannel) {
     await service.from("channels").insert({
-      workspace_id: workspace.id,
+      workspace_id: workspaceId,
       platform: "whatsapp",
       late_account_id: phoneNumberId,
       display_name: check.verifiedName || "WhatsApp",
@@ -60,11 +109,50 @@ export async function connectWhatsAppCloud(input: {
   }
 
   revalidatePath("/dashboard/settings");
-  return {
-    ok: true,
-    displayNumber: check.displayNumber,
-    verifiedName: check.verifiedName,
-  };
+  return { ok: true, displayNumber: check.displayNumber, verifiedName: check.verifiedName };
+}
+
+/** Pull approved message templates from the workspace's WABA into the DB. */
+export async function syncWhatsAppTemplates() {
+  const { workspace } = await getWorkspace();
+  const service = await createServiceClient();
+  const { data: creds } = await service
+    .from("whatsapp_credentials")
+    .select("access_token, waba_id")
+    .eq("workspace_id", workspace.id)
+    .maybeSingle();
+  if (!creds?.access_token) return { error: "WhatsApp isn't connected" };
+  if (!creds.waba_id) {
+    return { error: "Add your WABA ID (reconnect and fill 'WhatsApp Business Account ID')." };
+  }
+
+  let token: string;
+  try {
+    token = decryptToken(creds.access_token);
+  } catch {
+    return { error: "Stored token is invalid — reconnect." };
+  }
+
+  const res = await listMessageTemplates(token, creds.waba_id);
+  if (!res.ok) return { error: res.error };
+
+  const rows = res.templates.map((t) => ({
+    workspace_id: workspace.id,
+    name: t.name,
+    language: t.language,
+    status: t.status,
+    category: t.category,
+    synced_at: new Date().toISOString(),
+  }));
+  if (rows.length > 0) {
+    await service
+      .from("whatsapp_templates")
+      .upsert(rows, { onConflict: "workspace_id,name,language" });
+  }
+  revalidatePath("/dashboard/settings");
+  revalidatePath("/dashboard/outreach");
+  const approved = res.templates.filter((t) => t.status === "APPROVED").length;
+  return { ok: true, total: res.templates.length, approved };
 }
 
 /** Disconnect the workspace's WhatsApp Cloud number. */

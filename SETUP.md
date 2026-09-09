@@ -125,7 +125,20 @@ META_PHONE_NUMBER_ID=<sending number's phone_number_id>
 META_WORKSPACE_ID=<workspace UUID that owns this number>
 META_VERIFY_TOKEN=<any secret you choose, entered in the Meta webhook setup>
 META_APP_SECRET=<Meta app secret, verifies inbound signatures>
+
+# Optional: one-click Embedded Signup (Facebook JS SDK) in Settings
+META_APP_ID=<Meta app id>              # server: also used for the code exchange
+NEXT_PUBLIC_FACEBOOK_APP_ID=<Meta app id>
+NEXT_PUBLIC_META_CONFIG_ID=<Embedded Signup configuration id>
 ```
+
+Each **workspace connects its own number** in Settings → *WhatsApp (Official)*:
+either one-click **Connect with Facebook** (needs the `NEXT_PUBLIC_*` vars +
+an Embedded Signup config), or paste the **phone number ID + token** (verified
+against Graph). Credentials are stored encrypted per workspace; the env `META_*`
+number above is a single-tenant fallback. **Sync templates** pulls approved
+templates from the WABA for the campaign composer, and delivery/read receipts
+update message status via the webhook's `statuses` events.
 
 ### Official WhatsApp (Meta Cloud API)
 
