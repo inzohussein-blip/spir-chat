@@ -2,7 +2,25 @@
 // uploaded) into sendable addresses. Pure so it can be unit-tested and shared
 // by the UI (live count/preview) and the server action (actual send).
 
-export type OutreachChannel = "email" | "sms" | "whatsapp";
+export type OutreachChannel = "email" | "sms" | "whatsapp" | "telegram";
+
+// Telegram handles: 5–32 chars, start with a letter, letters/digits/underscore.
+const TG_USERNAME_RE = /^@?[a-zA-Z][a-zA-Z0-9_]{4,31}$/;
+
+/**
+ * Resolve a Telegram target to either a "@username" (lowercased) or a normalized
+ * phone in +E.164. Digit/`+`-leading tokens are treated as phones; otherwise a
+ * valid handle. Returns null when neither.
+ */
+export function normalizeTelegramTarget(token: string, defaultCode: string): string | null {
+  const t = (token || "").trim();
+  if (!t) return null;
+  if (t.startsWith("@")) {
+    return TG_USERNAME_RE.test(t) ? "@" + t.slice(1).toLowerCase() : null;
+  }
+  if (/^[+0-9]/.test(t)) return normalizePhone(t, defaultCode);
+  return TG_USERNAME_RE.test(t) ? "@" + t.toLowerCase() : null;
+}
 
 /** Curated dialing codes, Arab market first, then common international. */
 export const COUNTRY_CODES: { code: string; label: string; flag: string }[] = [
@@ -95,14 +113,18 @@ export function parseRecipients(
       seen.add(email);
       valid.push(email);
     } else {
-      const phone = normalizePhone(token, defaultCode);
-      if (!phone) {
+      // Telegram accepts @usernames as well as phones; SMS/WhatsApp are phones.
+      const target =
+        channel === "telegram"
+          ? normalizeTelegramTarget(token, defaultCode)
+          : normalizePhone(token, defaultCode);
+      if (!target) {
         invalid.push(token);
         continue;
       }
-      if (seen.has(phone)) continue;
-      seen.add(phone);
-      valid.push(phone);
+      if (seen.has(target)) continue;
+      seen.add(target);
+      valid.push(target);
     }
   }
 

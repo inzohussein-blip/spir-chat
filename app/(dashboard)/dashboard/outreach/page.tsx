@@ -13,7 +13,7 @@ export default async function OutreachPage() {
       .order("short_code", { ascending: true }),
     supabase
       .from("outreach_batches")
-      .select("id, channel, message, total, sent_count, failed_count, created_at")
+      .select("id, channel, message, total, sent_count, failed_count, status, scheduled_at, created_at")
       .eq("workspace_id", workspace.id)
       .order("created_at", { ascending: false })
       .limit(20),
@@ -24,6 +24,7 @@ export default async function OutreachPage() {
     email: channelConfigured("email"),
     sms: channelConfigured("sms"),
     whatsapp: channelConfigured("whatsapp"),
+    telegram: channelConfigured("telegram"),
   };
 
   return (

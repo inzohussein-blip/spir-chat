@@ -7,6 +7,7 @@ import { sendWeeklyReports } from "@/lib/reports/weekly";
 import { escalateSla } from "@/lib/sla";
 import { sendVisitorFollowups } from "@/lib/followup";
 import { autoCloseStale } from "@/lib/auto-close";
+import { drainScheduledOutreach } from "@/lib/outreach-process";
 import { sendConversationMessage } from "@/lib/outbound";
 import type { Json } from "@/lib/types/database";
 
@@ -198,6 +199,7 @@ export async function GET(request: NextRequest) {
   const slaEscalated = await escalateSla(supabase);
   const followups = await sendVisitorFollowups(supabase);
   const autoClosed = await autoCloseStale(supabase);
+  const outreach = await drainScheduledOutreach(supabase);
 
   // Reopen snoozed conversations whose snooze time has passed.
   const { data: reopened } = await supabase
@@ -217,6 +219,7 @@ export async function GET(request: NextRequest) {
     slaEscalated,
     followups,
     autoClosed,
+    outreach,
     reopened: reopened?.length ?? 0,
   });
 }

@@ -6,7 +6,7 @@
 //   SMS/WhatsApp (Twilio): TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN,
 //                          TWILIO_SMS_FROM, TWILIO_WHATSAPP_FROM
 
-export type CampaignChannel = "email" | "sms" | "whatsapp";
+export type CampaignChannel = "email" | "sms" | "whatsapp" | "telegram";
 
 export interface SendResult {
   ok: boolean;
@@ -17,6 +17,9 @@ export interface SendResult {
 export function channelConfigured(channel: CampaignChannel): boolean {
   if (channel === "email") {
     return !!process.env.RESEND_API_KEY && !!process.env.CAMPAIGN_FROM_EMAIL;
+  }
+  if (channel === "telegram") {
+    return !!process.env.TELEGRAM_GATEWAY_URL && !!process.env.TELEGRAM_GATEWAY_TOKEN;
   }
   const twilio =
     !!process.env.TWILIO_ACCOUNT_SID && !!process.env.TWILIO_AUTH_TOKEN;
@@ -84,6 +87,33 @@ async function sendTwilio(
   }
 }
 
+/**
+ * Send one message to a Telegram user (phone in +E.164 or a @username) via an
+ * external GramJS gateway. The gateway runs a real user account (MTProto),
+ * which the official Bot API can't do — see services/telegram-gateway.
+ */
+async function sendTelegram(to: string, body: string): Promise<SendResult> {
+  try {
+    const base = process.env.TELEGRAM_GATEWAY_URL!.replace(/\/$/, "");
+    const res = await fetch(`${base}/send`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.TELEGRAM_GATEWAY_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ to, message: body }),
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!res.ok) {
+      const detail = await res.text().catch(() => "");
+      return { ok: false, error: `Telegram gateway ${res.status}${detail ? `: ${detail.slice(0, 120)}` : ""}` };
+    }
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "telegram failed" };
+  }
+}
+
 /** Send one message on a channel to one recipient (email address or phone). */
 export async function sendCampaignMessage(
   channel: CampaignChannel,
@@ -92,6 +122,7 @@ export async function sendCampaignMessage(
   body: string
 ): Promise<SendResult> {
   if (channel === "email") return sendEmail(recipient, subject, body);
+  if (channel === "telegram") return sendTelegram(recipient, body);
   if (channel === "sms") {
     return sendTwilio(recipient, body, process.env.TWILIO_SMS_FROM!, false);
   }

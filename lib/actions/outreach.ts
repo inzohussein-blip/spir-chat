@@ -3,13 +3,15 @@
 import { getWorkspace } from "@/lib/workspace";
 import { revalidatePath } from "next/cache";
 import { parseRecipients, type OutreachChannel } from "@/lib/outreach";
-import { channelConfigured, sendCampaignMessage } from "@/lib/campaigns/providers";
-import { renderMergeVariables } from "@/lib/merge";
+import { channelConfigured } from "@/lib/campaigns/providers";
+import { processOutreachBatch } from "@/lib/outreach-process";
 import { recordAudit } from "@/lib/audit-server";
 
 // Direct sends run synchronously through the provider, each with a network
-// round-trip, so keep the batch bounded to stay within serverless limits.
-const MAX_DIRECT_RECIPIENTS = 200;
+// round-trip, so keep an immediate batch bounded to stay within serverless
+// limits. Larger scheduled batches are drained across cron runs.
+const MAX_IMMEDIATE = 200;
+const MAX_TOTAL = 5000;
 
 export interface OutreachInput {
   channel: string;
@@ -17,20 +19,22 @@ export interface OutreachInput {
   recipientsRaw: string;
   message: string;
   subject?: string;
-  /** Create/link a contact record for each recipient (default false). */
   saveContacts?: boolean;
+  /** ISO time to send later; null/empty sends immediately. */
+  scheduledAt?: string | null;
 }
 
 /**
- * Send a template immediately to an ad-hoc list of phone numbers or emails.
- * Reuses the campaign provider layer, records a batch + per-recipient outcomes,
- * and (optionally) files each recipient as a contact so replies can be matched.
+ * Queue a direct campaign to an ad-hoc list of phone numbers, emails, or
+ * Telegram handles. Sends immediately, or schedules for later (drained by the
+ * jobs cron). Records a batch + per-recipient rows and reuses the shared
+ * processor so channel handling lives in one place.
  */
 export async function sendOutreach(input: OutreachInput) {
   const { workspace, user, supabase } = await getWorkspace();
 
   const channel = input.channel as OutreachChannel;
-  if (!["email", "sms", "whatsapp"].includes(channel)) {
+  if (!["email", "sms", "whatsapp", "telegram"].includes(channel)) {
     return { error: "Unsupported channel" };
   }
   if (!input.message.trim()) return { error: "Message is required" };
@@ -40,17 +44,21 @@ export async function sendOutreach(input: OutreachInput) {
     };
   }
 
-  const { valid, invalid } = parseRecipients(
-    input.recipientsRaw,
-    channel,
-    input.countryCode
-  );
+  // Validate a schedule time if provided.
+  let scheduledAt: string | null = null;
+  if (input.scheduledAt) {
+    const when = new Date(input.scheduledAt);
+    if (isNaN(when.getTime())) return { error: "Invalid schedule time" };
+    if (when.getTime() <= Date.now()) return { error: "Schedule time must be in the future" };
+    scheduledAt = when.toISOString();
+  }
+
+  const { valid, invalid } = parseRecipients(input.recipientsRaw, channel, input.countryCode);
   if (valid.length === 0) {
     return { error: "No valid recipients found", invalid: invalid.length };
   }
-  const recipients = valid.slice(0, MAX_DIRECT_RECIPIENTS);
+  const recipients = valid.slice(0, MAX_TOTAL);
 
-  // Record the batch up front so progress is visible even if the request is cut.
   const { data: batch, error: batchErr } = await supabase
     .from("outreach_batches")
     .insert({
@@ -60,53 +68,47 @@ export async function sendOutreach(input: OutreachInput) {
       message: input.message.slice(0, 4000),
       subject: channel === "email" ? input.subject?.slice(0, 300) ?? null : null,
       total: recipients.length,
+      status: scheduledAt ? "scheduled" : "sending",
+      scheduled_at: scheduledAt,
+      save_contacts: !!input.saveContacts,
     })
     .select("id")
     .single();
   if (batchErr || !batch) return { error: batchErr?.message ?? "Could not start batch" };
 
-  const isEmail = channel === "email";
-  let sent = 0;
-  let failed = 0;
-  const rows: {
-    batch_id: string;
-    workspace_id: string;
-    recipient: string;
-    contact_id: string | null;
-    status: "sent" | "failed";
-    error: string | null;
-  }[] = [];
-
-  for (const recipient of recipients) {
-    // Optionally file the recipient as a contact (matched by email/phone).
-    let contactId: string | null = null;
-    if (input.saveContacts) {
-      contactId = await upsertContact(supabase, workspace.id, isEmail, recipient);
-    }
-
-    const body = renderMergeVariables(input.message, {
-      display_name: null,
-      email: isEmail ? recipient : null,
-      phone: isEmail ? null : recipient,
-    });
-    const res = await sendCampaignMessage(channel, recipient, input.subject ?? "", body);
-    if (res.ok) sent++;
-    else failed++;
-    rows.push({
-      batch_id: batch.id,
-      workspace_id: workspace.id,
-      recipient,
-      contact_id: contactId,
-      status: res.ok ? "sent" : "failed",
-      error: res.ok ? null : res.error ?? "Unknown error",
-    });
+  // Store the pending recipient list up front (so a scheduled batch has its
+  // audience, and an interrupted immediate send can be resumed by the cron).
+  const rows = recipients.map((recipient) => ({
+    batch_id: batch.id,
+    workspace_id: workspace.id,
+    recipient,
+    status: "pending",
+  }));
+  // Insert in chunks to keep each statement reasonable.
+  for (let i = 0; i < rows.length; i += 500) {
+    await supabase.from("outreach_recipients").insert(rows.slice(i, i + 500));
   }
 
-  if (rows.length > 0) await supabase.from("outreach_recipients").insert(rows);
-  await supabase
-    .from("outreach_batches")
-    .update({ sent_count: sent, failed_count: failed })
-    .eq("id", batch.id);
+  if (scheduledAt) {
+    revalidatePath("/dashboard/outreach");
+    return {
+      ok: true,
+      scheduled: true,
+      batchId: batch.id,
+      count: recipients.length,
+      invalid: invalid.length,
+    };
+  }
+
+  // Immediate: process up to the synchronous cap now; any overflow is left
+  // pending and picked up by the cron.
+  if (recipients.length > MAX_IMMEDIATE) {
+    await supabase
+      .from("outreach_batches")
+      .update({ status: "scheduled", scheduled_at: new Date().toISOString() })
+      .eq("id", batch.id);
+  }
+  const { sent, failed } = await processOutreachBatch(supabase, batch.id);
 
   await recordAudit({
     workspaceId: workspace.id,
@@ -124,34 +126,6 @@ export async function sendOutreach(input: OutreachInput) {
     sent,
     failed,
     invalid: invalid.length,
-    capped: valid.length > MAX_DIRECT_RECIPIENTS ? valid.length - MAX_DIRECT_RECIPIENTS : 0,
+    queued: recipients.length > MAX_IMMEDIATE ? recipients.length - MAX_IMMEDIATE : 0,
   };
-}
-
-/** Find a contact by the address, or create an unsubscribed one. Returns id. */
-async function upsertContact(
-  supabase: Awaited<ReturnType<typeof getWorkspace>>["supabase"],
-  workspaceId: string,
-  isEmail: boolean,
-  recipient: string
-): Promise<string | null> {
-  const field = isEmail ? "email" : "phone";
-  const { data: existing } = await supabase
-    .from("contacts")
-    .select("id")
-    .eq("workspace_id", workspaceId)
-    .eq(field, recipient)
-    .maybeSingle();
-  if (existing) return existing.id;
-
-  const { data: created } = await supabase
-    .from("contacts")
-    .insert({
-      workspace_id: workspaceId,
-      [field]: recipient,
-      is_subscribed: false,
-    })
-    .select("id")
-    .single();
-  return created?.id ?? null;
 }

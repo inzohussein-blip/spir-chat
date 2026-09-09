@@ -624,6 +624,9 @@ export interface Database {
           total: number;
           sent_count: number;
           failed_count: number;
+          status: string;
+          scheduled_at: string | null;
+          save_contacts: boolean;
           created_at: string;
         };
         Insert: {
@@ -636,12 +639,18 @@ export interface Database {
           total?: number;
           sent_count?: number;
           failed_count?: number;
+          status?: string;
+          scheduled_at?: string | null;
+          save_contacts?: boolean;
           created_at?: string;
         };
         Update: {
           total?: number;
           sent_count?: number;
           failed_count?: number;
+          status?: string;
+          scheduled_at?: string | null;
+          save_contacts?: boolean;
         };
         Relationships: [];
       };

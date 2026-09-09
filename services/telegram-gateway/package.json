@@ -1,0 +1,15 @@
+{
+  "name": "spirchat-telegram-gateway",
+  "version": "1.0.0",
+  "private": true,
+  "description": "External GramJS (MTProto user account) gateway that SpirChat's direct campaigns call to send Telegram messages to phone numbers or @usernames.",
+  "type": "commonjs",
+  "scripts": {
+    "login": "node login.js",
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "telegram": "^2.22.2"
+  }
+}

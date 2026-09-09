@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { normalizePhone, parseRecipients, COUNTRY_CODES } from "./outreach";
+import {
+  normalizePhone,
+  parseRecipients,
+  normalizeTelegramTarget,
+  COUNTRY_CODES,
+} from "./outreach";
 
 describe("normalizePhone", () => {
   it("prepends the default dialing code to a local number", () => {
@@ -47,6 +52,29 @@ describe("parseRecipients", () => {
     const res = parseRecipients("a@x.com, bad@, B@X.com\nb@x.com", "email", "964");
     expect(res.valid).toEqual(["a@x.com", "b@x.com"]);
     expect(res.invalid).toEqual(["bad@"]);
+  });
+});
+
+describe("normalizeTelegramTarget", () => {
+  it("accepts a @username and lowercases it", () => {
+    expect(normalizeTelegramTarget("@JohnDoe", "964")).toBe("@johndoe");
+    expect(normalizeTelegramTarget("john_doe", "964")).toBe("@john_doe");
+  });
+
+  it("treats digit/plus-leading tokens as phones", () => {
+    expect(normalizeTelegramTarget("07701234567", "964")).toBe("+9647701234567");
+    expect(normalizeTelegramTarget("+201002003000", "964")).toBe("+201002003000");
+  });
+
+  it("rejects too-short handles", () => {
+    expect(normalizeTelegramTarget("@abc", "964")).toBeNull();
+  });
+});
+
+describe("parseRecipients telegram", () => {
+  it("mixes usernames and phones, deduping", () => {
+    const res = parseRecipients("@sarah\n07701234567\n@Sarah", "telegram", "964");
+    expect(res.valid).toEqual(["@sarah", "+9647701234567"]);
   });
 });
 

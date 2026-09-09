@@ -113,7 +113,18 @@ TWILIO_ACCOUNT_SID=...
 TWILIO_AUTH_TOKEN=...
 TWILIO_SMS_FROM=+1234567890
 TWILIO_WHATSAPP_FROM=+1234567890
+
+# Telegram for Direct campaigns (optional) — external GramJS gateway,
+# see services/telegram-gateway/README.md
+TELEGRAM_GATEWAY_URL=https://your-gateway.example.com
+TELEGRAM_GATEWAY_TOKEN=<same secret as the gateway's GATEWAY_TOKEN>
 ```
+
+**Direct campaigns** (`/dashboard/outreach`) reuse the same providers to send a
+template to a pasted/uploaded list of raw phone numbers, emails, or Telegram
+`@usernames` — immediately or scheduled (drained by the daily jobs cron). Email
+uses Resend; SMS/WhatsApp use Twilio; Telegram uses the standalone GramJS gateway
+under `services/telegram-gateway/`.
 
 Store credentials (Shopify token, WooCommerce keys) are entered in the app on
 the **Integrations** page, not via environment variables.

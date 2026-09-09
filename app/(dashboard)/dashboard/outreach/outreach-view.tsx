@@ -11,6 +11,9 @@ import {
   Users,
   AlertTriangle,
   CheckCircle2,
+  CalendarClock,
+  X,
+  Clock,
 } from "lucide-react";
 import { sendOutreach } from "@/lib/actions/outreach";
 import { parseRecipients, COUNTRY_CODES, type OutreachChannel } from "@/lib/outreach";
@@ -30,11 +33,14 @@ interface Batch {
   total: number;
   sent_count: number;
   failed_count: number;
+  status: string;
+  scheduled_at: string | null;
   created_at: string;
 }
 
 const CHANNELS: { value: OutreachChannel; label: string; icon: typeof Mail }[] = [
   { value: "whatsapp", label: "WhatsApp", icon: MessageCircle },
+  { value: "telegram", label: "Telegram", icon: Send },
   { value: "sms", label: "SMS", icon: MessageCircle },
   { value: "email", label: "Email", icon: Mail },
 ];
@@ -64,13 +70,16 @@ export function OutreachView({
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
   const [saveContacts, setSaveContacts] = useState(false);
+  const [scheduledAt, setScheduledAt] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{
-    sent: number;
-    failed: number;
-    invalid: number;
-    capped: number;
+    scheduled?: boolean;
+    count?: number;
+    sent?: number;
+    failed?: number;
+    invalid?: number;
+    queued?: number;
   } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -114,6 +123,7 @@ export function OutreachView({
       message,
       subject,
       saveContacts,
+      scheduledAt: scheduledAt ? new Date(scheduledAt).toISOString() : null,
     });
     setSending(false);
     if ("error" in res && res.error) {
@@ -121,8 +131,13 @@ export function OutreachView({
       return;
     }
     if ("ok" in res && res.ok) {
-      setResult({ sent: res.sent, failed: res.failed, invalid: res.invalid, capped: res.capped });
+      setResult(
+        "scheduled" in res && res.scheduled
+          ? { scheduled: true, count: res.count, invalid: res.invalid }
+          : { sent: res.sent, failed: res.failed, invalid: res.invalid, queued: res.queued }
+      );
       setRecipientsRaw("");
+      setScheduledAt("");
       router.refresh();
     }
   }
@@ -148,10 +163,19 @@ export function OutreachView({
             )}
             {result && (
               <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-300">
-                <span className="font-semibold">Sent {result.sent}</span>
-                {result.failed > 0 && `, ${result.failed} failed`}
-                {result.invalid > 0 && ` · ${result.invalid} skipped (invalid)`}
-                {result.capped > 0 && ` · ${result.capped} over the per-send cap were not sent`}
+                {result.scheduled ? (
+                  <span className="font-semibold">
+                    Scheduled {result.count} recipient{result.count === 1 ? "" : "s"}.
+                  </span>
+                ) : (
+                  <>
+                    <span className="font-semibold">Sent {result.sent}</span>
+                    {(result.failed ?? 0) > 0 && `, ${result.failed} failed`}
+                    {(result.queued ?? 0) > 0 &&
+                      ` · ${result.queued} queued for the next run`}
+                  </>
+                )}
+                {(result.invalid ?? 0) > 0 && ` · ${result.invalid} skipped (invalid)`}
               </div>
             )}
 
@@ -195,7 +219,12 @@ export function OutreachView({
               <div className="mt-4">
                 <div className="mb-1 flex items-center justify-between">
                   <label className="text-xs font-medium text-muted-foreground">
-                    Recipients {isEmail ? "(emails)" : "(phone numbers)"}
+                    Recipients{" "}
+                    {isEmail
+                      ? "(emails)"
+                      : channel === "telegram"
+                      ? "(@usernames or phone numbers)"
+                      : "(phone numbers)"}
                   </label>
                   <button
                     onClick={() => fileRef.current?.click()}
@@ -231,6 +260,8 @@ export function OutreachView({
                   placeholder={
                     isEmail
                       ? "one email per line, or comma-separated"
+                      : channel === "telegram"
+                      ? "@username or number — one per line"
                       : "one number per line — local (07…) or international (+964…)"
                   }
                   className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
@@ -300,9 +331,33 @@ export function OutreachView({
                 </span>
               </label>
 
+              {/* Schedule */}
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <label className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <CalendarClock className="h-3.5 w-3.5" />
+                  Schedule
+                </label>
+                <input
+                  type="datetime-local"
+                  value={scheduledAt}
+                  onChange={(e) => setScheduledAt(e.target.value)}
+                  className="rounded-lg border border-border bg-background px-2 py-1.5 text-sm outline-none focus:border-primary"
+                />
+                {scheduledAt && (
+                  <button
+                    onClick={() => setScheduledAt("")}
+                    className="inline-flex items-center gap-0.5 text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-3 w-3" /> Clear
+                  </button>
+                )}
+              </div>
+
               <div className="mt-4 flex items-center justify-between">
                 <p className="text-xs text-muted-foreground">
-                  Sends immediately. Up to 200 per send.
+                  {scheduledAt
+                    ? "Delivered by the daily job at the scheduled time."
+                    : "Sends immediately (up to 200 now; the rest by the daily job)."}
                 </p>
                 <button
                   onClick={send}
@@ -316,10 +371,12 @@ export function OutreachView({
                 >
                   {sending ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : scheduledAt ? (
+                    <CalendarClock className="h-4 w-4" />
                   ) : (
                     <Send className="h-4 w-4" />
                   )}
-                  Send to {parsed.valid.length}
+                  {scheduledAt ? "Schedule" : "Send"} to {parsed.valid.length}
                 </button>
               </div>
             </div>
@@ -348,15 +405,23 @@ export function OutreachView({
                       </span>
                     </div>
                     <p className="mt-1.5 line-clamp-2 text-xs text-foreground">{b.message}</p>
-                    <div className="mt-1.5 flex items-center gap-3 text-[11px]">
-                      <span className="inline-flex items-center gap-1 text-emerald-600">
-                        <CheckCircle2 className="h-3 w-3" /> {b.sent_count}
-                      </span>
-                      {b.failed_count > 0 && (
-                        <span className="text-red-600">{b.failed_count} failed</span>
-                      )}
-                      <span className="text-muted-foreground">of {b.total}</span>
-                    </div>
+                    {b.status === "scheduled" ? (
+                      <div className="mt-1.5 flex items-center gap-1 text-[11px] text-blue-600">
+                        <Clock className="h-3 w-3" />
+                        Scheduled{b.scheduled_at ? ` for ${formatDate(b.scheduled_at)}` : ""} ·{" "}
+                        {b.total} recipients
+                      </div>
+                    ) : (
+                      <div className="mt-1.5 flex items-center gap-3 text-[11px]">
+                        <span className="inline-flex items-center gap-1 text-emerald-600">
+                          <CheckCircle2 className="h-3 w-3" /> {b.sent_count}
+                        </span>
+                        {b.failed_count > 0 && (
+                          <span className="text-red-600">{b.failed_count} failed</span>
+                        )}
+                        <span className="text-muted-foreground">of {b.total}</span>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
