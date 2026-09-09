@@ -613,6 +613,66 @@ export interface Database {
         };
         Relationships: [];
       };
+      outreach_batches: {
+        Row: {
+          id: string;
+          workspace_id: string;
+          created_by: string | null;
+          channel: string;
+          message: string;
+          subject: string | null;
+          total: number;
+          sent_count: number;
+          failed_count: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          workspace_id: string;
+          created_by?: string | null;
+          channel: string;
+          message: string;
+          subject?: string | null;
+          total?: number;
+          sent_count?: number;
+          failed_count?: number;
+          created_at?: string;
+        };
+        Update: {
+          total?: number;
+          sent_count?: number;
+          failed_count?: number;
+        };
+        Relationships: [];
+      };
+      outreach_recipients: {
+        Row: {
+          id: string;
+          batch_id: string;
+          workspace_id: string;
+          recipient: string;
+          contact_id: string | null;
+          status: string;
+          error: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          batch_id: string;
+          workspace_id: string;
+          recipient: string;
+          contact_id?: string | null;
+          status?: string;
+          error?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          status?: string;
+          error?: string | null;
+          contact_id?: string | null;
+        };
+        Relationships: [];
+      };
       audit_log: {
         Row: {
           id: string;

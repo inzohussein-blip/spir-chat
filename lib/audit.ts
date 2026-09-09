@@ -8,6 +8,7 @@ export type AuditAction =
   | "member.removed"
   | "member.invited"
   | "campaign.sent"
+  | "outreach.sent"
   | "settings.updated";
 
 export interface AuditEntry {
@@ -22,6 +23,7 @@ const ACTION_VERB: Record<string, string> = {
   "member.removed": "removed member",
   "member.invited": "invited member",
   "campaign.sent": "sent campaign",
+  "outreach.sent": "sent direct campaign",
   "settings.updated": "updated settings",
 };
 
