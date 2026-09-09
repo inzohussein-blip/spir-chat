@@ -7,10 +7,10 @@ export default async function OutreachPage() {
 
   const [{ data: templates }, { data: batches }] = await Promise.all([
     supabase
-      .from("canned_responses")
-      .select("id, short_code, content")
+      .from("outreach_templates")
+      .select("id, name, subject, body")
       .eq("workspace_id", workspace.id)
-      .order("short_code", { ascending: true }),
+      .order("name", { ascending: true }),
     supabase
       .from("outreach_batches")
       .select("id, channel, message, total, sent_count, failed_count, status, scheduled_at, created_at")

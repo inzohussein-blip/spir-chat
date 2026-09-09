@@ -15,7 +15,8 @@ import {
   X,
   Clock,
 } from "lucide-react";
-import { sendOutreach } from "@/lib/actions/outreach";
+import { sendOutreach, cancelOutreachBatch } from "@/lib/actions/outreach";
+import { createOutreachTemplate, deleteOutreachTemplate } from "@/lib/actions/outreach-templates";
 import { parseRecipients, COUNTRY_CODES, type OutreachChannel } from "@/lib/outreach";
 import { parseCsv } from "@/lib/csv";
 import { PageTitle } from "@/components/page-title";
@@ -23,8 +24,9 @@ import { cn } from "@/lib/utils";
 
 interface Template {
   id: string;
-  short_code: string;
-  content: string;
+  name: string;
+  subject: string | null;
+  body: string;
 }
 interface Batch {
   id: string;
@@ -89,9 +91,26 @@ export function OutreachView({
     [recipientsRaw, channel, countryCode]
   );
 
-  function loadTemplate(id: string) {
-    const t = templates.find((x) => x.id === id);
-    if (t) setMessage(t.content);
+  const [savingTpl, setSavingTpl] = useState(false);
+
+  function loadTemplate(t: Template) {
+    setMessage(t.body);
+    if (t.subject) setSubject(t.subject);
+  }
+
+  async function saveTemplate() {
+    if (savingTpl || !message.trim()) return;
+    const name = window.prompt("Template name");
+    if (!name?.trim()) return;
+    setSavingTpl(true);
+    await createOutreachTemplate({ name, subject: isEmail ? subject : undefined, body: message });
+    setSavingTpl(false);
+    router.refresh();
+  }
+
+  async function removeTemplate(id: string) {
+    await deleteOutreachTemplate(id);
+    router.refresh();
   }
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -283,24 +302,35 @@ export function OutreachView({
               <div className="mt-4">
                 <div className="mb-1 flex items-center justify-between">
                   <label className="text-xs font-medium text-muted-foreground">Message</label>
-                  {templates.length > 0 && (
-                    <select
-                      onChange={(e) => {
-                        if (e.target.value) loadTemplate(e.target.value);
-                        e.target.value = "";
-                      }}
-                      value=""
-                      className="rounded-md border border-border bg-background px-2 py-1 text-xs outline-none focus:border-primary"
-                    >
-                      <option value="">Load a template…</option>
-                      {templates.map((t) => (
-                        <option key={t.id} value={t.id}>
-                          /{t.short_code}
-                        </option>
-                      ))}
-                    </select>
-                  )}
+                  <button
+                    onClick={saveTemplate}
+                    disabled={savingTpl || !message.trim()}
+                    className="text-xs font-medium text-primary hover:underline disabled:opacity-50"
+                  >
+                    Save as template
+                  </button>
                 </div>
+                {templates.length > 0 && (
+                  <div className="mb-2 flex flex-wrap gap-1.5">
+                    {templates.map((t) => (
+                      <span
+                        key={t.id}
+                        className="group inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-0.5 text-xs hover:border-primary/40"
+                      >
+                        <button onClick={() => loadTemplate(t)} className="font-medium">
+                          {t.name}
+                        </button>
+                        <button
+                          onClick={() => removeTemplate(t.id)}
+                          aria-label={`Delete ${t.name}`}
+                          className="text-muted-foreground/50 hover:text-destructive"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
                 {isEmail && (
                   <input
                     value={subject}
@@ -406,10 +436,22 @@ export function OutreachView({
                     </div>
                     <p className="mt-1.5 line-clamp-2 text-xs text-foreground">{b.message}</p>
                     {b.status === "scheduled" ? (
-                      <div className="mt-1.5 flex items-center gap-1 text-[11px] text-blue-600">
-                        <Clock className="h-3 w-3" />
-                        Scheduled{b.scheduled_at ? ` for ${formatDate(b.scheduled_at)}` : ""} ·{" "}
-                        {b.total} recipients
+                      <div className="mt-1.5 flex items-center justify-between gap-2 text-[11px] text-blue-600">
+                        <span className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          Scheduled{b.scheduled_at ? ` for ${formatDate(b.scheduled_at)}` : ""} ·{" "}
+                          {b.total} recipients
+                        </span>
+                        <button
+                          onClick={async () => {
+                            if (!confirm("Cancel this scheduled campaign?")) return;
+                            await cancelOutreachBatch(b.id);
+                            router.refresh();
+                          }}
+                          className="inline-flex items-center gap-0.5 text-muted-foreground hover:text-destructive"
+                        >
+                          <X className="h-3 w-3" /> Cancel
+                        </button>
                       </div>
                     ) : (
                       <div className="mt-1.5 flex items-center gap-3 text-[11px]">

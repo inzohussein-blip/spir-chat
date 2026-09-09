@@ -613,6 +613,30 @@ export interface Database {
         };
         Relationships: [];
       };
+      outreach_templates: {
+        Row: {
+          id: string;
+          workspace_id: string;
+          name: string;
+          subject: string | null;
+          body: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          workspace_id: string;
+          name: string;
+          subject?: string | null;
+          body: string;
+          created_at?: string;
+        };
+        Update: {
+          name?: string;
+          subject?: string | null;
+          body?: string;
+        };
+        Relationships: [];
+      };
       outreach_batches: {
         Row: {
           id: string;

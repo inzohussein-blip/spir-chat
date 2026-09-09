@@ -13,6 +13,29 @@ import { recordAudit } from "@/lib/audit-server";
 const MAX_IMMEDIATE = 200;
 const MAX_TOTAL = 5000;
 
+/** Cancel a scheduled direct campaign before it runs (deletes it + its queue). */
+export async function cancelOutreachBatch(batchId: string) {
+  const { workspace, supabase } = await getWorkspace();
+  const { data: batch } = await supabase
+    .from("outreach_batches")
+    .select("status")
+    .eq("id", batchId)
+    .eq("workspace_id", workspace.id)
+    .maybeSingle();
+  if (!batch) return { error: "Not found" };
+  if (batch.status !== "scheduled") return { error: "Only scheduled campaigns can be cancelled" };
+
+  // Recipients cascade on batch delete.
+  const { error } = await supabase
+    .from("outreach_batches")
+    .delete()
+    .eq("id", batchId)
+    .eq("workspace_id", workspace.id);
+  if (error) return { error: error.message };
+  revalidatePath("/dashboard/outreach");
+  return { ok: true };
+}
+
 export interface OutreachInput {
   channel: string;
   countryCode: string;
