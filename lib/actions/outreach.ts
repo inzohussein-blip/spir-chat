@@ -14,6 +14,18 @@ import { recordAudit } from "@/lib/audit-server";
 const MAX_IMMEDIATE = 200;
 const MAX_TOTAL = 5000;
 
+/** Drop empty fields so we only store components the user actually set. */
+function cleanComponents(c: NonNullable<OutreachInput["templateComponents"]>) {
+  const out: Record<string, string> = {};
+  if (c.headerText?.trim()) out.headerText = c.headerText.trim().slice(0, 300);
+  if (c.headerMediaUrl?.trim() && c.headerMediaType) {
+    out.headerMediaUrl = c.headerMediaUrl.trim();
+    out.headerMediaType = c.headerMediaType;
+  }
+  if (c.buttonUrlParam?.trim()) out.buttonUrlParam = c.buttonUrlParam.trim().slice(0, 300);
+  return Object.keys(out).length > 0 ? out : null;
+}
+
 /** Cancel a scheduled direct campaign before it runs (deletes it + its queue). */
 export async function cancelOutreachBatch(batchId: string) {
   const { workspace, supabase } = await getWorkspace();
@@ -51,6 +63,13 @@ export interface OutreachInput {
   templateLang?: string;
   /** Body params for {{1}}, {{2}}… — may contain {{phone}} merge tokens. */
   templateParams?: string[];
+  /** Optional header/button components. */
+  templateComponents?: {
+    headerText?: string;
+    headerMediaType?: "image" | "document" | "video";
+    headerMediaUrl?: string;
+    buttonUrlParam?: string;
+  };
 }
 
 /**
@@ -121,6 +140,10 @@ export async function sendOutreach(input: OutreachInput) {
       template_name: useTemplate ? templateName : null,
       template_lang: useTemplate ? (input.templateLang?.trim() || "ar") : null,
       template_params: useTemplate ? (templateParams as never) : null,
+      template_components:
+        useTemplate && input.templateComponents
+          ? (cleanComponents(input.templateComponents) as never)
+          : null,
     })
     .select("id")
     .single();

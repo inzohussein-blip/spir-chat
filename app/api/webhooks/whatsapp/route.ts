@@ -111,14 +111,22 @@ async function processWebhook(body: unknown) {
   }
 }
 
-// Map WhatsApp status → our MessageStatus enum (which has no "read", so a read
-// receipt is recorded as delivered).
-function mapStatus(s: string): "sent" | "delivered" | "failed" | null {
+// Map WhatsApp status → our MessageStatus.
+function mapStatus(s: string): "sent" | "delivered" | "read" | "failed" | null {
   if (s === "sent") return "sent";
-  if (s === "delivered" || s === "read") return "delivered";
+  if (s === "delivered") return "delivered";
+  if (s === "read") return "read";
   if (s === "failed") return "failed";
   return null;
 }
+
+const STATUS_RANK: Record<string, number> = {
+  pending: 0,
+  sent: 1,
+  delivered: 2,
+  read: 3,
+  failed: 4,
+};
 
 async function applyStatus(
   supabase: Awaited<ReturnType<typeof createServiceClient>>,
@@ -127,10 +135,15 @@ async function applyStatus(
 ) {
   const mapped = mapStatus(status);
   if (!mapped) return;
-  await supabase
+  const { data: msg } = await supabase
     .from("messages")
-    .update({ status: mapped })
-    .eq("platform_message_id", wamid);
+    .select("id, status")
+    .eq("platform_message_id", wamid)
+    .maybeSingle();
+  if (!msg) return;
+  // Receipts can arrive out of order — never downgrade a message's status.
+  if ((STATUS_RANK[mapped] ?? 0) <= (STATUS_RANK[msg.status] ?? 0)) return;
+  await supabase.from("messages").update({ status: mapped }).eq("id", msg.id);
 }
 
 async function findOrCreateChannel(

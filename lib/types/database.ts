@@ -19,7 +19,7 @@ export type Platform =
 export type FlowStatus = "draft" | "published" | "archived";
 export type ConversationStatus = "open" | "closed" | "snoozed";
 export type MessageDirection = "inbound" | "outbound";
-export type MessageStatus = "pending" | "sent" | "delivered" | "failed";
+export type MessageStatus = "pending" | "sent" | "delivered" | "read" | "failed";
 export type BroadcastStatus =
   | "draft"
   | "scheduled"
@@ -711,6 +711,7 @@ export interface Database {
           template_name: string | null;
           template_lang: string | null;
           template_params: Json | null;
+          template_components: Json | null;
           created_at: string;
         };
         Insert: {
@@ -729,6 +730,7 @@ export interface Database {
           template_name?: string | null;
           template_lang?: string | null;
           template_params?: Json | null;
+          template_components?: Json | null;
           created_at?: string;
         };
         Update: {
@@ -741,6 +743,7 @@ export interface Database {
           template_name?: string | null;
           template_lang?: string | null;
           template_params?: Json | null;
+          template_components?: Json | null;
         };
         Relationships: [];
       };

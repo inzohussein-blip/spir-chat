@@ -64,6 +64,14 @@ export async function processOutreachBatch(
   const templateParams = Array.isArray((batch as { template_params?: unknown }).template_params)
     ? ((batch as { template_params?: unknown }).template_params as string[])
     : [];
+  // Optional rich template components (header text/media, URL button param).
+  const templateComponents =
+    ((batch as { template_components?: unknown }).template_components as {
+      headerText?: string;
+      headerMediaType?: "image" | "document" | "video";
+      headerMediaUrl?: string;
+      buttonUrlParam?: string;
+    } | null) || null;
   // Resolve the workspace's WhatsApp Cloud credentials once for template sends.
   const metaCreds = templateName
     ? await resolveWorkspaceMeta(supabase, batch.workspace_id)
@@ -86,10 +94,29 @@ export async function processOutreachBatch(
     let res;
     if (templateName) {
       // Render each body param per recipient (supports {{phone}} tokens).
-      const params = templateParams.map((p) =>
-        renderMergeVariables(p, { display_name: null, email: null, phone: r.recipient })
+      const merge = (s: string) =>
+        renderMergeVariables(s, { display_name: null, email: null, phone: r.recipient });
+      const params = templateParams.map(merge);
+      const extras = templateComponents
+        ? {
+            headerText: templateComponents.headerText
+              ? merge(templateComponents.headerText)
+              : undefined,
+            headerMediaType: templateComponents.headerMediaType,
+            headerMediaUrl: templateComponents.headerMediaUrl,
+            buttonUrlParam: templateComponents.buttonUrlParam
+              ? merge(templateComponents.buttonUrlParam)
+              : undefined,
+          }
+        : null;
+      res = await sendCloudTemplate(
+        r.recipient,
+        templateName,
+        templateLang,
+        params,
+        metaCreds,
+        extras
       );
-      res = await sendCloudTemplate(r.recipient, templateName, templateLang, params, metaCreds);
     } else {
       const body = renderMergeVariables(batch.message, {
         display_name: null,

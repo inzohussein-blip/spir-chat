@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Send, Paperclip, Bot, User, MessageSquare, MessageSquareText, CheckCircle, Clock, RotateCcw, Loader2, StickyNote, UserPlus, UserCheck, PenLine, Smile, MousePointerClick, Zap, Sparkles, Download, Flag } from "lucide-react";
+import { Send, Paperclip, Bot, User, MessageSquare, MessageSquareText, CheckCircle, Clock, RotateCcw, Loader2, StickyNote, UserPlus, UserCheck, PenLine, Smile, MousePointerClick, Zap, Sparkles, Download, Flag, Check, CheckCheck, AlertCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { resolveConversation } from "@/lib/actions/csat";
 import { runMacro } from "@/lib/actions/macros";
@@ -78,6 +78,21 @@ function NoteBubble({ note }: { note: Note }) {
       </div>
     </div>
   );
+}
+
+/** WhatsApp-style delivery ticks for an outbound message. */
+function StatusTicks({ status }: { status: string }) {
+  if (status === "failed") {
+    return <AlertCircle className="h-3 w-3 text-red-500" aria-label="Failed" />;
+  }
+  if (status === "read") {
+    return <CheckCheck className="h-3 w-3 text-sky-500" aria-label="Read" />;
+  }
+  if (status === "delivered") {
+    return <CheckCheck className="h-3 w-3" aria-label="Delivered" />;
+  }
+  // pending or sent
+  return <Check className="h-3 w-3 opacity-70" aria-label="Sent" />;
 }
 
 function MessageBubble({
@@ -223,15 +238,7 @@ function MessageBubble({
             <Bot className="h-3 w-3" />
           )}
           <span>{formatMessageTime(message.created_at)}</span>
-          {!isInbound && message.status !== "sent" && (
-            <span className="capitalize">
-              {message.status === "delivered"
-                ? t.inbox.delivered
-                : message.status === "failed"
-                ? t.inbox.failed
-                : ""}
-            </span>
-          )}
+          {!isInbound && <StatusTicks status={message.status} />}
         </div>
       </div>
 

@@ -2401,3 +2401,26 @@ alter table whatsapp_templates enable row level security;
 create policy "Members read their workspace whatsapp templates"
   on whatsapp_templates for all
   using (is_workspace_member(workspace_id));
+
+-- ============================================================
+-- 00072_message_read_status.sql
+-- ============================================================
+-- ============================================================
+-- Allow a "read" message status so WhatsApp read receipts (blue ✓✓) are
+-- distinct from plain delivered.
+-- ============================================================
+alter table messages drop constraint if exists messages_status_check;
+alter table messages
+  add constraint messages_status_check
+  check (status in ('pending', 'sent', 'delivered', 'read', 'failed'));
+
+-- ============================================================
+-- 00073_outreach_template_components.sql
+-- ============================================================
+-- ============================================================
+-- Rich WhatsApp template components for direct campaigns: an optional header
+-- (text or media) and a dynamic URL button parameter, alongside the existing
+-- body params. Stored as a small JSON object on the batch.
+-- ============================================================
+alter table outreach_batches
+  add column if not exists template_components jsonb;

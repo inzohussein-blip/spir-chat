@@ -122,18 +122,57 @@ export function sendCloudText(
   return post({ to, type: "text", text: { preview_url: false, body } }, creds ?? null);
 }
 
-/** An approved message template — the compliant way to start a conversation. */
+export interface TemplateExtras {
+  /** A text header's {{1}} value. */
+  headerText?: string;
+  /** A media header. */
+  headerMediaType?: "image" | "document" | "video";
+  headerMediaUrl?: string;
+  /** Dynamic URL-button suffix for button index 0. */
+  buttonUrlParam?: string;
+}
+
+/**
+ * An approved message template — the compliant way to start a conversation.
+ * `params` fill the body {{1}}, {{2}}…; `extras` add a header (text or media)
+ * and/or a dynamic URL button parameter.
+ */
 export function sendCloudTemplate(
   to: string,
   name: string,
   languageCode: string,
   params: string[] = [],
-  creds?: MetaCreds | null
+  creds?: MetaCreds | null,
+  extras?: TemplateExtras | null
 ): Promise<CloudSendResult> {
-  const components =
-    params.length > 0
-      ? [{ type: "body", parameters: params.map((text) => ({ type: "text", text })) }]
-      : [];
+  const components: Record<string, unknown>[] = [];
+
+  if (extras?.headerText) {
+    components.push({
+      type: "header",
+      parameters: [{ type: "text", text: extras.headerText }],
+    });
+  } else if (extras?.headerMediaUrl && extras.headerMediaType) {
+    const mt = extras.headerMediaType;
+    components.push({
+      type: "header",
+      parameters: [{ type: mt, [mt]: { link: extras.headerMediaUrl } }],
+    });
+  }
+
+  if (params.length > 0) {
+    components.push({ type: "body", parameters: params.map((text) => ({ type: "text", text })) });
+  }
+
+  if (extras?.buttonUrlParam) {
+    components.push({
+      type: "button",
+      sub_type: "url",
+      index: "0",
+      parameters: [{ type: "text", text: extras.buttonUrlParam }],
+    });
+  }
+
   return post(
     { to, type: "template", template: { name, language: { code: languageCode }, components } },
     creds ?? null

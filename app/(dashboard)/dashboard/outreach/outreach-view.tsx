@@ -82,6 +82,11 @@ export function OutreachView({
   const [tplName, setTplName] = useState("");
   const [tplLang, setTplLang] = useState("ar");
   const [tplParams, setTplParams] = useState("");
+  const [tplHeaderText, setTplHeaderText] = useState("");
+  const [tplHeaderMediaType, setTplHeaderMediaType] = useState<"" | "image" | "document" | "video">("");
+  const [tplHeaderMediaUrl, setTplHeaderMediaUrl] = useState("");
+  const [tplButtonParam, setTplButtonParam] = useState("");
+  const [showComponents, setShowComponents] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{
@@ -162,6 +167,14 @@ export function OutreachView({
       templateLang: templateMode ? tplLang : undefined,
       templateParams: templateMode
         ? tplParams.split(",").map((p) => p.trim()).filter(Boolean)
+        : undefined,
+      templateComponents: templateMode
+        ? {
+            headerText: tplHeaderText.trim() || undefined,
+            headerMediaType: tplHeaderMediaType || undefined,
+            headerMediaUrl: tplHeaderMediaUrl.trim() || undefined,
+            buttonUrlParam: tplButtonParam.trim() || undefined,
+          }
         : undefined,
     });
     setSending(false);
@@ -315,6 +328,52 @@ export function OutreachView({
                         placeholder="Body params for {{1}}, {{2}}… comma-separated ({{phone}} allowed)"
                         className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
                       />
+                      <button
+                        onClick={() => setShowComponents((v) => !v)}
+                        className="text-[11px] font-medium text-primary hover:underline"
+                      >
+                        {showComponents ? "− Hide" : "+ Add"} header / button
+                      </button>
+                      {showComponents && (
+                        <div className="space-y-2 rounded-lg border border-dashed border-border p-2">
+                          <input
+                            value={tplHeaderText}
+                            onChange={(e) => setTplHeaderText(e.target.value)}
+                            placeholder="Header text variable (if the template has a text header)"
+                            className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm outline-none focus:border-primary"
+                          />
+                          <div className="flex gap-2">
+                            <select
+                              value={tplHeaderMediaType}
+                              onChange={(e) =>
+                                setTplHeaderMediaType(e.target.value as typeof tplHeaderMediaType)
+                              }
+                              className="rounded-lg border border-border bg-background px-2 py-1.5 text-sm outline-none focus:border-primary"
+                            >
+                              <option value="">No media header</option>
+                              <option value="image">Image</option>
+                              <option value="document">Document</option>
+                              <option value="video">Video</option>
+                            </select>
+                            <input
+                              value={tplHeaderMediaUrl}
+                              onChange={(e) => setTplHeaderMediaUrl(e.target.value)}
+                              placeholder="Header media URL"
+                              disabled={!tplHeaderMediaType}
+                              className="min-w-0 flex-1 rounded-lg border border-border bg-background px-3 py-1.5 text-sm outline-none focus:border-primary disabled:opacity-50"
+                            />
+                          </div>
+                          <input
+                            value={tplButtonParam}
+                            onChange={(e) => setTplButtonParam(e.target.value)}
+                            placeholder="Dynamic URL button suffix (if the template has one)"
+                            className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm outline-none focus:border-primary"
+                          />
+                          <p className="text-[10px] text-muted-foreground">
+                            Use only the components your approved template actually defines.
+                          </p>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
