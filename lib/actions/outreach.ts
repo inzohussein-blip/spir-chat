@@ -4,7 +4,7 @@ import { getWorkspace } from "@/lib/workspace";
 import { revalidatePath } from "next/cache";
 import { parseRecipients, type OutreachChannel } from "@/lib/outreach";
 import { channelConfigured } from "@/lib/campaigns/providers";
-import { metaConfigured } from "@/lib/whatsapp-cloud";
+import { workspaceHasMeta } from "@/lib/whatsapp-cloud";
 import { processOutreachBatch } from "@/lib/outreach-process";
 import { recordAudit } from "@/lib/audit-server";
 
@@ -77,8 +77,8 @@ export async function sendOutreach(input: OutreachInput) {
     .slice(0, 10);
 
   if (useTemplate) {
-    if (!metaConfigured()) {
-      return { error: "WhatsApp Cloud API isn't configured. Add the META_* keys." };
+    if (!(await workspaceHasMeta(supabase, workspace.id))) {
+      return { error: "WhatsApp isn't connected. Connect it in Settings first." };
     }
   } else {
     if (!input.message.trim()) return { error: "Message is required" };

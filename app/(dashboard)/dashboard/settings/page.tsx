@@ -5,7 +5,7 @@ import { parseBusinessHours } from "@/lib/business-hours";
 export default async function SettingsPage() {
   const { workspace, supabase } = await getWorkspace();
 
-  const [{ data: labels }, { data: labelRules }] = await Promise.all([
+  const [{ data: labels }, { data: labelRules }, { data: wa }] = await Promise.all([
     supabase
       .from("labels")
       .select("id, name, color")
@@ -16,12 +16,18 @@ export default async function SettingsPage() {
       .select("id, keyword, label_id")
       .eq("workspace_id", workspace.id)
       .order("created_at", { ascending: true }),
+    supabase
+      .from("whatsapp_credentials")
+      .select("display_number, verified_name")
+      .eq("workspace_id", workspace.id)
+      .maybeSingle(),
   ]);
 
   return (
     <SettingsView
       labels={labels ?? []}
       labelRules={labelRules ?? []}
+      whatsapp={wa ? { displayNumber: wa.display_number, verifiedName: wa.verified_name } : null}
       workspace={{
         id: workspace.id,
         name: workspace.name,

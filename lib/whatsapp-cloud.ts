@@ -1,21 +1,82 @@
 import "server-only";
 import crypto from "crypto";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/lib/types/database";
+import { decryptToken } from "@/lib/meta/oauth";
 
-// Official Meta WhatsApp Cloud API integration. Env-configured for a single
-// business number, mapped to one workspace (multi-tenant can come later):
-//   META_WHATSAPP_TOKEN   — permanent access token
-//   META_PHONE_NUMBER_ID  — the sending number's phone_number_id
-//   META_WORKSPACE_ID     — the workspace that owns this number (for inbound)
-//   META_VERIFY_TOKEN     — webhook verification challenge secret
-//   META_APP_SECRET       — app secret, to verify inbound X-Hub-Signature-256
+// Official Meta WhatsApp Cloud API integration. Credentials are resolved
+// per-workspace (whatsapp_credentials table) with a fallback to a single
+// deployment-wide env number:
+//   META_WHATSAPP_TOKEN, META_PHONE_NUMBER_ID, META_WORKSPACE_ID
+//   META_VERIFY_TOKEN (webhook challenge), META_APP_SECRET (signature verify)
 const GRAPH = "https://graph.facebook.com/v21.0";
 
+type Client = SupabaseClient<Database>;
+
+export interface MetaCreds {
+  token: string;
+  phoneNumberId: string;
+}
+
+function envCreds(): MetaCreds | null {
+  if (process.env.META_WHATSAPP_TOKEN && process.env.META_PHONE_NUMBER_ID) {
+    return {
+      token: process.env.META_WHATSAPP_TOKEN,
+      phoneNumberId: process.env.META_PHONE_NUMBER_ID,
+    };
+  }
+  return null;
+}
+
+/** True when the deployment-wide env number is configured. */
 export function metaConfigured(): boolean {
-  return !!process.env.META_WHATSAPP_TOKEN && !!process.env.META_PHONE_NUMBER_ID;
+  return !!envCreds();
 }
 
 export function metaWorkspaceId(): string | null {
   return process.env.META_WORKSPACE_ID || null;
+}
+
+/** Resolve the WhatsApp Cloud credentials for a workspace (DB first, env fallback). */
+export async function resolveWorkspaceMeta(
+  supabase: Client,
+  workspaceId: string
+): Promise<MetaCreds | null> {
+  const { data } = await supabase
+    .from("whatsapp_credentials")
+    .select("phone_number_id, access_token")
+    .eq("workspace_id", workspaceId)
+    .maybeSingle();
+  if (data?.access_token) {
+    try {
+      return { token: decryptToken(data.access_token), phoneNumberId: data.phone_number_id };
+    } catch {
+      // fall through to env
+    }
+  }
+  const env = envCreds();
+  if (env && (!metaWorkspaceId() || metaWorkspaceId() === workspaceId)) return env;
+  return null;
+}
+
+/** Whether a workspace can send via WhatsApp Cloud (its own number or env). */
+export async function workspaceHasMeta(supabase: Client, workspaceId: string): Promise<boolean> {
+  return (await resolveWorkspaceMeta(supabase, workspaceId)) !== null;
+}
+
+/** Map an inbound webhook's phone_number_id to the workspace that owns it. */
+export async function workspaceForPhoneNumberId(
+  supabase: Client,
+  phoneNumberId: string
+): Promise<string | null> {
+  const { data } = await supabase
+    .from("whatsapp_credentials")
+    .select("workspace_id")
+    .eq("phone_number_id", phoneNumberId)
+    .maybeSingle();
+  if (data) return data.workspace_id;
+  if (envCreds() && metaWorkspaceId()) return metaWorkspaceId();
+  return null;
 }
 
 export interface CloudSendResult {
@@ -24,12 +85,17 @@ export interface CloudSendResult {
   id?: string;
 }
 
-async function post(payload: Record<string, unknown>): Promise<CloudSendResult> {
+async function post(
+  payload: Record<string, unknown>,
+  creds: MetaCreds | null
+): Promise<CloudSendResult> {
+  const c = creds ?? envCreds();
+  if (!c) return { ok: false, error: "WhatsApp Cloud not configured" };
   try {
-    const res = await fetch(`${GRAPH}/${process.env.META_PHONE_NUMBER_ID}/messages`, {
+    const res = await fetch(`${GRAPH}/${c.phoneNumberId}/messages`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${process.env.META_WHATSAPP_TOKEN}`,
+        Authorization: `Bearer ${c.token}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ messaging_product: "whatsapp", ...payload }),
@@ -48,29 +114,62 @@ async function post(payload: Record<string, unknown>): Promise<CloudSendResult> 
 }
 
 /** Free-form text — only deliverable inside the 24h customer service window. */
-export function sendCloudText(to: string, body: string): Promise<CloudSendResult> {
-  return post({ to, type: "text", text: { preview_url: false, body } });
+export function sendCloudText(
+  to: string,
+  body: string,
+  creds?: MetaCreds | null
+): Promise<CloudSendResult> {
+  return post({ to, type: "text", text: { preview_url: false, body } }, creds ?? null);
 }
 
-/**
- * An approved message template — the compliant way to start a conversation.
- * `params` fill the body {{1}}, {{2}}… in order.
- */
+/** An approved message template — the compliant way to start a conversation. */
 export function sendCloudTemplate(
   to: string,
   name: string,
   languageCode: string,
-  params: string[] = []
+  params: string[] = [],
+  creds?: MetaCreds | null
 ): Promise<CloudSendResult> {
   const components =
     params.length > 0
       ? [{ type: "body", parameters: params.map((text) => ({ type: "text", text })) }]
       : [];
-  return post({
-    to,
-    type: "template",
-    template: { name, language: { code: languageCode }, components },
-  });
+  return post(
+    { to, type: "template", template: { name, language: { code: languageCode }, components } },
+    creds ?? null
+  );
+}
+
+/**
+ * Verify a token + phone_number_id against Graph and read the number's display
+ * fields — the "recognize the API" step used when connecting a workspace.
+ */
+export async function verifyPhoneNumber(
+  token: string,
+  phoneNumberId: string
+): Promise<
+  | { ok: true; displayNumber: string | null; verifiedName: string | null }
+  | { ok: false; error: string }
+> {
+  try {
+    const res = await fetch(
+      `${GRAPH}/${phoneNumberId}?fields=display_phone_number,verified_name`,
+      { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(10000) }
+    );
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const msg = (data as { error?: { message?: string } })?.error?.message;
+      return { ok: false, error: msg || `Meta ${res.status}` };
+    }
+    const d = data as { display_phone_number?: string; verified_name?: string };
+    return {
+      ok: true,
+      displayNumber: d.display_phone_number ?? null,
+      verifiedName: d.verified_name ?? null,
+    };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "verify failed" };
+  }
 }
 
 /** Constant-time verification of Meta's X-Hub-Signature-256 over the raw body. */

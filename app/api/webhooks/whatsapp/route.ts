@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse, after } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import {
-  metaConfigured,
-  metaWorkspaceId,
+  workspaceForPhoneNumberId,
   verifyMetaSignature,
 } from "@/lib/whatsapp-cloud";
 import { autoAssignConversation } from "@/lib/routing";
@@ -42,10 +41,6 @@ export async function POST(request: NextRequest) {
   if (!verifyMetaSignature(raw, request.headers.get("x-hub-signature-256"))) {
     return new NextResponse("Invalid signature", { status: 401 });
   }
-  // Always ack fast; Meta retries on non-200.
-  if (!metaConfigured() || !metaWorkspaceId()) {
-    return NextResponse.json({ ok: true });
-  }
 
   let body: unknown;
   try {
@@ -74,7 +69,6 @@ function previewFor(m: WaMessage): string {
 }
 
 async function processWebhook(body: unknown) {
-  const workspaceId = metaWorkspaceId()!;
   const supabase = await createServiceClient();
 
   const entries = (body as { entry?: unknown[] })?.entry ?? [];
@@ -87,8 +81,11 @@ async function processWebhook(body: unknown) {
       if (messages.length === 0) continue; // ignore status callbacks
 
       const phoneNumberId =
-        (value.metadata as { phone_number_id?: string } | undefined)?.phone_number_id ??
-        process.env.META_PHONE_NUMBER_ID!;
+        (value.metadata as { phone_number_id?: string } | undefined)?.phone_number_id;
+      if (!phoneNumberId) continue;
+      // Route to the workspace that owns this number (its own connection or env).
+      const workspaceId = await workspaceForPhoneNumberId(supabase, phoneNumberId);
+      if (!workspaceId) continue;
       const contacts =
         (value.contacts as { wa_id?: string; profile?: { name?: string } }[] | undefined) ?? [];
       const profileName = contacts[0]?.profile?.name ?? null;

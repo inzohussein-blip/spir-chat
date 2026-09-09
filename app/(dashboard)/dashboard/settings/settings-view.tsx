@@ -26,6 +26,7 @@ import { BusinessHoursSection } from "@/components/settings/business-hours-secti
 import { RoutingSection } from "@/components/settings/routing-section";
 import { WeeklyReportSection } from "@/components/settings/weekly-report-section";
 import { LabelRulesSection } from "@/components/settings/label-rules-section";
+import { WhatsAppSection } from "@/components/settings/whatsapp-section";
 import { AiRepliesSection } from "@/components/settings/ai-replies-section";
 import { FollowupSection } from "@/components/settings/followup-section";
 import { AuditLogSection } from "@/components/settings/audit-log-section";
@@ -60,10 +61,12 @@ export function SettingsView({
   workspace,
   labels,
   labelRules,
+  whatsapp,
 }: {
   workspace: WorkspaceSettings;
   labels: { id: string; name: string; color: string | null }[];
   labelRules: { id: string; keyword: string; label_id: string }[];
+  whatsapp: { displayNumber: string | null; verifiedName: string | null } | null;
 }) {
   const { t } = useI18n();
   const [name, setName] = useState(workspace.name);
@@ -252,6 +255,10 @@ export function SettingsView({
           <hr className="border-border" />
 
           <LabelRulesSection labels={labels} rules={labelRules} />
+
+          <hr className="border-border" />
+
+          <WhatsAppSection connection={whatsapp} />
 
           <hr className="border-border" />
 

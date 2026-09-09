@@ -92,10 +92,16 @@ export async function deliverCampaign(
     variant: "a" | "b";
   }[] = [];
 
+  // Dedupe by address so two contact records sharing a phone/email (e.g. the
+  // same person reached on different channels) never receive the campaign twice.
+  const sentTo = new Set<string>();
   for (const c of contacts ?? []) {
     const row = c as Record<string, string | null>;
     const recipient = row[field];
     if (!recipient) continue;
+    const key = recipient.trim().toLowerCase();
+    if (sentTo.has(key)) continue;
+    sentTo.add(key);
     // A/B split: when a second variant exists, pick one at random per recipient.
     const variant: "a" | "b" = bodyB && Math.random() < 0.5 ? "b" : "a";
     const merged = renderMergeVariables(variant === "b" ? bodyB! : campaign.body, {

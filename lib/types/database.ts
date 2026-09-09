@@ -613,6 +613,37 @@ export interface Database {
         };
         Relationships: [];
       };
+      whatsapp_credentials: {
+        Row: {
+          workspace_id: string;
+          phone_number_id: string;
+          waba_id: string | null;
+          display_number: string | null;
+          verified_name: string | null;
+          access_token: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          workspace_id: string;
+          phone_number_id: string;
+          waba_id?: string | null;
+          display_number?: string | null;
+          verified_name?: string | null;
+          access_token: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          phone_number_id?: string;
+          waba_id?: string | null;
+          display_number?: string | null;
+          verified_name?: string | null;
+          access_token?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       outreach_templates: {
         Row: {
           id: string;

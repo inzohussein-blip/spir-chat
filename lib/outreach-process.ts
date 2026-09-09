@@ -2,7 +2,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/types/database";
 import { sendCampaignMessage, type CampaignChannel } from "@/lib/campaigns/providers";
-import { sendCloudTemplate } from "@/lib/whatsapp-cloud";
+import { sendCloudTemplate, resolveWorkspaceMeta } from "@/lib/whatsapp-cloud";
 import { renderMergeVariables } from "@/lib/merge";
 
 type Client = SupabaseClient<Database>;
@@ -64,6 +64,10 @@ export async function processOutreachBatch(
   const templateParams = Array.isArray((batch as { template_params?: unknown }).template_params)
     ? ((batch as { template_params?: unknown }).template_params as string[])
     : [];
+  // Resolve the workspace's WhatsApp Cloud credentials once for template sends.
+  const metaCreds = templateName
+    ? await resolveWorkspaceMeta(supabase, batch.workspace_id)
+    : null;
 
   const { data: recipients } = await supabase
     .from("outreach_recipients")
@@ -85,7 +89,7 @@ export async function processOutreachBatch(
       const params = templateParams.map((p) =>
         renderMergeVariables(p, { display_name: null, email: null, phone: r.recipient })
       );
-      res = await sendCloudTemplate(r.recipient, templateName, templateLang, params);
+      res = await sendCloudTemplate(r.recipient, templateName, templateLang, params, metaCreds);
     } else {
       const body = renderMergeVariables(batch.message, {
         display_name: null,

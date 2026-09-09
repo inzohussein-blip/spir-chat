@@ -4,7 +4,7 @@ import { createZernioClient } from "@/lib/zernio-client";
 import { parseAttachments } from "@/lib/attachments";
 import { parseRichContent } from "@/lib/rich-content";
 import { renderMergeVariables } from "@/lib/merge";
-import { sendCloudText } from "@/lib/whatsapp-cloud";
+import { sendCloudText, resolveWorkspaceMeta } from "@/lib/whatsapp-cloud";
 
 /**
  * GET /api/v1/messages?conversationId=...
@@ -200,7 +200,8 @@ export async function POST(request: NextRequest) {
     if (!phone) {
       return NextResponse.json({ error: "Contact has no phone number" }, { status: 400 });
     }
-    const sendRes = await sendCloudText(phone, text || "");
+    const creds = await resolveWorkspaceMeta(supabase, conversation.workspace_id);
+    const sendRes = await sendCloudText(phone, text || "", creds);
     const { data: message } = await supabase
       .from("messages")
       .insert({
