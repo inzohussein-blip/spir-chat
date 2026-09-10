@@ -27,6 +27,7 @@ import { createOutreachTemplate, deleteOutreachTemplate } from "@/lib/actions/ou
 import { parseRecipients, COUNTRY_CODES, type OutreachChannel } from "@/lib/outreach";
 import { parseCsv } from "@/lib/csv";
 import { PageTitle } from "@/components/page-title";
+import { CampaignPreview } from "@/components/outreach/campaign-preview";
 import { cn } from "@/lib/utils";
 
 interface Template {
@@ -609,8 +610,30 @@ export function OutreachView({
             </div>
           </div>
 
-          {/* History */}
-          <div>
+          {/* Preview + History */}
+          <div className="space-y-6">
+            {/* Live WhatsApp-style preview */}
+            <div>
+              <h2 className="mb-2 text-sm font-semibold">Preview</h2>
+              <CampaignPreview
+                channel={channel}
+                templateMode={templateMode}
+                message={message}
+                subject={subject}
+                sampleRecipient={parsed.valid[0] ?? null}
+                template={{
+                  name: tplName,
+                  lang: tplLang,
+                  params: tplParams.split(",").map((p) => p.trim()).filter(Boolean),
+                  headerText: tplHeaderText,
+                  headerMediaType: tplHeaderMediaType,
+                  headerMediaUrl: tplHeaderMediaUrl,
+                  buttonParam: tplButtonParam,
+                }}
+              />
+            </div>
+
+            <div>
             <h2 className="mb-2 text-sm font-semibold">Recent sends</h2>
             {batches.length === 0 ? (
               <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
@@ -686,6 +709,7 @@ export function OutreachView({
                 })}
               </div>
             )}
+            </div>
           </div>
         </div>
       </div>
