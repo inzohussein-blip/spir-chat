@@ -212,11 +212,11 @@ export function SettingsView({
           <section>
             <div className="flex items-center gap-2">
               <Settings className="h-4 w-4 text-muted-foreground" />
-              <h2 className="text-sm font-semibold">General</h2>
+              <h2 className="text-sm font-semibold">{t.dash.settings.general}</h2>
             </div>
             <div className="mt-4">
               <label className="text-xs font-medium text-muted-foreground">
-                Workspace Name
+                {t.dash.settings.workspaceName}
               </label>
               <input
                 type="text"
@@ -444,10 +444,10 @@ export function SettingsView({
           <section>
             <div className="flex items-center gap-2">
               <Hash className="h-4 w-4 text-muted-foreground" />
-              <h2 className="text-sm font-semibold">Global Keywords</h2>
+              <h2 className="text-sm font-semibold">{t.dash.settings.globalKeywords}</h2>
             </div>
             <p className="mt-1 text-xs text-muted-foreground">
-              Keywords that trigger flows across all channels. Flow-specific triggers take priority over global keywords.
+              {t.dash.settings.globalKeywordsDesc}
             </p>
 
             {/* Keyword input */}
@@ -462,7 +462,7 @@ export function SettingsView({
                     addKeyword();
                   }
                 }}
-                placeholder="Add a keyword..."
+                placeholder={t.dash.settings.addKeyword}
                 className="flex-1 rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               />
               <button
@@ -494,7 +494,7 @@ export function SettingsView({
               </div>
             ) : (
               <p className="mt-3 text-xs text-muted-foreground/70">
-                No global keywords configured
+                {t.dash.settings.noKeywords}
               </p>
             )}
           </section>
@@ -505,17 +505,17 @@ export function SettingsView({
           <section>
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4 text-muted-foreground" />
-              <h2 className="text-sm font-semibold">Team</h2>
+              <h2 className="text-sm font-semibold">{t.dash.settings.team}</h2>
             </div>
             <p className="mt-1 text-xs text-muted-foreground">
-              Manage workspace members and invitations.
+              {t.dash.settings.teamDesc}
             </p>
             <Link
               href="/dashboard/settings/team"
               className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-muted"
             >
               <Users className="h-4 w-4" />
-              Manage Team
+              {t.dash.settings.manageTeam}
               <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
             </Link>
           </section>
@@ -532,12 +532,12 @@ export function SettingsView({
               {saving ? (
                 <>
                   <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
-                  Saving...
+                  {t.dash.settings.saving}
                 </>
               ) : (
                 <>
                   <Save className="h-4 w-4" />
-                  Save Changes
+                  {t.dash.settings.saveChanges}
                 </>
               )}
             </button>
@@ -545,7 +545,7 @@ export function SettingsView({
             {saved && (
               <span className="flex items-center gap-1 text-sm text-green-600">
                 <Check className="h-4 w-4" />
-                Settings saved
+                {t.dash.settings.settingsSaved}
               </span>
             )}
 
