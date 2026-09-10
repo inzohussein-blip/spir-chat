@@ -19,7 +19,10 @@ export async function GET(request: NextRequest) {
   const mode = q.get("hub.mode");
   const token = q.get("hub.verify_token");
   const challenge = q.get("hub.challenge");
-  if (mode === "subscribe" && token && token === process.env.META_VERIFY_TOKEN) {
+  // META_VERIFY_TOKEN kept as a fallback for older deployments.
+  const expected =
+    process.env.META_WEBHOOK_VERIFY_TOKEN ?? process.env.META_VERIFY_TOKEN;
+  if (mode === "subscribe" && token && expected && token === expected) {
     return new NextResponse(challenge ?? "", { status: 200 });
   }
   return new NextResponse("Forbidden", { status: 403 });

@@ -10,7 +10,9 @@ export function verifyWebhookChallenge(params: URLSearchParams): string | null {
   const mode = params.get("hub.mode");
   const token = params.get("hub.verify_token");
   const challenge = params.get("hub.challenge");
-  const expected = process.env.META_WEBHOOK_VERIFY_TOKEN;
+  // META_VERIFY_TOKEN kept as a fallback for older deployments.
+  const expected =
+    process.env.META_WEBHOOK_VERIFY_TOKEN ?? process.env.META_VERIFY_TOKEN;
   if (mode === "subscribe" && expected && token === expected && challenge) {
     return challenge;
   }

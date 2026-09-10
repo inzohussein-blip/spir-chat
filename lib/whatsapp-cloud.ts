@@ -8,7 +8,8 @@ import { decryptToken } from "@/lib/meta/oauth";
 // per-workspace (whatsapp_credentials table) with a fallback to a single
 // deployment-wide env number:
 //   META_WHATSAPP_TOKEN, META_PHONE_NUMBER_ID, META_WORKSPACE_ID
-//   META_VERIFY_TOKEN (webhook challenge), META_APP_SECRET (signature verify)
+//   META_WEBHOOK_VERIFY_TOKEN (webhook challenge; META_VERIFY_TOKEN as a
+//   legacy fallback), META_APP_SECRET (signature verify)
 const GRAPH = "https://graph.facebook.com/v21.0";
 
 type Client = SupabaseClient<Database>;
