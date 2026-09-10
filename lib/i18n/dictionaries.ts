@@ -313,6 +313,14 @@ const en = {
       primary: "Get started free",
     },
   },
+  errors: {
+    notFoundTitle: "Page not found",
+    notFoundDesc: "The page you're looking for doesn't exist or has moved.",
+    goHome: "Go to dashboard",
+    errorTitle: "Something went wrong",
+    errorDesc: "An unexpected error occurred. Please try again.",
+    tryAgain: "Try again",
+  },
 };
 
 export type Dictionary = typeof en;
@@ -627,6 +635,14 @@ const ar: Dictionary = {
       sub: "أضف لايف شات إلى موقعك واربط حساباتك الاجتماعية خلال دقائق. ابدأ مجاناً.",
       primary: "ابدأ مجاناً",
     },
+  },
+  errors: {
+    notFoundTitle: "الصفحة غير موجودة",
+    notFoundDesc: "الصفحة التي تبحث عنها غير موجودة أو تم نقلها.",
+    goHome: "الذهاب إلى لوحة التحكم",
+    errorTitle: "حدث خطأ ما",
+    errorDesc: "وقع خطأ غير متوقع. يُرجى المحاولة مرة أخرى.",
+    tryAgain: "إعادة المحاولة",
   },
 };
 
