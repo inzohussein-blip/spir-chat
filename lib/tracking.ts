@@ -20,7 +20,13 @@ export function buildTrackedUrl(slug: string, baseUrl: string = SITE_URL): strin
 /** Hash a click's IP with the app secret so raw IPs are never stored. */
 export function hashClickIp(ipAddress: string | null | undefined): string | null {
   if (!ipAddress) return null;
-  const salt = process.env.NEXTAUTH_SECRET ?? process.env.CRON_SECRET ?? "spirchat-click-salt";
+  // Purpose-named salt; NEXTAUTH_SECRET kept as a legacy fallback so existing
+  // deployments' click hashes stay stable, then CRON_SECRET, then a default.
+  const salt =
+    process.env.CLICK_HASH_SALT ??
+    process.env.NEXTAUTH_SECRET ??
+    process.env.CRON_SECRET ??
+    "spirchat-click-salt";
   return createHash("sha256").update(`${salt}:${ipAddress}`).digest("hex");
 }
 
