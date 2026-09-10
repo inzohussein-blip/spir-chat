@@ -4,10 +4,9 @@ import { useState } from "react";
 import { Clock, Check, Save } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/components/i18n-provider";
 import type { BusinessHours, DayHours } from "@/lib/business-hours";
 import type { Json } from "@/lib/types/database";
-
-const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 // A short, curated timezone list covering the Arabic market + common zones.
 const TIMEZONES = [
@@ -33,6 +32,9 @@ export function BusinessHoursSection({
   workspaceId: string;
   initial: BusinessHours;
 }) {
+  const { t } = useI18n();
+  const s = t.dash.settings;
+  const DAY_LABELS = s.hours.days;
   const [enabled, setEnabled] = useState(initial.enabled);
   const [timezone, setTimezone] = useState(initial.timezone);
   const [days, setDays] = useState<DayHours[]>(initial.days);
@@ -68,12 +70,9 @@ export function BusinessHoursSection({
     <section>
       <div className="flex items-center gap-2">
         <Clock className="h-4 w-4 text-muted-foreground" />
-        <h2 className="text-sm font-semibold">Business hours &amp; auto-reply</h2>
+        <h2 className="text-sm font-semibold">{s.hours.title}</h2>
       </div>
-      <p className="mt-1 text-xs text-muted-foreground">
-        Outside these hours, the website widget shows an away status and sends
-        your offline auto-reply on the visitor&apos;s first message.
-      </p>
+      <p className="mt-1 text-xs text-muted-foreground">{s.hours.desc}</p>
 
       <div className="mt-4 rounded-xl border border-border bg-card p-5 shadow-card">
         <label className="flex items-center gap-2 text-sm font-medium">
@@ -83,13 +82,13 @@ export function BusinessHoursSection({
             onChange={(e) => setEnabled(e.target.checked)}
             className="h-4 w-4 rounded border-border"
           />
-          Enable business hours
+          {s.hours.enable}
         </label>
 
         <div className={cn("mt-4 space-y-4", !enabled && "opacity-50")}>
           <div>
             <label className="text-xs font-medium text-muted-foreground">
-              Timezone
+              {s.hours.timezone}
             </label>
             <select
               value={timezone}
@@ -134,7 +133,7 @@ export function BusinessHoursSection({
                   className="rounded-lg border border-border bg-background px-2 py-1 text-sm outline-none focus:border-primary disabled:opacity-40"
                 />
                 {!d.open && (
-                  <span className="text-xs text-muted-foreground">Closed</span>
+                  <span className="text-xs text-muted-foreground">{s.hours.closed}</span>
                 )}
               </div>
             ))}
@@ -142,14 +141,14 @@ export function BusinessHoursSection({
 
           <div>
             <label className="text-xs font-medium text-muted-foreground">
-              Offline auto-reply
+              {s.hours.offlineReply}
             </label>
             <textarea
               value={replyOffline}
               disabled={!enabled}
               onChange={(e) => setReplyOffline(e.target.value)}
               rows={2}
-              placeholder="We're closed right now — leave a message and we'll get back to you."
+              placeholder={s.hours.offlinePlaceholder}
               className="mt-1 w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
             />
           </div>
@@ -163,11 +162,11 @@ export function BusinessHoursSection({
           >
             {saved ? (
               <>
-                <Check className="h-3.5 w-3.5 text-emerald-600" /> Saved
+                <Check className="h-3.5 w-3.5 text-emerald-600" /> {s.saved}
               </>
             ) : (
               <>
-                <Save className="h-3.5 w-3.5" /> Save hours
+                <Save className="h-3.5 w-3.5" /> {s.hours.saveHours}
               </>
             )}
           </button>

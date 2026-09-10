@@ -23,6 +23,7 @@ import {
 } from "@/lib/actions/team";
 import Link from "next/link";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { useI18n } from "@/components/i18n-provider";
 
 interface MemberDetail {
   userId: string;
@@ -91,6 +92,8 @@ export function TeamView({
   pendingInvites: PendingInvite[];
 }) {
   const router = useRouter();
+  const { t } = useI18n();
+  const tp = t.dash.settings.teamPage;
   const isOwner = currentUserRole === "owner";
 
   const [members, setMembers] = useState(initialMembers);
@@ -168,9 +171,9 @@ export function TeamView({
             <ArrowLeft className="h-4 w-4" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold">Team</h1>
+            <h1 className="text-2xl font-bold">{tp.title}</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Manage members and invitations for {workspaceName}
+              {tp.manageFor.replace("{name}", workspaceName)}
             </p>
           </div>
         </div>
@@ -183,7 +186,7 @@ export function TeamView({
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4 text-muted-foreground" />
               <h2 className="text-sm font-semibold">
-                Members ({members.length})
+                {tp.membersCount.replace("{n}", String(members.length))}
               </h2>
             </div>
 
@@ -200,7 +203,7 @@ export function TeamView({
                       </div>
                       {isOnline(member.lastSeenAt) && (
                         <span
-                          title={member.isAway ? "Away" : "Online"}
+                          title={member.isAway ? tp.away : tp.online}
                           className={cn(
                             "absolute -bottom-0.5 -end-0.5 h-3 w-3 rounded-full border-2 border-card",
                             member.isAway ? "bg-amber-500" : "bg-green-500"
@@ -215,21 +218,21 @@ export function TeamView({
                         </p>
                         {member.userId === currentUserId && (
                           <span className="shrink-0 text-[10px] text-muted-foreground">
-                            (you)
+                            {tp.you}
                           </span>
                         )}
                         {member.isAway ? (
                           <span className="shrink-0 text-[10px] font-medium text-amber-600">
-                            Away
+                            {tp.away}
                           </span>
                         ) : isOnline(member.lastSeenAt) ? (
                           <span className="shrink-0 text-[10px] font-medium text-green-600">
-                            Online
+                            {tp.online}
                           </span>
                         ) : (
                           lastActive(member.lastSeenAt) && (
                             <span className="shrink-0 text-[10px] text-muted-foreground">
-                              active {lastActive(member.lastSeenAt)}
+                              {tp.activePrefix} {lastActive(member.lastSeenAt)}
                             </span>
                           )
                         )}
@@ -252,7 +255,7 @@ export function TeamView({
                     </span>
 
                     <span className="text-[10px] text-muted-foreground whitespace-nowrap">
-                      Joined{" "}
+                      {tp.joined}{" "}
                       {new Date(member.joinedAt).toLocaleDateString("en-US", {
                         month: "short",
                         day: "numeric",
@@ -267,7 +270,7 @@ export function TeamView({
                         }
                         disabled={removingId === member.userId}
                         className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
-                        title="Remove member"
+                        title={tp.removeMember}
                       >
                         {removingId === member.userId ? (
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -290,11 +293,9 @@ export function TeamView({
               <section>
                 <div className="flex items-center gap-2">
                   <Mail className="h-4 w-4 text-muted-foreground" />
-                  <h2 className="text-sm font-semibold">Invite a Member</h2>
+                  <h2 className="text-sm font-semibold">{tp.inviteMember}</h2>
                 </div>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Send an invitation link. The invite expires in 7 days.
-                </p>
+                <p className="mt-1 text-xs text-muted-foreground">{tp.inviteDesc}</p>
 
                 <form onSubmit={handleInvite} className="mt-4 flex gap-2">
                   <input
@@ -304,7 +305,7 @@ export function TeamView({
                       setInviteEmail(e.target.value);
                       setInviteError(null);
                     }}
-                    placeholder="colleague@example.com"
+                    placeholder={tp.invitePlaceholder}
                     required
                     className="flex-1 rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   />
@@ -313,8 +314,8 @@ export function TeamView({
                     onChange={(e) => setInviteRole(e.target.value)}
                     className="rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                   >
-                    <option value="member">Member</option>
-                    <option value="admin">Admin</option>
+                    <option value="member">{tp.roleMember}</option>
+                    <option value="admin">{tp.roleAdmin}</option>
                   </select>
                   <button
                     type="submit"
@@ -326,7 +327,7 @@ export function TeamView({
                     ) : (
                       <Plus className="h-4 w-4" />
                     )}
-                    {inviting ? "Inviting..." : "Invite"}
+                    {inviting ? tp.inviting : tp.invite}
                   </button>
                 </form>
 
@@ -334,9 +335,7 @@ export function TeamView({
                   <p className="mt-2 text-xs text-destructive">{inviteError}</p>
                 )}
                 {inviteSuccess && (
-                  <p className="mt-2 text-xs text-green-600">
-                    Invite sent successfully!
-                  </p>
+                  <p className="mt-2 text-xs text-green-600">{tp.inviteSent}</p>
                 )}
               </section>
             </>
@@ -351,7 +350,7 @@ export function TeamView({
                 <div className="flex items-center gap-2">
                   <Clock className="h-4 w-4 text-muted-foreground" />
                   <h2 className="text-sm font-semibold">
-                    Pending Invites ({invites.length})
+                    {tp.pendingInvites.replace("{n}", String(invites.length))}
                   </h2>
                 </div>
 
@@ -387,11 +386,11 @@ export function TeamView({
                               </span>
                               {isExpired ? (
                                 <span className="text-[10px] text-destructive">
-                                  Expired
+                                  {tp.expired}
                                 </span>
                               ) : (
                                 <span className="text-[10px] text-muted-foreground">
-                                  Expires{" "}
+                                  {tp.expires}{" "}
                                   {new Date(
                                     invite.expires_at
                                   ).toLocaleDateString("en-US", {
@@ -409,7 +408,7 @@ export function TeamView({
                             onClick={() => setConfirmRevoke(invite.id)}
                             disabled={revokingId === invite.id}
                             className="shrink-0 ml-4 rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
-                            title="Revoke invite"
+                            title={tp.revokeInvite}
                           >
                             {revokingId === invite.id ? (
                               <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -429,9 +428,9 @@ export function TeamView({
       </div>
       <ConfirmDialog
         open={!!confirmRemove}
-        title="Remove member"
-        message={`Are you sure you want to remove ${confirmRemove?.name ?? "this member"} from the workspace?`}
-        confirmLabel="Remove"
+        title={tp.removeMember}
+        message={tp.removeConfirm.replace("{name}", confirmRemove?.name ?? tp.roleMember)}
+        confirmLabel={tp.remove}
         destructive
         onConfirm={() => {
           if (confirmRemove) handleRemove(confirmRemove.userId);
@@ -441,9 +440,9 @@ export function TeamView({
       />
       <ConfirmDialog
         open={!!confirmRevoke}
-        title="Revoke invite"
-        message="Are you sure you want to revoke this invitation?"
-        confirmLabel="Revoke"
+        title={tp.revokeInvite}
+        message={tp.revokeConfirm}
+        confirmLabel={tp.revoke}
         destructive
         onConfirm={() => {
           if (confirmRevoke) handleRevoke(confirmRevoke);

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { LineChart, Check, Save } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { useI18n } from "@/components/i18n-provider";
 
 export function WeeklyReportSection({
   workspaceId,
@@ -11,6 +12,8 @@ export function WeeklyReportSection({
   workspaceId: string;
   initialEmail: string | null;
 }) {
+  const { t } = useI18n();
+  const s = t.dash.settings;
   const [email, setEmail] = useState(initialEmail ?? "");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -31,13 +34,9 @@ export function WeeklyReportSection({
     <section>
       <div className="flex items-center gap-2">
         <LineChart className="h-4 w-4 text-muted-foreground" />
-        <h2 className="text-sm font-semibold">Weekly email report</h2>
+        <h2 className="text-sm font-semibold">{s.weekly.title}</h2>
       </div>
-      <p className="mt-1 text-xs text-muted-foreground">
-        Get a weekly summary of conversations, replies, contacts, and CSAT
-        emailed to you. Leave blank to turn it off. Requires the email provider
-        to be configured.
-      </p>
+      <p className="mt-1 text-xs text-muted-foreground">{s.weekly.desc}</p>
 
       <div className="mt-4 flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card p-5 shadow-card">
         <input
@@ -54,11 +53,11 @@ export function WeeklyReportSection({
         >
           {saved ? (
             <>
-              <Check className="h-3.5 w-3.5 text-emerald-600" /> Saved
+              <Check className="h-3.5 w-3.5 text-emerald-600" /> {s.saved}
             </>
           ) : (
             <>
-              <Save className="h-3.5 w-3.5" /> Save
+              <Save className="h-3.5 w-3.5" /> {s.save}
             </>
           )}
         </button>

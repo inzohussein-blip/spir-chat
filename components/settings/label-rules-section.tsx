@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Tags, Plus, Trash2, ArrowRight } from "lucide-react";
 import { createLabelRule, deleteLabelRule } from "@/lib/actions/label-rules";
+import { useI18n } from "@/components/i18n-provider";
 
 interface Label {
   id: string;
@@ -24,6 +25,8 @@ export function LabelRulesSection({
   rules: Rule[];
 }) {
   const router = useRouter();
+  const { t } = useI18n();
+  const s = t.dash.settings;
   const [keyword, setKeyword] = useState("");
   const [labelId, setLabelId] = useState("");
   const [busy, setBusy] = useState(false);
@@ -46,18 +49,13 @@ export function LabelRulesSection({
     <section>
       <div className="flex items-center gap-2">
         <Tags className="h-4 w-4 text-muted-foreground" />
-        <h2 className="text-sm font-semibold">Auto-labeling</h2>
+        <h2 className="text-sm font-semibold">{s.labels.title}</h2>
       </div>
-      <p className="mt-1 text-xs text-muted-foreground">
-        When an incoming message contains a keyword, its label is added to the
-        conversation automatically.
-      </p>
+      <p className="mt-1 text-xs text-muted-foreground">{s.labels.desc}</p>
 
       <div className="mt-4 space-y-3 rounded-xl border border-border bg-card p-5 shadow-card">
         {labels.length === 0 ? (
-          <p className="text-xs text-muted-foreground">
-            Create a label in the inbox first, then add rules here.
-          </p>
+          <p className="text-xs text-muted-foreground">{s.labels.needLabel}</p>
         ) : (
           <>
             {rules.length > 0 && (
@@ -77,7 +75,7 @@ export function LabelRulesSection({
                         await deleteLabelRule(r.id);
                         router.refresh();
                       }}
-                      aria-label="Delete rule"
+                      aria-label={s.labels.deleteRule}
                       className="ms-auto rounded-md p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
@@ -91,7 +89,7 @@ export function LabelRulesSection({
               <input
                 value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}
-                placeholder="Keyword, e.g. refund"
+                placeholder={s.labels.keywordPlaceholder}
                 className="min-w-0 flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
               />
               <ArrowRight className="h-4 w-4 text-muted-foreground" />
@@ -100,7 +98,7 @@ export function LabelRulesSection({
                 onChange={(e) => setLabelId(e.target.value)}
                 className="rounded-lg border border-border bg-background px-2 py-2 text-sm outline-none"
               >
-                <option value="">Label…</option>
+                <option value="">{s.labels.labelPlaceholder}</option>
                 {labels.map((l) => (
                   <option key={l.id} value={l.id}>
                     {l.name}
@@ -112,7 +110,7 @@ export function LabelRulesSection({
                 disabled={!keyword.trim() || !labelId || busy}
                 className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
               >
-                <Plus className="h-4 w-4" /> Add rule
+                <Plus className="h-4 w-4" /> {s.labels.addRule}
               </button>
             </div>
             {error && <p className="text-xs text-destructive">{error}</p>}

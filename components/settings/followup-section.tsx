@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { MessageCircle, Check, Save } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { useI18n } from "@/components/i18n-provider";
 
 export function FollowupSection({
   workspaceId,
@@ -13,6 +14,8 @@ export function FollowupSection({
   initialMinutes: number;
   initialMessage: string | null;
 }) {
+  const { t } = useI18n();
+  const s = t.dash.settings;
   const [minutes, setMinutes] = useState(initialMinutes);
   const [message, setMessage] = useState(initialMessage ?? "");
   const [saving, setSaving] = useState(false);
@@ -37,17 +40,14 @@ export function FollowupSection({
     <section>
       <div className="flex items-center gap-2">
         <MessageCircle className="h-4 w-4 text-muted-foreground" />
-        <h2 className="text-sm font-semibold">Visitor follow-up</h2>
+        <h2 className="text-sm font-semibold">{s.followup.title}</h2>
       </div>
-      <p className="mt-1 text-xs text-muted-foreground">
-        If a website visitor goes quiet after being replied to, send one
-        follow-up nudge. Set minutes to 0 to turn it off.
-      </p>
+      <p className="mt-1 text-xs text-muted-foreground">{s.followup.desc}</p>
 
       <div className="mt-4 space-y-3 rounded-xl border border-border bg-card p-5 shadow-card">
         <div className="flex items-center gap-2">
           <label className="text-xs font-medium text-muted-foreground">
-            Follow up after
+            {s.followup.after}
           </label>
           <input
             type="number"
@@ -56,13 +56,13 @@ export function FollowupSection({
             onChange={(e) => setMinutes(Number(e.target.value))}
             className="w-24 rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
           />
-          <span className="text-xs text-muted-foreground">minutes of silence</span>
+          <span className="text-xs text-muted-foreground">{s.followup.minutesSilence}</span>
         </div>
         <textarea
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           rows={2}
-          placeholder="Still there? Let me know if there's anything else I can help with 🙂"
+          placeholder={s.followup.placeholder}
           className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
         />
         <div className="flex justify-end">
@@ -73,11 +73,11 @@ export function FollowupSection({
           >
             {saved ? (
               <>
-                <Check className="h-3.5 w-3.5 text-emerald-600" /> Saved
+                <Check className="h-3.5 w-3.5 text-emerald-600" /> {s.saved}
               </>
             ) : (
               <>
-                <Save className="h-3.5 w-3.5" /> Save
+                <Save className="h-3.5 w-3.5" /> {s.save}
               </>
             )}
           </button>

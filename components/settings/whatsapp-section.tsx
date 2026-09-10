@@ -9,6 +9,7 @@ import {
 } from "@/lib/actions/whatsapp-connect";
 import { useRouter } from "next/navigation";
 import { EmbeddedSignupButton } from "@/components/settings/embedded-signup-button";
+import { useI18n } from "@/components/i18n-provider";
 
 export function WhatsAppSection({
   connection,
@@ -16,6 +17,8 @@ export function WhatsAppSection({
   connection: { displayNumber: string | null; verifiedName: string | null } | null;
 }) {
   const router = useRouter();
+  const { t } = useI18n();
+  const s = t.dash.settings;
   const [token, setToken] = useState("");
   const [phoneNumberId, setPhoneNumberId] = useState("");
   const [wabaId, setWabaId] = useState("");
@@ -39,7 +42,7 @@ export function WhatsAppSection({
   }
 
   async function disconnect() {
-    if (!confirm("Disconnect WhatsApp from this workspace?")) return;
+    if (!confirm(s.wa.disconnectConfirm)) return;
     setBusy(true);
     await disconnectWhatsAppCloud();
     setBusy(false);
@@ -54,7 +57,11 @@ export function WhatsAppSection({
     setBusy(false);
     if ("error" in res && res.error) setError(res.error);
     else if ("ok" in res && res.ok)
-      setNotice(`Synced ${res.total} templates (${res.approved} approved).`);
+      setNotice(
+        s.wa.templatesSynced
+          .replace("{total}", String(res.total))
+          .replace("{approved}", String(res.approved))
+      );
     router.refresh();
   }
 
@@ -62,12 +69,9 @@ export function WhatsAppSection({
     <section>
       <div className="flex items-center gap-2">
         <MessageCircle className="h-4 w-4 text-muted-foreground" />
-        <h2 className="text-sm font-semibold">WhatsApp (Official — Meta Cloud API)</h2>
+        <h2 className="text-sm font-semibold">{s.wa.title}</h2>
       </div>
-      <p className="mt-1 text-xs text-muted-foreground">
-        Connect your own WhatsApp Business number. We verify it against Meta, then
-        two-way chat lands in the Inbox and you can run template campaigns.
-      </p>
+      <p className="mt-1 text-xs text-muted-foreground">{s.wa.desc}</p>
 
       {notice && (
         <p className="mt-2 text-xs text-emerald-600">{notice}</p>
@@ -81,10 +85,10 @@ export function WhatsAppSection({
               </span>
               <div>
                 <p className="text-sm font-medium">
-                  {connection.verifiedName || "Connected"}
+                  {connection.verifiedName || s.wa.connected}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {connection.displayNumber || "WhatsApp number connected"}
+                  {connection.displayNumber || s.wa.numberConnected}
                 </p>
               </div>
             </div>
@@ -94,14 +98,14 @@ export function WhatsAppSection({
                 disabled={busy}
                 className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted disabled:opacity-50"
               >
-                <RefreshCw className={busy ? "h-3.5 w-3.5 animate-spin" : "h-3.5 w-3.5"} /> Sync templates
+                <RefreshCw className={busy ? "h-3.5 w-3.5 animate-spin" : "h-3.5 w-3.5"} /> {s.wa.syncTemplates}
               </button>
               <button
                 onClick={disconnect}
                 disabled={busy}
                 className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted disabled:opacity-50"
               >
-                <Unplug className="h-3.5 w-3.5" /> Disconnect
+                <Unplug className="h-3.5 w-3.5" /> {s.wa.disconnect}
               </button>
             </div>
           </div>
@@ -111,34 +115,32 @@ export function WhatsAppSection({
             <input
               value={phoneNumberId}
               onChange={(e) => setPhoneNumberId(e.target.value)}
-              placeholder="Phone number ID (from Meta WhatsApp dashboard)"
+              placeholder={s.wa.phoneIdPlaceholder}
               className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
             />
             <input
               value={wabaId}
               onChange={(e) => setWabaId(e.target.value)}
-              placeholder="WhatsApp Business Account ID (for template sync — optional)"
+              placeholder={s.wa.wabaIdPlaceholder}
               className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
             />
             <input
               value={token}
               onChange={(e) => setToken(e.target.value)}
               type="password"
-              placeholder="Access token"
+              placeholder={s.wa.tokenPlaceholder}
               className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
             />
             {error && <p className="text-xs text-destructive">{error}</p>}
             <div className="flex items-center justify-between">
-              <p className="text-[11px] text-muted-foreground">
-                Get these from developers.facebook.com → your app → WhatsApp → API Setup.
-              </p>
+              <p className="text-[11px] text-muted-foreground">{s.wa.credsHint}</p>
               <button
                 onClick={connect}
                 disabled={busy || !token.trim() || !phoneNumberId.trim()}
                 className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground disabled:opacity-50"
               >
                 {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plug className="h-3.5 w-3.5" />}
-                Verify &amp; connect
+                {s.wa.verifyConnect}
               </button>
             </div>
           </div>

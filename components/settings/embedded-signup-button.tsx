@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Facebook, Loader2 } from "lucide-react";
 import { completeEmbeddedSignup } from "@/lib/actions/whatsapp-connect";
+import { useI18n } from "@/components/i18n-provider";
 
 const APP_ID = process.env.NEXT_PUBLIC_FACEBOOK_APP_ID;
 const CONFIG_ID = process.env.NEXT_PUBLIC_META_CONFIG_ID;
@@ -17,6 +18,8 @@ const CONFIG_ID = process.env.NEXT_PUBLIC_META_CONFIG_ID;
  */
 export function EmbeddedSignupButton() {
   const router = useRouter();
+  const { t } = useI18n();
+  const s = t.dash.settings;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const session = useRef<{ phoneNumberId?: string; wabaId?: string }>({});
@@ -60,7 +63,7 @@ export function EmbeddedSignupButton() {
   function launch() {
     const FB = (window as any).FB;
     if (!FB) {
-      setError("Facebook SDK still loading — try again in a moment.");
+      setError(s.wa.sdkLoading);
       return;
     }
     setError(null);
@@ -69,7 +72,7 @@ export function EmbeddedSignupButton() {
         const code = response?.authResponse?.code;
         const { phoneNumberId, wabaId } = session.current;
         if (!code || !phoneNumberId) {
-          setError("Signup was cancelled or incomplete.");
+          setError(s.wa.signupCancelled);
           return;
         }
         setBusy(true);
@@ -95,12 +98,10 @@ export function EmbeddedSignupButton() {
         className="inline-flex items-center gap-2 rounded-lg bg-[#1877F2] px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
       >
         {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Facebook className="h-4 w-4" />}
-        Connect with Facebook
+        {s.wa.connectFacebook}
       </button>
       {error && <p className="mt-1 text-xs text-destructive">{error}</p>}
-      <p className="mt-1 text-[11px] text-muted-foreground">
-        One-click onboarding — or enter your credentials manually below.
-      </p>
+      <p className="mt-1 text-[11px] text-muted-foreground">{s.wa.oneClick}</p>
     </div>
   );
 }

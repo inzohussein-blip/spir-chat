@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Users, Check, Save } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { useI18n } from "@/components/i18n-provider";
 
 export function RoutingSection({
   workspaceId,
@@ -19,6 +20,8 @@ export function RoutingSection({
   initialAgentCap: number;
   initialAutoCloseDays: number;
 }) {
+  const { t } = useI18n();
+  const s = t.dash.settings;
   const [autoAssign, setAutoAssign] = useState(initialAutoAssign);
   const [slaMinutes, setSlaMinutes] = useState(initialSlaMinutes);
   const [csatEnabled, setCsatEnabled] = useState(initialCsatEnabled);
@@ -50,31 +53,28 @@ export function RoutingSection({
     <section>
       <div className="flex items-center gap-2">
         <Users className="h-4 w-4 text-muted-foreground" />
-        <h2 className="text-sm font-semibold">Routing &amp; SLA</h2>
+        <h2 className="text-sm font-semibold">{s.routing.title}</h2>
       </div>
-      <p className="mt-1 text-xs text-muted-foreground">
-        Automatically assign new conversations and flag ones waiting too long for
-        a first reply.
-      </p>
+      <p className="mt-1 text-xs text-muted-foreground">{s.routing.desc}</p>
 
       <div className="mt-4 space-y-4 rounded-xl border border-border bg-card p-5 shadow-card">
         <div>
           <label className="text-xs font-medium text-muted-foreground">
-            Auto-assign new conversations
+            {s.routing.autoAssign}
           </label>
           <select
             value={autoAssign}
             onChange={(e) => setAutoAssign(e.target.value)}
             className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
           >
-            <option value="off">Off — leave unassigned</option>
-            <option value="round_robin">Round-robin — least busy agent</option>
+            <option value="off">{s.routing.off}</option>
+            <option value="round_robin">{s.routing.roundRobin}</option>
           </select>
         </div>
 
         <div>
           <label className="text-xs font-medium text-muted-foreground">
-            First-response SLA (minutes)
+            {s.routing.sla}
           </label>
           <input
             type="number"
@@ -83,15 +83,12 @@ export function RoutingSection({
             onChange={(e) => setSlaMinutes(Number(e.target.value))}
             className="mt-1 w-32 rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
           />
-          <p className="mt-1 text-[11px] text-muted-foreground">
-            0 disables. Conversations awaiting a reply past this show an SLA badge
-            in the inbox.
-          </p>
+          <p className="mt-1 text-[11px] text-muted-foreground">{s.routing.slaHint}</p>
         </div>
 
         <div>
           <label className="text-xs font-medium text-muted-foreground">
-            Max open conversations per agent
+            {s.routing.cap}
           </label>
           <input
             type="number"
@@ -100,15 +97,12 @@ export function RoutingSection({
             onChange={(e) => setAgentCap(Number(e.target.value))}
             className="mt-1 w-32 rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
           />
-          <p className="mt-1 text-[11px] text-muted-foreground">
-            0 = no cap. Round-robin skips agents already at this many open
-            conversations (leaving new ones unassigned).
-          </p>
+          <p className="mt-1 text-[11px] text-muted-foreground">{s.routing.capHint}</p>
         </div>
 
         <div>
           <label className="text-xs font-medium text-muted-foreground">
-            Auto-close inactive conversations (days)
+            {s.routing.autoClose}
           </label>
           <input
             type="number"
@@ -117,10 +111,7 @@ export function RoutingSection({
             onChange={(e) => setAutoCloseDays(Number(e.target.value))}
             className="mt-1 w-32 rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
           />
-          <p className="mt-1 text-[11px] text-muted-foreground">
-            0 disables. Open conversations with no activity for this many days are
-            resolved automatically by the daily job.
-          </p>
+          <p className="mt-1 text-[11px] text-muted-foreground">{s.routing.autoCloseHint}</p>
         </div>
 
         <label className="flex items-start gap-2 text-sm font-medium">
@@ -131,10 +122,9 @@ export function RoutingSection({
             className="mt-0.5 h-4 w-4 rounded border-border"
           />
           <span>
-            Satisfaction survey on resolve
+            {s.routing.csat}
             <span className="mt-0.5 block text-[11px] font-normal text-muted-foreground">
-              When you resolve a conversation, the contact gets a link to rate it (1–5).
-              Results show in Reports.
+              {s.routing.csatHint}
             </span>
           </span>
         </label>
@@ -147,11 +137,11 @@ export function RoutingSection({
           >
             {saved ? (
               <>
-                <Check className="h-3.5 w-3.5 text-emerald-600" /> Saved
+                <Check className="h-3.5 w-3.5 text-emerald-600" /> {s.saved}
               </>
             ) : (
               <>
-                <Save className="h-3.5 w-3.5" /> Save
+                <Save className="h-3.5 w-3.5" /> {s.save}
               </>
             )}
           </button>

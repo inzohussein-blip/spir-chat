@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { ScrollText, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { describeAudit } from "@/lib/audit";
+import { useI18n } from "@/components/i18n-provider";
 
 interface AuditRow {
   id: string;
@@ -23,6 +24,8 @@ function formatWhen(iso: string): string {
 }
 
 export function AuditLogSection({ workspaceId }: { workspaceId: string }) {
+  const { t } = useI18n();
+  const s = t.dash.settings;
   const [rows, setRows] = useState<AuditRow[] | null>(null);
 
   useEffect(() => {
@@ -45,22 +48,17 @@ export function AuditLogSection({ workspaceId }: { workspaceId: string }) {
     <section>
       <div className="flex items-center gap-2">
         <ScrollText className="h-4 w-4 text-muted-foreground" />
-        <h2 className="text-sm font-semibold">Audit log</h2>
+        <h2 className="text-sm font-semibold">{s.audit.title}</h2>
       </div>
-      <p className="mt-1 text-xs text-muted-foreground">
-        A record of consequential actions — member changes, campaign sends, and
-        data erasure. Read-only.
-      </p>
+      <p className="mt-1 text-xs text-muted-foreground">{s.audit.desc}</p>
 
       <div className="mt-4 rounded-xl border border-border bg-card shadow-card">
         {rows === null ? (
           <div className="flex items-center justify-center gap-2 p-6 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" /> Loading…
+            <Loader2 className="h-4 w-4 animate-spin" /> {s.audit.loading}
           </div>
         ) : rows.length === 0 ? (
-          <p className="p-6 text-center text-sm text-muted-foreground">
-            No recorded actions yet.
-          </p>
+          <p className="p-6 text-center text-sm text-muted-foreground">{s.audit.empty}</p>
         ) : (
           <ul className="divide-y divide-border">
             {rows.map((r) => (

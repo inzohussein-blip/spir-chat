@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Sparkles, Check, Save } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { useI18n } from "@/components/i18n-provider";
 
 export function AiRepliesSection({
   workspaceId,
@@ -11,6 +12,8 @@ export function AiRepliesSection({
   workspaceId: string;
   initialEnabled: boolean;
 }) {
+  const { t } = useI18n();
+  const s = t.dash.settings;
   const [enabled, setEnabled] = useState(initialEnabled);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -31,14 +34,9 @@ export function AiRepliesSection({
     <section>
       <div className="flex items-center gap-2">
         <Sparkles className="h-4 w-4 text-muted-foreground" />
-        <h2 className="text-sm font-semibold">AI auto-reply</h2>
+        <h2 className="text-sm font-semibold">{s.ai.title}</h2>
       </div>
-      <p className="mt-1 text-xs text-muted-foreground">
-        Answer website visitors automatically from your published Help Center
-        articles. The bot only replies when it&apos;s confident and the chat
-        isn&apos;t already assigned to an agent. Needs an AI key (workspace or
-        the AI_GATEWAY_API_KEY environment variable).
-      </p>
+      <p className="mt-1 text-xs text-muted-foreground">{s.ai.desc}</p>
 
       <div className="mt-4 flex items-center justify-between rounded-xl border border-border bg-card p-5 shadow-card">
         <label className="flex items-center gap-2 text-sm font-medium">
@@ -48,7 +46,7 @@ export function AiRepliesSection({
             onChange={(e) => setEnabled(e.target.checked)}
             className="h-4 w-4 rounded border-border"
           />
-          Answer from Help Center
+          {s.ai.answerFromHelp}
         </label>
         <button
           onClick={save}
@@ -57,11 +55,11 @@ export function AiRepliesSection({
         >
           {saved ? (
             <>
-              <Check className="h-3.5 w-3.5 text-emerald-600" /> Saved
+              <Check className="h-3.5 w-3.5 text-emerald-600" /> {s.saved}
             </>
           ) : (
             <>
-              <Save className="h-3.5 w-3.5" /> Save
+              <Save className="h-3.5 w-3.5" /> {s.save}
             </>
           )}
         </button>
