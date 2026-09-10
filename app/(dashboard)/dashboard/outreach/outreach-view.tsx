@@ -83,6 +83,62 @@ function formatDate(iso: string): string {
   });
 }
 
+/** Compact delivery donut: sent (green) / failed (red) / pending (muted). */
+function DeliveryDonut({
+  sent,
+  failed,
+  pending,
+}: {
+  sent: number;
+  failed: number;
+  pending: number;
+}) {
+  const total = sent + failed + pending || 1;
+  const C = 100; // circle sized so its circumference is 100 units
+  const segs = [
+    { v: sent, color: "#10b981" },
+    { v: failed, color: "#ef4444" },
+  ];
+  const pct = Math.round(((sent + failed) / total) * 100);
+  let offset = 0;
+  return (
+    <div className="relative h-12 w-12 shrink-0">
+      <svg viewBox="0 0 40 40" className="h-12 w-12 -rotate-90">
+        <circle
+          cx="20"
+          cy="20"
+          r="15.9155"
+          fill="none"
+          strokeWidth="4"
+          className="stroke-muted"
+        />
+        {segs.map((s, i) => {
+          const len = (s.v / total) * C;
+          const el = (
+            <circle
+              key={i}
+              cx="20"
+              cy="20"
+              r="15.9155"
+              fill="none"
+              stroke={s.color}
+              strokeWidth="4"
+              strokeDasharray={`${len} ${C - len}`}
+              strokeDashoffset={-offset}
+              strokeLinecap="round"
+            />
+          );
+          offset += len;
+          return el;
+        })}
+      </svg>
+      <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold">
+        {pct}%
+      </span>
+    </div>
+  );
+}
+
 export function OutreachView({
   templates,
   batches,
@@ -642,8 +698,6 @@ export function OutreachView({
             ) : (
               <div className="space-y-2">
                 {batches.map((b) => {
-                  const done = b.sent_count + b.failed_count;
-                  const pct = b.total > 0 ? Math.round((done / b.total) * 100) : 0;
                   return (
                     <div
                       key={b.id}
@@ -677,32 +731,34 @@ export function OutreachView({
                           </button>
                         </div>
                       ) : (
-                        <>
-                          {/* Delivery progress */}
-                          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                            <div
-                              className="h-full rounded-full bg-emerald-500 transition-all"
-                              style={{ width: `${pct}%` }}
-                            />
-                          </div>
-                          <div className="mt-1.5 flex items-center justify-between gap-3 text-[11px]">
-                            <div className="flex items-center gap-3">
+                        <div className="mt-2 flex items-center gap-3">
+                          <DeliveryDonut
+                            sent={b.sent_count}
+                            failed={b.failed_count}
+                            pending={Math.max(0, b.total - b.sent_count - b.failed_count)}
+                          />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px]">
                               <span className="inline-flex items-center gap-1 text-emerald-600">
-                                <CheckCircle2 className="h-3 w-3" /> {b.sent_count}
+                                <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                                {b.sent_count} sent
                               </span>
                               {b.failed_count > 0 && (
-                                <span className="text-red-600">{b.failed_count} failed</span>
+                                <span className="inline-flex items-center gap-1 text-red-600">
+                                  <span className="h-2 w-2 rounded-full bg-red-500" />
+                                  {b.failed_count} failed
+                                </span>
                               )}
                               <span className="text-muted-foreground">of {b.total}</span>
                             </div>
                             <button
                               onClick={() => openDetail(b.id)}
-                              className="font-medium text-primary hover:underline"
+                              className="mt-1 text-[11px] font-medium text-primary hover:underline"
                             >
-                              Details
+                              View details
                             </button>
                           </div>
-                        </>
+                        </div>
                       )}
                     </div>
                   );

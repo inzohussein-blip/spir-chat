@@ -20,6 +20,7 @@ import {
   syncWhatsAppTemplates,
 } from "@/lib/actions/whatsapp-connect";
 import { EmbeddedSignupButton } from "@/components/settings/embedded-signup-button";
+import { CampaignPreview } from "@/components/outreach/campaign-preview";
 import { PageTitle } from "@/components/page-title";
 import { useI18n } from "@/components/i18n-provider";
 import { cn } from "@/lib/utils";
@@ -54,6 +55,7 @@ export function WhatsAppPageView({
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  const [selectedTpl, setSelectedTpl] = useState<Tpl | null>(templates[0] ?? null);
 
   async function connect() {
     if (busy || !token.trim() || !phoneNumberId.trim()) return;
@@ -324,31 +326,66 @@ export function WhatsAppPageView({
                 {wp.templatesEmpty}
               </p>
             ) : (
-              <div className="space-y-1.5">
-                {templates.map((tpl) => (
-                  <div
-                    key={tpl.name + tpl.language}
-                    className="flex items-center justify-between gap-2 rounded-lg border border-border px-3 py-2 text-xs"
-                  >
-                    <div className="min-w-0">
-                      <span className="font-medium">{tpl.name}</span>
-                      <span className="ms-2 text-muted-foreground">
-                        {tpl.language}
-                        {tpl.category ? ` · ${tpl.category}` : ""}
-                      </span>
-                    </div>
-                    <span
-                      className={cn(
-                        "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium",
-                        tpl.status === "APPROVED"
-                          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
-                          : "bg-muted text-muted-foreground"
-                      )}
-                    >
-                      {tpl.status}
-                    </span>
+              <div className="grid gap-4 md:grid-cols-2">
+                {/* Selectable template rows */}
+                <div className="space-y-1.5">
+                  {templates.map((tpl) => {
+                    const active =
+                      selectedTpl?.name === tpl.name && selectedTpl?.language === tpl.language;
+                    return (
+                      <button
+                        key={tpl.name + tpl.language}
+                        onClick={() => setSelectedTpl(tpl)}
+                        className={cn(
+                          "flex w-full items-center justify-between gap-2 rounded-lg border px-3 py-2 text-start text-xs transition-colors",
+                          active
+                            ? "border-primary bg-primary/5"
+                            : "border-border hover:bg-muted"
+                        )}
+                      >
+                        <div className="min-w-0">
+                          <span className="font-medium">{tpl.name}</span>
+                          <span className="ms-2 text-muted-foreground">
+                            {tpl.language}
+                            {tpl.category ? ` · ${tpl.category}` : ""}
+                          </span>
+                        </div>
+                        <span
+                          className={cn(
+                            "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium",
+                            tpl.status === "APPROVED"
+                              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
+                              : "bg-muted text-muted-foreground"
+                          )}
+                        >
+                          {tpl.status}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Live chat preview of the selected template */}
+                {selectedTpl && (
+                  <div className="md:sticky md:top-2 md:self-start">
+                    <CampaignPreview
+                      channel="whatsapp"
+                      templateMode
+                      message=""
+                      subject=""
+                      sampleRecipient={connection?.displayNumber ?? null}
+                      template={{
+                        name: selectedTpl.name,
+                        lang: selectedTpl.language,
+                        params: [],
+                        headerText: "",
+                        headerMediaType: "",
+                        headerMediaUrl: "",
+                        buttonParam: "",
+                      }}
+                    />
                   </div>
-                ))}
+                )}
               </div>
             )}
           </section>
