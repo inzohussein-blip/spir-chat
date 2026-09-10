@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   GitBranch,
   MessageSquare,
+  MessageCircle,
   Users,
   Radio,
   Megaphone,
@@ -109,6 +110,7 @@ const navGroups: { group: keyof Dictionary["navGroups"]; items: NavItem[] }[] = 
     group: "configure",
     items: [
       { key: "channels", href: "/dashboard/channels", icon: Plug },
+      { key: "whatsapp", href: "/dashboard/whatsapp", icon: MessageCircle },
       { key: "integrations", href: "/dashboard/integrations", icon: Blocks },
       { key: "developers", href: "/dashboard/developers", icon: Code2 },
       { key: "settings", href: "/dashboard/settings", icon: Settings },

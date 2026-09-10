@@ -14,8 +14,15 @@ import {
   CalendarClock,
   X,
   Clock,
+  RotateCw,
+  ChevronLeft,
 } from "lucide-react";
-import { sendOutreach, cancelOutreachBatch } from "@/lib/actions/outreach";
+import {
+  sendOutreach,
+  cancelOutreachBatch,
+  getOutreachBatchDetail,
+  retryFailedRecipients,
+} from "@/lib/actions/outreach";
 import { createOutreachTemplate, deleteOutreachTemplate } from "@/lib/actions/outreach-templates";
 import { parseRecipients, COUNTRY_CODES, type OutreachChannel } from "@/lib/outreach";
 import { parseCsv } from "@/lib/csv";
@@ -38,6 +45,25 @@ interface Batch {
   status: string;
   scheduled_at: string | null;
   created_at: string;
+}
+interface RecipientRow {
+  id: string;
+  recipient: string;
+  status: string;
+  error: string | null;
+}
+interface BatchDetailData {
+  batch: {
+    id: string;
+    channel: string;
+    message: string;
+    total: number;
+    sent_count: number;
+    failed_count: number;
+    status: string;
+  };
+  recipients: RecipientRow[];
+  counts: { pending: number; sent: number; failed: number };
 }
 
 const CHANNELS: { value: OutreachChannel; label: string; icon: typeof Mail }[] = [
@@ -98,6 +124,37 @@ export function OutreachView({
     queued?: number;
   } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Campaign detail drawer (per-recipient status + retry failed).
+  const [detail, setDetail] = useState<{
+    batchId: string;
+    loading: boolean;
+    data?: BatchDetailData;
+  } | null>(null);
+  const [retrying, setRetrying] = useState(false);
+
+  async function openDetail(batchId: string) {
+    setDetail({ batchId, loading: true });
+    const res = await getOutreachBatchDetail(batchId);
+    if ("ok" in res && res.ok) {
+      setDetail({
+        batchId,
+        loading: false,
+        data: { batch: res.batch, recipients: res.recipients, counts: res.counts },
+      });
+    } else {
+      setDetail(null);
+    }
+  }
+
+  async function retry() {
+    if (!detail?.data || retrying) return;
+    setRetrying(true);
+    await retryFailedRecipients(detail.batchId);
+    setRetrying(false);
+    await openDetail(detail.batchId);
+    router.refresh();
+  }
 
   const isEmail = channel === "email";
   const canTemplate = channel === "whatsapp" && metaWhatsApp;
@@ -561,56 +618,175 @@ export function OutreachView({
               </div>
             ) : (
               <div className="space-y-2">
-                {batches.map((b) => (
-                  <div
-                    key={b.id}
-                    className="rounded-xl border border-border bg-card p-3 shadow-card"
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium capitalize text-muted-foreground">
-                        {b.channel}
-                      </span>
-                      <span className="text-[10px] text-muted-foreground">
-                        {formatDate(b.created_at)}
-                      </span>
+                {batches.map((b) => {
+                  const done = b.sent_count + b.failed_count;
+                  const pct = b.total > 0 ? Math.round((done / b.total) * 100) : 0;
+                  return (
+                    <div
+                      key={b.id}
+                      className="rounded-xl border border-border bg-card p-3 shadow-card"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium capitalize text-muted-foreground">
+                          {b.channel}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">
+                          {formatDate(b.created_at)}
+                        </span>
+                      </div>
+                      <p className="mt-1.5 line-clamp-2 text-xs text-foreground">{b.message}</p>
+                      {b.status === "scheduled" ? (
+                        <div className="mt-1.5 flex items-center justify-between gap-2 text-[11px] text-blue-600">
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            Scheduled{b.scheduled_at ? ` for ${formatDate(b.scheduled_at)}` : ""} ·{" "}
+                            {b.total} recipients
+                          </span>
+                          <button
+                            onClick={async () => {
+                              if (!confirm("Cancel this scheduled campaign?")) return;
+                              await cancelOutreachBatch(b.id);
+                              router.refresh();
+                            }}
+                            className="inline-flex items-center gap-0.5 text-muted-foreground hover:text-destructive"
+                          >
+                            <X className="h-3 w-3" /> Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          {/* Delivery progress */}
+                          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                            <div
+                              className="h-full rounded-full bg-emerald-500 transition-all"
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                          <div className="mt-1.5 flex items-center justify-between gap-3 text-[11px]">
+                            <div className="flex items-center gap-3">
+                              <span className="inline-flex items-center gap-1 text-emerald-600">
+                                <CheckCircle2 className="h-3 w-3" /> {b.sent_count}
+                              </span>
+                              {b.failed_count > 0 && (
+                                <span className="text-red-600">{b.failed_count} failed</span>
+                              )}
+                              <span className="text-muted-foreground">of {b.total}</span>
+                            </div>
+                            <button
+                              onClick={() => openDetail(b.id)}
+                              className="font-medium text-primary hover:underline"
+                            >
+                              Details
+                            </button>
+                          </div>
+                        </>
+                      )}
                     </div>
-                    <p className="mt-1.5 line-clamp-2 text-xs text-foreground">{b.message}</p>
-                    {b.status === "scheduled" ? (
-                      <div className="mt-1.5 flex items-center justify-between gap-2 text-[11px] text-blue-600">
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          Scheduled{b.scheduled_at ? ` for ${formatDate(b.scheduled_at)}` : ""} ·{" "}
-                          {b.total} recipients
-                        </span>
-                        <button
-                          onClick={async () => {
-                            if (!confirm("Cancel this scheduled campaign?")) return;
-                            await cancelOutreachBatch(b.id);
-                            router.refresh();
-                          }}
-                          className="inline-flex items-center gap-0.5 text-muted-foreground hover:text-destructive"
-                        >
-                          <X className="h-3 w-3" /> Cancel
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="mt-1.5 flex items-center gap-3 text-[11px]">
-                        <span className="inline-flex items-center gap-1 text-emerald-600">
-                          <CheckCircle2 className="h-3 w-3" /> {b.sent_count}
-                        </span>
-                        {b.failed_count > 0 && (
-                          <span className="text-red-600">{b.failed_count} failed</span>
-                        )}
-                        <span className="text-muted-foreground">of {b.total}</span>
-                      </div>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
         </div>
       </div>
+
+      {/* Campaign detail drawer */}
+      {detail && (
+        <div className="fixed inset-0 z-50 flex justify-end">
+          <div
+            className="absolute inset-0 bg-black/30"
+            onClick={() => setDetail(null)}
+          />
+          <div className="relative flex h-full w-full max-w-md flex-col border-s border-border bg-card shadow-xl">
+            <div className="flex items-center justify-between border-b border-border px-4 py-3">
+              <button
+                onClick={() => setDetail(null)}
+                className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+              >
+                <ChevronLeft className="h-4 w-4" /> Close
+              </button>
+              {detail.data && detail.data.counts.failed > 0 && (
+                <button
+                  onClick={retry}
+                  disabled={retrying}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground disabled:opacity-50"
+                >
+                  {retrying ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <RotateCw className="h-3.5 w-3.5" />
+                  )}
+                  Retry {detail.data.counts.failed} failed
+                </button>
+              )}
+            </div>
+
+            {detail.loading || !detail.data ? (
+              <div className="flex flex-1 items-center justify-center text-muted-foreground">
+                <Loader2 className="h-5 w-5 animate-spin" />
+              </div>
+            ) : (
+              <div className="flex-1 overflow-auto p-4">
+                <p className="mb-3 line-clamp-3 rounded-lg bg-muted/50 p-2.5 text-xs text-foreground">
+                  {detail.data.batch.message}
+                </p>
+                <div className="mb-3 grid grid-cols-3 gap-2 text-center">
+                  <div className="rounded-lg border border-border p-2">
+                    <p className="text-lg font-bold text-emerald-600">
+                      {detail.data.counts.sent}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">Sent</p>
+                  </div>
+                  <div className="rounded-lg border border-border p-2">
+                    <p className="text-lg font-bold text-red-600">
+                      {detail.data.counts.failed}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">Failed</p>
+                  </div>
+                  <div className="rounded-lg border border-border p-2">
+                    <p className="text-lg font-bold text-muted-foreground">
+                      {detail.data.counts.pending}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">Pending</p>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  {detail.data.recipients.map((r) => (
+                    <div
+                      key={r.id}
+                      className="flex items-start justify-between gap-2 rounded-lg border border-border px-3 py-2 text-xs"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate font-medium">{r.recipient}</p>
+                        {r.error && (
+                          <p className="truncate text-[10px] text-red-500">{r.error}</p>
+                        )}
+                      </div>
+                      <span
+                        className={cn(
+                          "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium",
+                          r.status === "sent"
+                            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
+                            : r.status === "failed"
+                            ? "bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-300"
+                            : "bg-muted text-muted-foreground"
+                        )}
+                      >
+                        {r.status}
+                      </span>
+                    </div>
+                  ))}
+                  {detail.data.recipients.length === 0 && (
+                    <p className="py-6 text-center text-xs text-muted-foreground">
+                      No recipients recorded.
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

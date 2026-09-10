@@ -8,6 +8,90 @@ import { workspaceHasMeta } from "@/lib/whatsapp-cloud";
 import { processOutreachBatch } from "@/lib/outreach-process";
 import { recordAudit } from "@/lib/audit-server";
 
+/**
+ * Per-recipient breakdown of a batch, for the campaign detail drawer. Returns
+ * the recipient rows (capped) plus live status counts.
+ */
+export async function getOutreachBatchDetail(batchId: string) {
+  const { workspace, supabase } = await getWorkspace();
+  const { data: batch } = await supabase
+    .from("outreach_batches")
+    .select("id, channel, message, total, sent_count, failed_count, status")
+    .eq("id", batchId)
+    .eq("workspace_id", workspace.id)
+    .maybeSingle();
+  if (!batch) return { error: "Not found" };
+
+  const { data: recipients } = await supabase
+    .from("outreach_recipients")
+    .select("id, recipient, status, error")
+    .eq("batch_id", batchId)
+    .eq("workspace_id", workspace.id)
+    .order("status", { ascending: true })
+    .limit(1000);
+
+  const counts = { pending: 0, sent: 0, failed: 0 };
+  for (const r of recipients ?? []) {
+    if (r.status === "sent") counts.sent++;
+    else if (r.status === "failed") counts.failed++;
+    else counts.pending++;
+  }
+
+  return {
+    ok: true as const,
+    batch,
+    recipients: recipients ?? [],
+    counts,
+  };
+}
+
+/**
+ * Re-queue the failed recipients of a batch and send them again. Flips their
+ * rows back to pending, reopens the batch, and runs the shared processor.
+ */
+export async function retryFailedRecipients(batchId: string) {
+  const { workspace, supabase } = await getWorkspace();
+  const { data: batch } = await supabase
+    .from("outreach_batches")
+    .select("id, status, failed_count")
+    .eq("id", batchId)
+    .eq("workspace_id", workspace.id)
+    .maybeSingle();
+  if (!batch) return { error: "Not found" };
+
+  const { data: failed } = await supabase
+    .from("outreach_recipients")
+    .select("id")
+    .eq("batch_id", batchId)
+    .eq("workspace_id", workspace.id)
+    .eq("status", "failed")
+    .limit(5000);
+  if (!failed || failed.length === 0) return { error: "No failed recipients to retry" };
+
+  // Reset failed → pending so the processor picks them up again.
+  await supabase
+    .from("outreach_recipients")
+    .update({ status: "pending", error: null })
+    .eq("batch_id", batchId)
+    .eq("workspace_id", workspace.id)
+    .eq("status", "failed");
+
+  // Reopen the batch and roll back the count for the rows we're re-attempting,
+  // so the processor's fresh tally doesn't double-count them.
+  await supabase
+    .from("outreach_batches")
+    .update({
+      status: "sending",
+      failed_count: Math.max(0, (batch.failed_count ?? 0) - failed.length),
+    })
+    .eq("id", batchId)
+    .eq("workspace_id", workspace.id);
+
+  const { sent, failed: stillFailed } = await processOutreachBatch(supabase, batchId);
+  revalidatePath("/dashboard/outreach");
+  return { ok: true as const, retried: failed.length, sent, failed: stillFailed };
+}
+
 // Direct sends run synchronously through the provider, each with a network
 // round-trip, so keep an immediate batch bounded to stay within serverless
 // limits. Larger scheduled batches are drained across cron runs.
