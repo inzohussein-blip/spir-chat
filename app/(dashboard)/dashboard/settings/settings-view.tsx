@@ -30,6 +30,7 @@ import { WhatsAppSection } from "@/components/settings/whatsapp-section";
 import { AiRepliesSection } from "@/components/settings/ai-replies-section";
 import { FollowupSection } from "@/components/settings/followup-section";
 import { AuditLogSection } from "@/components/settings/audit-log-section";
+import { AccountSection } from "@/components/settings/account-section";
 import type { BusinessHours } from "@/lib/business-hours";
 import { createClient } from "@/lib/supabase/client";
 
@@ -62,11 +63,13 @@ export function SettingsView({
   labels,
   labelRules,
   whatsapp,
+  account,
 }: {
   workspace: WorkspaceSettings;
   labels: { id: string; name: string; color: string | null }[];
   labelRules: { id: string; keyword: string; label_id: string }[];
   whatsapp: { displayNumber: string | null; verifiedName: string | null } | null;
+  account: { email: string; name: string };
 }) {
   const { t } = useI18n();
   const [name, setName] = useState(workspace.name);
@@ -200,6 +203,11 @@ export function SettingsView({
       {/* Settings form */}
       <div className="flex-1 overflow-auto">
         <div className="mx-auto max-w-2xl space-y-8 px-8 py-8">
+          {/* Personal account */}
+          <AccountSection email={account.email} initialName={account.name} />
+
+          <hr className="border-border" />
+
           {/* Workspace name */}
           <section>
             <div className="flex items-center gap-2">

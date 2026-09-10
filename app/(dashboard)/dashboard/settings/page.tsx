@@ -3,7 +3,7 @@ import { SettingsView } from "./settings-view";
 import { parseBusinessHours } from "@/lib/business-hours";
 
 export default async function SettingsPage() {
-  const { workspace, supabase } = await getWorkspace();
+  const { workspace, supabase, user } = await getWorkspace();
 
   const [{ data: labels }, { data: labelRules }, { data: wa }] = await Promise.all([
     supabase
@@ -28,6 +28,11 @@ export default async function SettingsPage() {
       labels={labels ?? []}
       labelRules={labelRules ?? []}
       whatsapp={wa ? { displayNumber: wa.display_number, verifiedName: wa.verified_name } : null}
+      account={{
+        email: user.email ?? "",
+        name:
+          (user.user_metadata as { full_name?: string } | null)?.full_name ?? "",
+      }}
       workspace={{
         id: workspace.id,
         name: workspace.name,
