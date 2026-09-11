@@ -13,11 +13,13 @@ import {
   ExternalLink,
   CheckCircle2,
   ListChecks,
+  ShieldCheck,
 } from "lucide-react";
 import {
   connectWhatsAppCloud,
   disconnectWhatsAppCloud,
   syncWhatsAppTemplates,
+  checkWhatsAppHealth,
 } from "@/lib/actions/whatsapp-connect";
 import { EmbeddedSignupButton } from "@/components/settings/embedded-signup-button";
 import { CampaignPreview } from "@/components/outreach/campaign-preview";
@@ -56,6 +58,16 @@ export function WhatsAppPageView({
   const [notice, setNotice] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [selectedTpl, setSelectedTpl] = useState<Tpl | null>(templates[0] ?? null);
+  const [health, setHealth] = useState<
+    { state: "idle" | "checking" } | { state: "ok"; number: string | null } | { state: "error"; error: string }
+  >({ state: "idle" });
+
+  async function runHealthCheck() {
+    setHealth({ state: "checking" });
+    const res = await checkWhatsAppHealth();
+    if (res.ok) setHealth({ state: "ok", number: res.displayNumber });
+    else setHealth({ state: "error", error: res.error });
+  }
 
   async function connect() {
     if (busy || !token.trim() || !phoneNumberId.trim()) return;
@@ -150,7 +162,35 @@ export function WhatsAppPageView({
               </div>
             </div>
             {connection && (
-              <div className="flex items-center gap-1.5">
+              <div className="flex flex-wrap items-center justify-end gap-1.5">
+                {/* Live health result */}
+                {health.state === "ok" && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-medium text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                    {wp.healthy}
+                  </span>
+                )}
+                {health.state === "error" && (
+                  <span
+                    title={health.error}
+                    className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-medium text-red-700 dark:bg-red-950/40 dark:text-red-300"
+                  >
+                    <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+                    {wp.unhealthy}
+                  </span>
+                )}
+                <button
+                  onClick={runHealthCheck}
+                  disabled={health.state === "checking"}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted disabled:opacity-50"
+                >
+                  {health.state === "checking" ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <ShieldCheck className="h-3.5 w-3.5" />
+                  )}
+                  {wp.checkHealth}
+                </button>
                 <button
                   onClick={syncTemplates}
                   disabled={busy}

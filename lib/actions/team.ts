@@ -3,6 +3,95 @@
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { getWorkspace } from "@/lib/workspace";
 import { recordAudit } from "@/lib/audit-server";
+import { revalidatePath } from "next/cache";
+
+/**
+ * Open/close a team member's access to the workspace. An owner/admin can close
+ * any member (owners themselves can't be closed, to avoid locking the workspace
+ * out); a member can close their own. Reopening is allowed for owners/admins, or
+ * for a member who closed their own account (tracked via deactivated_by).
+ */
+export async function setMemberActive(userId: string, active: boolean) {
+  const { workspace, user, supabase } = await getWorkspace();
+  const service = await createServiceClient();
+
+  const { data: me } = await supabase
+    .from("workspace_members")
+    .select("role")
+    .eq("workspace_id", workspace.id)
+    .eq("user_id", user.id)
+    .single();
+  const isAdmin = me?.role === "owner" || me?.role === "admin";
+  const isSelf = userId === user.id;
+
+  const { data: target } = await service
+    .from("workspace_members")
+    .select("role, deactivated_by")
+    .eq("workspace_id", workspace.id)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!target) return { error: "Member not found" };
+  if (target.role === "owner") return { error: "Owners can't be deactivated" };
+
+  if (active) {
+    const canReactivate = isAdmin || (isSelf && target.deactivated_by === user.id);
+    if (!canReactivate) return { error: "Only an admin can reopen this account" };
+  } else if (!isAdmin && !isSelf) {
+    return { error: "Not allowed" };
+  }
+
+  const { error } = await service
+    .from("workspace_members")
+    .update({ is_active: active, deactivated_by: active ? null : user.id })
+    .eq("workspace_id", workspace.id)
+    .eq("user_id", userId);
+  if (error) return { error: error.message };
+
+  await recordAudit({
+    workspaceId: workspace.id,
+    actorId: user.id,
+    actorLabel: user.email ?? null,
+    action: active ? "member.reactivated" : "member.deactivated",
+    metadata: { target_user_id: userId },
+  });
+  revalidatePath("/dashboard/settings/team");
+  return { ok: true };
+}
+
+/**
+ * A member reopening their own account from the suspended screen — only works
+ * for a membership the same user closed themselves, not an admin-closed one.
+ */
+export async function reactivateSelf() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const service = await createServiceClient();
+  const { data: rows } = await service
+    .from("workspace_members")
+    .select("workspace_id, is_active, deactivated_by")
+    .eq("user_id", user.id);
+
+  const selfClosed = (rows ?? []).filter(
+    (r) => !r.is_active && r.deactivated_by === user.id
+  );
+  if (selfClosed.length === 0) {
+    return {
+      error: "Your account was closed by an admin. Contact them to reopen it.",
+    };
+  }
+  for (const r of selfClosed) {
+    await service
+      .from("workspace_members")
+      .update({ is_active: true, deactivated_by: null })
+      .eq("workspace_id", r.workspace_id)
+      .eq("user_id", user.id);
+  }
+  return { ok: true };
+}
 
 export async function inviteTeamMember(
   workspaceId: string,

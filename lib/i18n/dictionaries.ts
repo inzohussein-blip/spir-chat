@@ -57,6 +57,10 @@ const en = {
     onboardingSubtitle: "You can change this later in Settings.",
     workspaceName: "Workspace name",
     continue: "Continue",
+    suspendedTitle: "Account closed",
+    suspendedDesc: "Your access to this workspace is currently closed.",
+    reopenAccount: "Reopen my account",
+    signOut: "Sign out",
   },
   sidebar: {
     home: "Home",
@@ -292,6 +296,9 @@ const en = {
         revokeInvite: "Revoke invite",
         revokeConfirm: "Are you sure you want to revoke this invitation?",
         revoke: "Revoke",
+        closed: "Closed",
+        closeAccount: "Close account",
+        openAccount: "Reopen account",
       },
     },
     growth: {
@@ -337,6 +344,9 @@ const en = {
       templatesEmpty: "No templates synced yet. Add your WABA ID and sync.",
       templatesHint: "These are available for cold outreach in Direct campaigns.",
       guideOpen: "Open Meta's setup guide",
+      checkHealth: "Check connection",
+      healthy: "Connection healthy",
+      unhealthy: "Connection problem",
     },
   },
   inbox: {
@@ -570,6 +580,10 @@ const ar: Dictionary = {
     onboardingSubtitle: "يمكنك تغيير هذا لاحقًا من الإعدادات.",
     workspaceName: "اسم مساحة العمل",
     continue: "متابعة",
+    suspendedTitle: "الحساب مغلق",
+    suspendedDesc: "تم إغلاق وصولك إلى مساحة العمل هذه حالياً.",
+    reopenAccount: "إعادة فتح حسابي",
+    signOut: "تسجيل الخروج",
   },
   sidebar: {
     home: "الرئيسية",
@@ -805,6 +819,9 @@ const ar: Dictionary = {
         revokeInvite: "إلغاء الدعوة",
         revokeConfirm: "هل أنت متأكد من إلغاء هذه الدعوة؟",
         revoke: "إلغاء",
+        closed: "مغلق",
+        closeAccount: "إغلاق الحساب",
+        openAccount: "إعادة فتح الحساب",
       },
     },
     growth: {
@@ -849,6 +866,9 @@ const ar: Dictionary = {
       templatesEmpty: "لا توجد قوالب مُزامَنة بعد. أضف معرّف WABA ثم زامِن.",
       templatesHint: "هذه متاحة للتواصل البارد في الحملات المباشرة.",
       guideOpen: "افتح دليل الإعداد من Meta",
+      checkHealth: "فحص الاتصال",
+      healthy: "الاتصال سليم",
+      unhealthy: "مشكلة في الاتصال",
     },
   },
   inbox: {

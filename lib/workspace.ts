@@ -24,12 +24,14 @@ export const getWorkspace = cache(async () => {
   if (selectedId) {
     const { data: membership } = await supabase
       .from("workspace_members")
-      .select("workspace_id, role, workspaces(*)")
+      .select("workspace_id, role, is_active, workspaces(*)")
       .eq("user_id", user.id)
       .eq("workspace_id", selectedId)
       .single();
 
     if (membership?.workspaces) {
+      // A closed (deactivated) member is blocked from the workspace.
+      if (membership.is_active === false) redirect("/suspended");
       return {
         user,
         workspace: membership.workspaces,
@@ -42,12 +44,13 @@ export const getWorkspace = cache(async () => {
   // Fallback to first workspace
   const { data: membership } = await supabase
     .from("workspace_members")
-    .select("workspace_id, role, workspaces(*)")
+    .select("workspace_id, role, is_active, workspaces(*)")
     .eq("user_id", user.id)
     .limit(1)
     .single();
 
   if (!membership?.workspaces) redirect("/login");
+  if (membership.is_active === false) redirect("/suspended");
 
   return {
     user,

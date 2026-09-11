@@ -14,12 +14,15 @@ import {
   Plus,
   Loader2,
   ArrowLeft,
+  Power,
+  PowerOff,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   inviteTeamMember,
   removeTeamMember,
   revokeInvite,
+  setMemberActive,
 } from "@/lib/actions/team";
 import Link from "next/link";
 import { ConfirmDialog } from "@/components/confirm-dialog";
@@ -31,6 +34,7 @@ interface MemberDetail {
   joinedAt: string;
   lastSeenAt: string | null;
   isAway: boolean;
+  isActive: boolean;
   email: string;
   name: string;
 }
@@ -95,8 +99,21 @@ export function TeamView({
   const { t } = useI18n();
   const tp = t.dash.settings.teamPage;
   const isOwner = currentUserRole === "owner";
+  const isAdmin = currentUserRole === "owner" || currentUserRole === "admin";
 
   const [members, setMembers] = useState(initialMembers);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+
+  async function handleToggleActive(userId: string, next: boolean) {
+    setTogglingId(userId);
+    const res = await setMemberActive(userId, next);
+    if (!res.error) {
+      setMembers((prev) =>
+        prev.map((m) => (m.userId === userId ? { ...m, isActive: next } : m))
+      );
+    }
+    setTogglingId(null);
+  }
   const [invites, setInvites] = useState(initialInvites);
 
   // Invite form
@@ -262,6 +279,39 @@ export function TeamView({
                         year: "numeric",
                       })}
                     </span>
+
+                    {!member.isActive && (
+                      <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-medium text-red-700 dark:bg-red-950/40 dark:text-red-300">
+                        {tp.closed}
+                      </span>
+                    )}
+
+                    {/* Open/close a member's access. Owners can't be closed;
+                        admins can toggle members, and a member can toggle self. */}
+                    {member.role !== "owner" &&
+                      (isAdmin || member.userId === currentUserId) && (
+                        <button
+                          onClick={() =>
+                            handleToggleActive(member.userId, !member.isActive)
+                          }
+                          disabled={togglingId === member.userId}
+                          title={member.isActive ? tp.closeAccount : tp.openAccount}
+                          className={cn(
+                            "rounded-lg p-1.5 transition-colors disabled:opacity-50",
+                            member.isActive
+                              ? "text-muted-foreground hover:bg-amber-50 hover:text-amber-600 dark:hover:bg-amber-950/30"
+                              : "text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
+                          )}
+                        >
+                          {togglingId === member.userId ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : member.isActive ? (
+                            <PowerOff className="h-3.5 w-3.5" />
+                          ) : (
+                            <Power className="h-3.5 w-3.5" />
+                          )}
+                        </button>
+                      )}
 
                     {isOwner && member.userId !== currentUserId && (
                       <button

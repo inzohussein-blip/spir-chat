@@ -172,6 +172,8 @@ export interface Database {
           role: string;
           last_seen_at: string | null;
           is_away: boolean;
+          is_active: boolean;
+          deactivated_by: string | null;
           created_at: string;
         };
         Insert: {
@@ -180,12 +182,16 @@ export interface Database {
           role?: string;
           last_seen_at?: string | null;
           is_away?: boolean;
+          is_active?: boolean;
+          deactivated_by?: string | null;
           created_at?: string;
         };
         Update: {
           role?: string;
           last_seen_at?: string | null;
           is_away?: boolean;
+          is_active?: boolean;
+          deactivated_by?: string | null;
         };
         Relationships: [
           {

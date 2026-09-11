@@ -7,6 +7,8 @@ export type AuditAction =
   | "contacts.deleted"
   | "member.removed"
   | "member.invited"
+  | "member.deactivated"
+  | "member.reactivated"
   | "campaign.sent"
   | "outreach.sent"
   | "settings.updated";
@@ -22,6 +24,8 @@ const ACTION_VERB: Record<string, string> = {
   "contacts.deleted": "deleted contacts",
   "member.removed": "removed member",
   "member.invited": "invited member",
+  "member.deactivated": "closed member account",
+  "member.reactivated": "reopened member account",
   "campaign.sent": "sent campaign",
   "outreach.sent": "sent direct campaign",
   "settings.updated": "updated settings",

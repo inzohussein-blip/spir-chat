@@ -4,7 +4,11 @@ import { getWorkspace } from "@/lib/workspace";
 import { createServiceClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { encryptToken, decryptToken } from "@/lib/meta/oauth";
-import { verifyPhoneNumber, listMessageTemplates } from "@/lib/whatsapp-cloud";
+import {
+  verifyPhoneNumber,
+  listMessageTemplates,
+  resolveWorkspaceMeta,
+} from "@/lib/whatsapp-cloud";
 
 /**
  * Connect a workspace's official WhatsApp (Meta Cloud API) number. The token +
@@ -153,6 +157,24 @@ export async function syncWhatsAppTemplates() {
   revalidatePath("/dashboard/outreach");
   const approved = res.templates.filter((t) => t.status === "APPROVED").length;
   return { ok: true, total: res.templates.length, approved };
+}
+
+/**
+ * Live health check: verify the workspace's stored WhatsApp token still works by
+ * reading the phone number from Graph. Returns healthy + the number, or the
+ * Meta error (e.g. an expired/revoked token), so the UI can flag a real outage.
+ */
+export async function checkWhatsAppHealth() {
+  const { workspace, supabase } = await getWorkspace();
+  const creds = await resolveWorkspaceMeta(supabase, workspace.id);
+  if (!creds) return { ok: false as const, error: "WhatsApp isn't connected" };
+  const res = await verifyPhoneNumber(creds.token, creds.phoneNumberId);
+  if (!res.ok) return { ok: false as const, error: res.error };
+  return {
+    ok: true as const,
+    displayNumber: res.displayNumber,
+    verifiedName: res.verifiedName,
+  };
 }
 
 /** Disconnect the workspace's WhatsApp Cloud number. */

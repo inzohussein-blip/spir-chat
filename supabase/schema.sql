@@ -2437,3 +2437,10 @@ alter table workspaces
   add column if not exists twilio_whatsapp_from text,
   add column if not exists telegram_gateway_url text,
   add column if not exists telegram_gateway_token text;
+
+-- ============================================================
+-- 00075_member_active.sql
+-- ============================================================
+alter table workspace_members
+  add column if not exists is_active boolean not null default true,
+  add column if not exists deactivated_by uuid;
