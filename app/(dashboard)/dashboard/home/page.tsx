@@ -53,6 +53,7 @@ export default async function HomePage() {
     { count: repliesWeek },
     { count: channelsCount },
     { data: recent },
+    { data: convDays },
   ] = await Promise.all([
     convBase().eq("status", "open"),
     convBase(),
@@ -69,7 +70,29 @@ export default async function HomePage() {
       .eq("workspace_id", wsId)
       .order("last_message_at", { ascending: false, nullsFirst: false })
       .limit(6),
+    supabase
+      .from("conversations")
+      .select("created_at")
+      .eq("workspace_id", wsId)
+      .gte("created_at", weekAgo),
   ]);
+
+  // Bucket new conversations into the last 7 days for a mini activity chart.
+  const activity = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(Date.now() - (6 - i) * DAY);
+    return {
+      key: d.toISOString().slice(0, 10),
+      label: d.toLocaleDateString("en-US", { weekday: "short" }),
+      count: 0,
+    };
+  });
+  for (const c of convDays ?? []) {
+    const k = (c.created_at ?? "").slice(0, 10);
+    const bucket = activity.find((a) => a.key === k);
+    if (bucket) bucket.count += 1;
+  }
+  const activityMax = Math.max(1, ...activity.map((a) => a.count));
+  const activityTotal = activity.reduce((sum, a) => sum + a.count, 0);
 
   const greetName = (user.email ?? "there").split("@")[0];
 
@@ -116,6 +139,31 @@ export default async function HomePage() {
                 </div>
               </Link>
             ))}
+          </div>
+
+          {/* Activity chart — new conversations, last 7 days */}
+          <div className="rounded-xl border border-border bg-card p-5 shadow-card">
+            <div className="mb-4 flex items-end justify-between">
+              <div>
+                <h2 className="text-sm font-semibold">New conversations</h2>
+                <p className="text-xs text-muted-foreground">Last 7 days</p>
+              </div>
+              <p className="text-2xl font-bold">{activityTotal}</p>
+            </div>
+            <div className="flex h-28 items-end gap-2">
+              {activity.map((a) => (
+                <div key={a.key} className="flex flex-1 flex-col items-center gap-1.5">
+                  <div className="flex w-full flex-1 items-end">
+                    <div
+                      title={`${a.count}`}
+                      style={{ height: `${Math.round((a.count / activityMax) * 100)}%` }}
+                      className="w-full min-h-[4px] rounded-t-md bg-gradient-to-t from-violet-500/70 to-cyan-400/70 transition-all"
+                    />
+                  </div>
+                  <span className="text-[10px] text-muted-foreground">{a.label}</span>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="grid gap-6 lg:grid-cols-3">
