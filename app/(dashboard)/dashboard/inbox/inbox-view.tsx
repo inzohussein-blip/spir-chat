@@ -56,6 +56,46 @@ export function InboxView({
   const [syncError, setSyncError] = useState<string | null>(null);
   const [showShortcuts, setShowShortcuts] = useState(false);
 
+  // Resizable conversation-list panel (Tidio-style), persisted per browser.
+  const LIST_MIN = 260;
+  const LIST_MAX = 560;
+  const [listWidth, setListWidth] = useState(320);
+  useEffect(() => {
+    try {
+      const saved = Number(localStorage.getItem("spirchat_inbox_list_w"));
+      if (saved >= LIST_MIN && saved <= LIST_MAX) setListWidth(saved);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+  function startResize(e: React.MouseEvent) {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startW = listWidth;
+    // In RTL the list sits on the right, so dragging left should grow it.
+    const rtl = document.documentElement.dir === "rtl";
+    function onMove(ev: MouseEvent) {
+      const delta = (ev.clientX - startX) * (rtl ? -1 : 1);
+      const next = Math.min(LIST_MAX, Math.max(LIST_MIN, startW + delta));
+      setListWidth(next);
+    }
+    function onUp() {
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+      document.body.style.userSelect = "";
+      try {
+        localStorage.setItem("spirchat_inbox_list_w", String(listWidthRef.current));
+      } catch {
+        /* ignore */
+      }
+    }
+    document.body.style.userSelect = "none";
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  }
+  const listWidthRef = useRef(listWidth);
+  listWidthRef.current = listWidth;
+
   // Global "?" opens the keyboard shortcuts cheat sheet; Escape closes it.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -181,8 +221,8 @@ export function InboxView({
 
   return (
     <div className="flex h-full">
-      {/* Left panel: Conversation list */}
-      <div className="w-80 flex-shrink-0">
+      {/* Left panel: Conversation list (resizable) */}
+      <div style={{ width: listWidth }} className="flex-shrink-0">
         <ConversationList
           conversations={conversations}
           workspaceId={workspaceId}
@@ -196,6 +236,14 @@ export function InboxView({
           slaMinutes={slaMinutes}
         />
       </div>
+
+      {/* Drag handle to resize the list */}
+      <div
+        onMouseDown={startResize}
+        role="separator"
+        aria-orientation="vertical"
+        className="group hidden w-1 shrink-0 cursor-col-resize bg-border/60 transition-colors hover:bg-primary/40 md:block"
+      />
 
       {/* Center panel: Message thread */}
       <div className="flex min-h-0 flex-1 flex-col">

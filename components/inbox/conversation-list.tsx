@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Search, MessageSquare, Filter, Loader2, Volume2, VolumeX } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Search, MessageSquare, Filter, Loader2, Volume2, VolumeX, Wifi, WifiOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { avatarGradient } from "@/lib/avatar";
@@ -135,6 +136,13 @@ export function ConversationList({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
+  // Realtime connection health, so a silently-dropped subscription is visible
+  // and recoverable instead of just going quiet.
+  const [connState, setConnState] = useState<
+    "connecting" | "live" | "reconnecting" | "offline"
+  >("connecting");
+  const [reconnectNonce, setReconnectNonce] = useState(0);
 
   const isSelected = (id: string) => selected.has(id);
 
@@ -322,12 +330,21 @@ export function ConversationList({
     setConversations(initialConversations);
   }, [initialConversations]);
 
-  // Subscribe to conversation updates via Realtime
+  // Subscribe to conversation updates via Realtime, with connection-health
+  // tracking + auto-reconnect. A dropped socket (expired token, sleep/wake,
+  // network blip) previously went silent — now it's detected, retried with
+  // backoff, and the server list is refetched to catch up on what was missed.
   useEffect(() => {
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      setConnState("offline");
+    }
     const supabase = createClient();
+    let retry: ReturnType<typeof setTimeout> | null = null;
+    let attempt = 0;
+    let disposed = false;
 
     const channel = supabase
-      .channel("conversations-updates")
+      .channel(`conversations-updates-${reconnectNonce}`)
       .on(
         "postgres_changes",
         {
@@ -374,12 +391,67 @@ export function ConversationList({
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (disposed) return;
+        if (status === "SUBSCRIBED") {
+          attempt = 0;
+          setConnState("live");
+          // Catch up on anything that changed while we were disconnected.
+          router.refresh();
+        } else if (
+          status === "CHANNEL_ERROR" ||
+          status === "TIMED_OUT" ||
+          status === "CLOSED"
+        ) {
+          setConnState(navigator.onLine === false ? "offline" : "reconnecting");
+          // Exponential backoff up to ~30s, then bump the nonce to rebuild the
+          // channel from scratch.
+          if (!retry) {
+            const delay = Math.min(30000, 1000 * 2 ** attempt);
+            attempt += 1;
+            retry = setTimeout(() => {
+              retry = null;
+              setReconnectNonce((n) => n + 1);
+            }, delay);
+          }
+        }
+      });
 
     return () => {
+      disposed = true;
+      if (retry) clearTimeout(retry);
       supabase.removeChannel(channel);
     };
-  }, [workspaceId]);
+  }, [workspaceId, reconnectNonce, router]);
+
+  // Nudge a reconnect when the network returns or the tab is refocused, and run
+  // a light safety-net refetch periodically so nothing lingers unseen.
+  useEffect(() => {
+    function goOnline() {
+      setConnState("reconnecting");
+      setReconnectNonce((n) => n + 1);
+    }
+    function goOffline() {
+      setConnState("offline");
+    }
+    function onVisible() {
+      if (document.visibilityState === "visible") {
+        setReconnectNonce((n) => n + 1);
+      }
+    }
+    window.addEventListener("online", goOnline);
+    window.addEventListener("offline", goOffline);
+    document.addEventListener("visibilitychange", onVisible);
+    const safetyNet = setInterval(() => {
+      if (document.visibilityState === "visible") router.refresh();
+    }, 45000);
+    return () => {
+      window.removeEventListener("online", goOnline);
+      window.removeEventListener("offline", goOffline);
+      document.removeEventListener("visibilitychange", onVisible);
+      clearInterval(safetyNet);
+    };
+  }, [router]);
 
   const channelMap = new Map(channels.map((c) => [c.id, channelLabel(c)]));
 
@@ -454,7 +526,36 @@ export function ConversationList({
     <div className="flex h-full flex-col border-e border-border bg-card">
       {/* Header */}
       <div className="flex h-14 items-center justify-between border-b border-border px-4">
-        <h2 className="text-base font-bold tracking-tight">{t.inbox.title}</h2>
+        <div className="flex items-center gap-2">
+          <h2 className="text-base font-bold tracking-tight">{t.inbox.title}</h2>
+          {/* Realtime connection indicator */}
+          {connState === "live" ? (
+            <span
+              title={t.inbox.connLive}
+              className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
+            >
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              {t.inbox.connLive}
+            </span>
+          ) : connState === "offline" ? (
+            <span
+              title={t.inbox.connOffline}
+              className="inline-flex items-center gap-1 rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-medium text-red-700 dark:bg-red-950/40 dark:text-red-300"
+            >
+              <WifiOff className="h-3 w-3" />
+              {t.inbox.connOffline}
+            </span>
+          ) : (
+            <button
+              onClick={() => setReconnectNonce((n) => n + 1)}
+              title={t.inbox.reconnect}
+              className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 hover:bg-amber-200 dark:bg-amber-950/40 dark:text-amber-300"
+            >
+              <Wifi className="h-3 w-3 animate-pulse" />
+              {t.inbox.connReconnecting}
+            </button>
+          )}
+        </div>
         <div className="flex items-center gap-2">
           <button
             onClick={toggleSound}
@@ -703,6 +804,19 @@ export function ConversationList({
           <span className="text-xs font-medium text-muted-foreground">
             {selected.size} {t.inbox.selected}
           </span>
+          <button
+            onClick={() => {
+              const allIds = filtered.map((c) => c.id);
+              setSelected((prev) =>
+                prev.size >= allIds.length ? new Set() : new Set(allIds)
+              );
+            }}
+            className="rounded-md border border-border px-2 py-1 text-xs font-medium hover:bg-accent"
+          >
+            {selected.size >= filtered.length && filtered.length > 0
+              ? t.inbox.selectNone
+              : t.inbox.selectAll}
+          </button>
           <div className="ms-auto flex items-center gap-1">
             {labels.length > 0 && (
               <select
