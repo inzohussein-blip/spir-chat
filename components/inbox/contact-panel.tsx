@@ -10,6 +10,9 @@ import {
   Hash,
   ShoppingBag,
   Building2,
+  Phone,
+  Copy,
+  Check,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { TagEditor } from "@/components/inbox/tag-editor";
@@ -59,6 +62,14 @@ export function ContactPanel({
   const { t } = useI18n();
   const [loadedDetails, setDetails] = useState<ContactDetails | null>(null);
   const [loading, setLoading] = useState(false);
+  const [copied, setCopied] = useState<string | null>(null);
+
+  function copy(text: string, key: string) {
+    navigator.clipboard?.writeText(text).then(() => {
+      setCopied(key);
+      setTimeout(() => setCopied((c) => (c === key ? null : c)), 1500);
+    });
+  }
   const [orders, setOrders] = useState<
     { id: string; number: string; status: string; total: string; currency: string }[]
   >([]);
@@ -193,6 +204,47 @@ export function ContactPanel({
             >
               {details.contact.is_subscribed ? t.inbox.subscribed : t.inbox.unsubscribed}
             </span>
+
+            {/* Quick actions (Tidio-style) */}
+            {(details.contact.email || details.contact.phone) && (
+              <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5">
+                {details.contact.email && (
+                  <>
+                    <a
+                      href={`mailto:${details.contact.email}`}
+                      className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1 text-[11px] font-medium hover:bg-muted"
+                    >
+                      <Mail className="h-3 w-3" /> Email
+                    </a>
+                    <button
+                      onClick={() => copy(details.contact.email!, "email")}
+                      title={details.contact.email}
+                      className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1 text-[11px] font-medium hover:bg-muted"
+                    >
+                      {copied === "email" ? (
+                        <Check className="h-3 w-3 text-emerald-600" />
+                      ) : (
+                        <Copy className="h-3 w-3" />
+                      )}
+                    </button>
+                  </>
+                )}
+                {details.contact.phone && (
+                  <button
+                    onClick={() => copy(details.contact.phone!, "phone")}
+                    title={details.contact.phone}
+                    className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1 text-[11px] font-medium hover:bg-muted"
+                  >
+                    {copied === "phone" ? (
+                      <Check className="h-3 w-3 text-emerald-600" />
+                    ) : (
+                      <Phone className="h-3 w-3" />
+                    )}
+                    {details.contact.phone}
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Details */}
@@ -236,6 +288,17 @@ export function ContactPanel({
                   {t.inbox.email}
                 </h4>
                 <p className="mt-1 text-sm">{details.contact.email}</p>
+              </div>
+            )}
+
+            {/* Phone */}
+            {details.contact.phone && (
+              <div>
+                <h4 className="flex items-center gap-1.5 text-xs font-medium uppercase text-muted-foreground">
+                  <Phone className="h-3 w-3" />
+                  {t.inbox.phone}
+                </h4>
+                <p className="mt-1 text-sm" dir="ltr">{details.contact.phone}</p>
               </div>
             )}
 
