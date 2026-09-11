@@ -805,9 +805,14 @@ export function MessageThread({
               />
             </div>
           </div>
-          <div>
-            <p className="text-sm font-semibold">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold">
               {conversation.contacts?.display_name ?? t.inbox.unknown}
+            </p>
+            <p className="truncate text-[11px] capitalize text-muted-foreground">
+              {conversation.contacts?.phone ??
+                conversation.contacts?.email ??
+                conversation.platform}
             </p>
           </div>
         </div>
