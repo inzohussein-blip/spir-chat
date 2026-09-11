@@ -2424,3 +2424,16 @@ alter table messages
 -- ============================================================
 alter table outreach_batches
   add column if not exists template_components jsonb;
+
+-- ============================================================
+-- 00074_campaign_providers.sql
+-- ============================================================
+alter table workspaces
+  add column if not exists resend_api_key text,
+  add column if not exists campaign_from_email text,
+  add column if not exists twilio_account_sid text,
+  add column if not exists twilio_auth_token text,
+  add column if not exists twilio_sms_from text,
+  add column if not exists twilio_whatsapp_from text,
+  add column if not exists telegram_gateway_url text,
+  add column if not exists telegram_gateway_token text;

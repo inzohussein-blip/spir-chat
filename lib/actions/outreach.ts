@@ -3,7 +3,7 @@
 import { getWorkspace } from "@/lib/workspace";
 import { revalidatePath } from "next/cache";
 import { parseRecipients, type OutreachChannel } from "@/lib/outreach";
-import { channelConfigured } from "@/lib/campaigns/providers";
+import { channelConfigured, resolveWorkspaceProviders } from "@/lib/campaigns/providers";
 import { workspaceHasMeta } from "@/lib/whatsapp-cloud";
 import { processOutreachBatch } from "@/lib/outreach-process";
 import { recordAudit } from "@/lib/audit-server";
@@ -185,9 +185,10 @@ export async function sendOutreach(input: OutreachInput) {
     }
   } else {
     if (!input.message.trim()) return { error: "Message is required" };
-    if (!channelConfigured(channel)) {
+    const providerCfg = await resolveWorkspaceProviders(supabase, workspace.id);
+    if (!channelConfigured(channel, providerCfg)) {
       return {
-        error: `The ${channel} provider isn't configured. Add its API keys to the environment.`,
+        error: `The ${channel} provider isn't configured. Add its keys in Settings → Campaign providers (or the environment).`,
       };
     }
   }

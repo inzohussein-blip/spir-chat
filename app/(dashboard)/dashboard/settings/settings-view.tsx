@@ -31,6 +31,7 @@ import { AiRepliesSection } from "@/components/settings/ai-replies-section";
 import { FollowupSection } from "@/components/settings/followup-section";
 import { AuditLogSection } from "@/components/settings/audit-log-section";
 import { AccountSection } from "@/components/settings/account-section";
+import { ProvidersSection, type ProvidersInitial } from "@/components/settings/providers-section";
 import type { BusinessHours } from "@/lib/business-hours";
 import { createClient } from "@/lib/supabase/client";
 
@@ -64,12 +65,14 @@ export function SettingsView({
   labelRules,
   whatsapp,
   account,
+  providers,
 }: {
   workspace: WorkspaceSettings;
   labels: { id: string; name: string; color: string | null }[];
   labelRules: { id: string; keyword: string; label_id: string }[];
   whatsapp: { displayNumber: string | null; verifiedName: string | null } | null;
   account: { email: string; name: string };
+  providers: ProvidersInitial;
 }) {
   const { t } = useI18n();
   const [name, setName] = useState(workspace.name);
@@ -267,6 +270,10 @@ export function SettingsView({
           <hr className="border-border" />
 
           <WhatsAppSection connection={whatsapp} />
+
+          <hr className="border-border" />
+
+          <ProvidersSection initial={providers} />
 
           <hr className="border-border" />
 

@@ -1,5 +1,5 @@
 import { getWorkspace } from "@/lib/workspace";
-import { channelConfigured } from "@/lib/campaigns/providers";
+import { channelConfigured, resolveWorkspaceProviders } from "@/lib/campaigns/providers";
 import { workspaceHasMeta } from "@/lib/whatsapp-cloud";
 import { OutreachView } from "./outreach-view";
 
@@ -27,12 +27,14 @@ export default async function OutreachPage() {
     .eq("status", "APPROVED")
     .order("name", { ascending: true });
 
-  // Which channels actually have provider credentials (computed server-side).
+  // Which channels actually have provider credentials — workspace-configured
+  // (set in the app) first, then env fallback.
+  const providerCfg = await resolveWorkspaceProviders(supabase, workspace.id);
   const configured = {
-    email: channelConfigured("email"),
-    sms: channelConfigured("sms"),
-    whatsapp: channelConfigured("whatsapp"),
-    telegram: channelConfigured("telegram"),
+    email: channelConfigured("email", providerCfg),
+    sms: channelConfigured("sms", providerCfg),
+    whatsapp: channelConfigured("whatsapp", providerCfg),
+    telegram: channelConfigured("telegram", providerCfg),
   };
 
   return (

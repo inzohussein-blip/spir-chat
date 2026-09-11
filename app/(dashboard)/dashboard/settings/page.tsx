@@ -33,6 +33,22 @@ export default async function SettingsPage() {
         name:
           (user.user_metadata as { full_name?: string } | null)?.full_name ?? "",
       }}
+      providers={{
+        hasResend: !!(workspace as { resend_api_key?: string | null }).resend_api_key,
+        campaignFromEmail:
+          (workspace as { campaign_from_email?: string | null }).campaign_from_email ?? "",
+        twilioAccountSid:
+          (workspace as { twilio_account_sid?: string | null }).twilio_account_sid ?? "",
+        hasTwilioAuth: !!(workspace as { twilio_auth_token?: string | null }).twilio_auth_token,
+        twilioSmsFrom:
+          (workspace as { twilio_sms_from?: string | null }).twilio_sms_from ?? "",
+        twilioWhatsappFrom:
+          (workspace as { twilio_whatsapp_from?: string | null }).twilio_whatsapp_from ?? "",
+        telegramGatewayUrl:
+          (workspace as { telegram_gateway_url?: string | null }).telegram_gateway_url ?? "",
+        hasTelegramToken:
+          !!(workspace as { telegram_gateway_token?: string | null }).telegram_gateway_token,
+      }}
       workspace={{
         id: workspace.id,
         name: workspace.name,

@@ -1,7 +1,11 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/types/database";
-import { sendCampaignMessage, type CampaignChannel } from "@/lib/campaigns/providers";
+import {
+  sendCampaignMessage,
+  resolveWorkspaceProviders,
+  type CampaignChannel,
+} from "@/lib/campaigns/providers";
 import { sendCloudTemplate, resolveWorkspaceMeta } from "@/lib/whatsapp-cloud";
 import { renderMergeVariables } from "@/lib/merge";
 
@@ -76,6 +80,11 @@ export async function processOutreachBatch(
   const metaCreds = templateName
     ? await resolveWorkspaceMeta(supabase, batch.workspace_id)
     : null;
+  // Resolve the workspace's campaign provider credentials (app-configured,
+  // falling back to env) once for free-text sends.
+  const providerCfg = templateName
+    ? null
+    : await resolveWorkspaceProviders(supabase, batch.workspace_id);
 
   const { data: recipients } = await supabase
     .from("outreach_recipients")
@@ -123,7 +132,13 @@ export async function processOutreachBatch(
         email: isEmail ? r.recipient : null,
         phone: isEmail ? null : r.recipient,
       });
-      res = await sendCampaignMessage(channel, r.recipient, batch.subject ?? "", body);
+      res = await sendCampaignMessage(
+        channel,
+        r.recipient,
+        batch.subject ?? "",
+        body,
+        providerCfg ?? undefined
+      );
     }
     if (res.ok) sent++;
     else failed++;
