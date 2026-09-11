@@ -4,7 +4,7 @@ import { useI18n } from "@/components/i18n-provider";
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { MessageSquare, RefreshCw, User, X } from "lucide-react";
+import { MessageSquare, RefreshCw, User, X, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { ConversationList } from "@/components/inbox/conversation-list";
 import { MessageThread } from "@/components/inbox/message-thread";
 import { ContactPanel } from "@/components/inbox/contact-panel";
@@ -60,14 +60,27 @@ export function InboxView({
   const LIST_MIN = 260;
   const LIST_MAX = 560;
   const [listWidth, setListWidth] = useState(320);
+  const [listCollapsed, setListCollapsed] = useState(false);
   useEffect(() => {
     try {
       const saved = Number(localStorage.getItem("spirchat_inbox_list_w"));
       if (saved >= LIST_MIN && saved <= LIST_MAX) setListWidth(saved);
+      setListCollapsed(localStorage.getItem("spirchat_inbox_list_collapsed") === "1");
     } catch {
       /* ignore */
     }
   }, []);
+  function toggleCollapsed() {
+    setListCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("spirchat_inbox_list_collapsed", next ? "1" : "0");
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  }
   function startResize(e: React.MouseEvent) {
     e.preventDefault();
     const startX = e.clientX;
@@ -221,8 +234,11 @@ export function InboxView({
 
   return (
     <div className="flex h-full">
-      {/* Left panel: Conversation list (resizable) */}
-      <div style={{ width: listWidth }} className="flex-shrink-0">
+      {/* Left panel: Conversation list (resizable + collapsible) */}
+      <div
+        style={{ width: listCollapsed ? 0 : listWidth }}
+        className="flex-shrink-0 overflow-hidden"
+      >
         <ConversationList
           conversations={conversations}
           workspaceId={workspaceId}
@@ -237,19 +253,33 @@ export function InboxView({
         />
       </div>
 
-      {/* Drag handle to resize the list */}
-      <div
-        onMouseDown={startResize}
-        role="separator"
-        aria-orientation="vertical"
-        className="group hidden w-1 shrink-0 cursor-col-resize bg-border/60 transition-colors hover:bg-primary/40 md:block"
-      />
+      {/* Drag handle to resize the list (hidden when collapsed) */}
+      {!listCollapsed && (
+        <div
+          onMouseDown={startResize}
+          role="separator"
+          aria-orientation="vertical"
+          className="group hidden w-1 shrink-0 cursor-col-resize bg-border/60 transition-colors hover:bg-primary/40 md:block"
+        />
+      )}
 
       {/* Center panel: Message thread */}
       <div className="flex min-h-0 flex-1 flex-col">
-        {/* Toggle contact panel button */}
-        {selected && !showContactPanel && (
-          <div className="flex shrink-0 justify-end border-b border-border px-2 py-1">
+        {/* Slim toolbar: collapse the list / reopen the contact panel */}
+        <div className="flex shrink-0 items-center justify-between border-b border-border px-2 py-1">
+          <button
+            onClick={toggleCollapsed}
+            className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+            aria-label={listCollapsed ? t.inbox.expandList : t.inbox.collapseList}
+            title={listCollapsed ? t.inbox.expandList : t.inbox.collapseList}
+          >
+            {listCollapsed ? (
+              <PanelLeftOpen className="h-3.5 w-3.5" />
+            ) : (
+              <PanelLeftClose className="h-3.5 w-3.5" />
+            )}
+          </button>
+          {selected && !showContactPanel && (
             <button
               onClick={() => setShowContactPanel(true)}
               className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
@@ -258,8 +288,8 @@ export function InboxView({
               <User className="h-3.5 w-3.5" />
               {t.inbox.contactInfo}
             </button>
-          </div>
-        )}
+          )}
+        </div>
         <div className="min-h-0 flex-1">
           {conversations.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center px-6 text-center">
