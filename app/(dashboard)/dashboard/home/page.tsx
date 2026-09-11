@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getWorkspace } from "@/lib/workspace";
+import { createServiceClient } from "@/lib/supabase/server";
 import {
   Inbox,
   MessageSquare,
@@ -14,7 +15,11 @@ import {
   Clock,
 } from "lucide-react";
 import { avatarGradient } from "@/lib/avatar";
+import { PlatformIcon } from "@/components/platform-icon";
 import { cn } from "@/lib/utils";
+import type { Platform } from "@/lib/types/database";
+
+const ONLINE_WINDOW = 90 * 1000; // last heartbeat within ~90s = online
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -93,6 +98,62 @@ export default async function HomePage() {
   }
   const activityMax = Math.max(1, ...activity.map((a) => a.count));
   const activityTotal = activity.reduce((sum, a) => sum + a.count, 0);
+
+  // Team presence + channel connection health.
+  const [{ data: memberRows }, { data: channelRows }, { data: waCreds }] =
+    await Promise.all([
+      supabase
+        .from("workspace_members")
+        .select("user_id, last_seen_at, is_away")
+        .eq("workspace_id", wsId),
+      supabase
+        .from("channels")
+        .select("id, platform, display_name, is_active")
+        .eq("workspace_id", wsId)
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("whatsapp_credentials")
+        .select("phone_number_id")
+        .eq("workspace_id", wsId)
+        .maybeSingle(),
+    ]);
+
+  // Resolve member emails (names) via the admin API, then rank online first.
+  const service = await createServiceClient();
+  const team = await Promise.all(
+    (memberRows ?? []).map(async (m) => {
+      const { data } = await service.auth.admin.getUserById(m.user_id);
+      const email = data.user?.email ?? "Unknown";
+      const seen = m.last_seen_at ? new Date(m.last_seen_at).getTime() : 0;
+      const online = Date.now() - seen < ONLINE_WINDOW;
+      return {
+        id: m.user_id,
+        name: email.split("@")[0],
+        online,
+        away: !!m.is_away,
+      };
+    })
+  );
+  team.sort((a, b) => Number(b.online) - Number(a.online));
+  const onlineCount = team.filter((m) => m.online && !m.away).length;
+
+  const channelHealth = (channelRows ?? []).map((c) => ({
+    id: c.id,
+    platform: c.platform as Platform,
+    name: c.display_name || c.platform,
+    connected: c.is_active,
+  }));
+  const hasMeta = !!waCreds?.phone_number_id;
+  // Surface an official WhatsApp connection even before its first inbound
+  // message provisions a channel row.
+  if (hasMeta && !channelHealth.some((c) => c.platform === "whatsapp")) {
+    channelHealth.unshift({
+      id: "wa-cloud",
+      platform: "whatsapp" as Platform,
+      name: "WhatsApp",
+      connected: true,
+    });
+  }
 
   const greetName = (user.email ?? "there").split("@")[0];
 
@@ -267,6 +328,113 @@ export default async function HomePage() {
                 </div>
                 <ArrowUpRight className="ms-auto h-4 w-4 flex-shrink-0 text-muted-foreground/40" />
               </Link>
+            </div>
+          </div>
+
+          {/* Team presence + channel connection health */}
+          <div className="grid gap-6 lg:grid-cols-2">
+            {/* Who's online */}
+            <div className="rounded-xl border border-border bg-card p-5 shadow-card">
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="flex items-center gap-2 text-sm font-semibold">
+                  <Users className="h-4 w-4 text-primary" />
+                  Team
+                </h2>
+                <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <span className="h-2 w-2 rounded-full bg-green-500" />
+                  {onlineCount} online
+                </span>
+              </div>
+              {team.length === 0 ? (
+                <p className="text-xs text-muted-foreground">No teammates yet.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {team.slice(0, 6).map((m) => (
+                    <li key={m.id} className="flex items-center gap-2.5">
+                      <span className="relative">
+                        <span
+                          className={cn(
+                            "flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br text-xs font-semibold text-white",
+                            avatarGradient(m.name)
+                          )}
+                        >
+                          {m.name.charAt(0).toUpperCase()}
+                        </span>
+                        <span
+                          title={m.online ? (m.away ? "Away" : "Online") : "Offline"}
+                          className={cn(
+                            "absolute -bottom-0.5 -end-0.5 h-2.5 w-2.5 rounded-full border-2 border-card",
+                            !m.online
+                              ? "bg-muted-foreground/40"
+                              : m.away
+                              ? "bg-amber-500"
+                              : "bg-green-500"
+                          )}
+                        />
+                      </span>
+                      <span className="truncate text-sm">{m.name}</span>
+                      <span
+                        className={cn(
+                          "ms-auto text-[11px] font-medium",
+                          !m.online
+                            ? "text-muted-foreground/60"
+                            : m.away
+                            ? "text-amber-600"
+                            : "text-green-600"
+                        )}
+                      >
+                        {!m.online ? "Offline" : m.away ? "Away" : "Online"}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            {/* Channel connection status */}
+            <div className="rounded-xl border border-border bg-card p-5 shadow-card">
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="flex items-center gap-2 text-sm font-semibold">
+                  <Plug className="h-4 w-4 text-primary" />
+                  Channel status
+                </h2>
+                <Link
+                  href="/dashboard/channels"
+                  className="text-xs font-medium text-primary hover:underline"
+                >
+                  Manage
+                </Link>
+              </div>
+              {channelHealth.length === 0 && !hasMeta ? (
+                <p className="text-xs text-muted-foreground">
+                  No channels connected yet.
+                </p>
+              ) : (
+                <ul className="space-y-2">
+                  {channelHealth.map((c) => (
+                    <li key={c.id} className="flex items-center gap-2.5">
+                      <PlatformIcon platform={c.platform} className="h-4 w-4" size={16} />
+                      <span className="truncate text-sm capitalize">{c.name}</span>
+                      <span
+                        className={cn(
+                          "ms-auto inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium",
+                          c.connected
+                            ? "bg-green-100 text-green-700 dark:bg-green-950/40 dark:text-green-300"
+                            : "bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-300"
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            "h-1.5 w-1.5 rounded-full",
+                            c.connected ? "bg-green-500" : "bg-red-500"
+                          )}
+                        />
+                        {c.connected ? "Connected" : "Disconnected"}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           </div>
         </div>

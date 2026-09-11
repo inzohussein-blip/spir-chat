@@ -278,7 +278,7 @@ export default async function ReportsPage() {
                       {d.count}
                     </span>
                     <div
-                      className="w-full rounded-t bg-primary/70"
+                      className="w-full rounded-t-md bg-gradient-to-t from-violet-500/70 to-cyan-400/70 transition-all"
                       style={{ height: `${Math.max(2, (d.count / dailyMax) * 100)}%` }}
                     />
                     <span className="text-[9px] text-muted-foreground">
@@ -295,7 +295,7 @@ export default async function ReportsPage() {
                 {hours.map((count, h) => (
                   <div key={h} className="group flex flex-1 flex-col items-center justify-end gap-1">
                     <div
-                      className="w-full rounded-t bg-cyan-500/70"
+                      className="w-full rounded-t-md bg-gradient-to-t from-cyan-500/70 to-emerald-400/70 transition-all"
                       style={{ height: `${Math.max(2, (count / hoursMax) * 100)}%` }}
                       title={`${h}:00 — ${count}`}
                     />
