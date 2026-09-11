@@ -907,12 +907,16 @@ export function ConversationList({
                 "relative flex w-full items-start gap-3 rounded-xl p-2.5 text-start transition-colors",
                 selected
                   ? "bg-accent"
+                  : unread
+                  ? "bg-primary/[0.05] hover:bg-primary/[0.08]"
                   : "hover:bg-muted"
               )}
             >
-              {selected && (
+              {selected ? (
                 <span className="absolute inset-y-2 start-0 w-1 rounded-full bg-primary" />
-              )}
+              ) : unread ? (
+                <span className="absolute inset-y-2 start-0 w-1 rounded-full bg-primary/40" />
+              ) : null}
               {selectMode && (
                 <span
                   className={cn(

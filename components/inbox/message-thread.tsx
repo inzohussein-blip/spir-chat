@@ -761,12 +761,14 @@ export function MessageThread({
 
   if (!conversation) {
     return (
-      <div className="flex h-full flex-col items-center justify-center bg-background text-center">
-        <MessageSquare className="h-12 w-12 text-muted-foreground/30" />
-        <h3 className="mt-4 text-sm font-medium text-muted-foreground">
+      <div className="flex h-full flex-col items-center justify-center bg-gradient-to-b from-muted/20 to-background px-6 text-center">
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-600 to-cyan-500 shadow-lg shadow-primary/20">
+          <MessageSquare className="h-8 w-8 text-white" />
+        </div>
+        <h3 className="mt-4 text-base font-semibold">
           {t.inbox.selectConversation}
         </h3>
-        <p className="mt-1 text-xs text-muted-foreground/70">
+        <p className="mt-1 max-w-xs text-xs text-muted-foreground">
           {t.inbox.selectConversationHint}
         </p>
       </div>
