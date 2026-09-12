@@ -8,10 +8,10 @@ import { cn } from "@/lib/utils";
 import { avatarGradient } from "@/lib/avatar";
 import { PlatformIcon } from "@/components/platform-icon";
 import { useI18n } from "@/components/i18n-provider";
-import { Bookmark, Plus, X, Check, CheckCircle, RotateCcw, Flag, UserPlus, Trash2 } from "lucide-react";
+import { Bookmark, Plus, X, Check, CheckCheck, CheckCircle, RotateCcw, Flag, UserPlus, Trash2 } from "lucide-react";
 import { createInboxView, deleteInboxView } from "@/lib/actions/inbox-views";
 import { searchMessages, type MessageSearchHit } from "@/lib/actions/search";
-import { bulkUpdateConversations, bulkAddLabel, bulkDeleteConversations } from "@/lib/actions/conversations";
+import { bulkUpdateConversations, bulkAddLabel, bulkDeleteConversations, markAllConversationsRead } from "@/lib/actions/conversations";
 import { normalizePriority, PRIORITY_BADGE, PRIORITY_LABEL } from "@/lib/priority";
 import type { Database, Platform, ConversationStatus } from "@/lib/types/database";
 
@@ -557,6 +557,21 @@ export function ConversationList({
           )}
         </div>
         <div className="flex items-center gap-2">
+          {conversations.some((c) => c.unread_count > 0) && (
+            <button
+              onClick={async () => {
+                setConversations((prev) =>
+                  prev.map((c) => ({ ...c, unread_count: 0 }))
+                );
+                await markAllConversationsRead();
+              }}
+              title={t.inbox.markAllRead}
+              aria-label={t.inbox.markAllRead}
+              className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            >
+              <CheckCheck className="h-3.5 w-3.5" />
+            </button>
+          )}
           <button
             onClick={toggleSound}
             title={soundOn ? t.inbox.soundOn : t.inbox.soundOff}

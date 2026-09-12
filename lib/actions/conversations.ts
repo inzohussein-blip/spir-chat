@@ -57,6 +57,19 @@ const MAX_BULK_CONVERSATIONS = 200;
  * Apply one change to many conversations at once (bulk inbox actions). Only a
  * whitelisted set of fields can be set; everything is scoped to the workspace.
  */
+/** Clear the unread badge on every conversation in the workspace. */
+export async function markAllConversationsRead() {
+  const { workspace, supabase } = await getWorkspace();
+  const { error } = await supabase
+    .from("conversations")
+    .update({ unread_count: 0 })
+    .eq("workspace_id", workspace.id)
+    .gt("unread_count", 0);
+  if (error) return { error: error.message };
+  revalidatePath("/dashboard/inbox");
+  return { ok: true as const };
+}
+
 export async function bulkUpdateConversations(
   conversationIds: string[],
   change: { status?: "open" | "closed"; priority?: number; assignedTo?: string | null }
