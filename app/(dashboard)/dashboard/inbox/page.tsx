@@ -43,9 +43,10 @@ export default async function InboxPage() {
   const serviceClient = await createServiceClient();
   const { data: memberRows } = await serviceClient
     .from("workspace_members")
-    .select("user_id")
+    .select("user_id, last_seen_at, is_away")
     .eq("workspace_id", workspace.id);
-  const agentEntries = await Promise.all(
+  const ONLINE_WINDOW = 90 * 1000;
+  const members = await Promise.all(
     (memberRows ?? []).map(async (m) => {
       const {
         data: { user: u },
@@ -53,10 +54,20 @@ export default async function InboxPage() {
       const um = (u?.user_metadata ?? {}) as { full_name?: string; name?: string };
       const name =
         um.full_name || um.name || u?.email?.split("@")[0] || "Agent";
-      return [m.user_id, name] as const;
+      const seen = m.last_seen_at ? new Date(m.last_seen_at).getTime() : 0;
+      return {
+        id: m.user_id,
+        name,
+        online: Date.now() - seen < ONLINE_WINDOW,
+        away: !!(m as { is_away?: boolean }).is_away,
+      };
     })
   );
-  const agentNames = Object.fromEntries(agentEntries);
+  const agentNames = Object.fromEntries(members.map((m) => [m.id, m.name]));
+  // Teammates currently online (excluding yourself), for an inbox presence row.
+  const onlineTeammates = members
+    .filter((m) => m.online && m.id !== user.id)
+    .map((m) => ({ id: m.id, name: m.name, away: m.away }));
 
   return (
     <InboxView
@@ -65,6 +76,7 @@ export default async function InboxPage() {
       currentUserId={user.id}
       currentUserName={currentUserName}
       agentNames={agentNames}
+      onlineTeammates={onlineTeammates}
       cannedResponses={cannedResponses ?? []}
       labels={labels ?? []}
       channels={channels ?? []}

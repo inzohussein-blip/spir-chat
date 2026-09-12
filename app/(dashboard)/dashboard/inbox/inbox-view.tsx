@@ -10,6 +10,7 @@ import { MessageThread } from "@/components/inbox/message-thread";
 import { ContactPanel } from "@/components/inbox/contact-panel";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import { avatarGradient } from "@/lib/avatar";
 import type { Database } from "@/lib/types/database";
 
 type Conversation = Database["public"]["Tables"]["conversations"]["Row"] & {
@@ -31,6 +32,7 @@ export function InboxView({
   currentUserId,
   currentUserName,
   agentNames = {},
+  onlineTeammates = [],
   cannedResponses,
   labels,
   channels,
@@ -41,6 +43,7 @@ export function InboxView({
   currentUserId: string;
   currentUserName: string;
   agentNames?: Record<string, string>;
+  onlineTeammates?: { id: string; name: string; away: boolean }[];
   cannedResponses: CannedResponse[];
   labels: Label[];
   channels: ChannelOption[];
@@ -267,18 +270,51 @@ export function InboxView({
       <div className="flex min-h-0 flex-1 flex-col">
         {/* Slim toolbar: collapse the list / reopen the contact panel */}
         <div className="flex shrink-0 items-center justify-between border-b border-border px-2 py-1">
-          <button
-            onClick={toggleCollapsed}
-            className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-            aria-label={listCollapsed ? t.inbox.expandList : t.inbox.collapseList}
-            title={listCollapsed ? t.inbox.expandList : t.inbox.collapseList}
-          >
-            {listCollapsed ? (
-              <PanelLeftOpen className="h-3.5 w-3.5" />
-            ) : (
-              <PanelLeftClose className="h-3.5 w-3.5" />
+          <div className="flex items-center gap-2">
+            <button
+              onClick={toggleCollapsed}
+              className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+              aria-label={listCollapsed ? t.inbox.expandList : t.inbox.collapseList}
+              title={listCollapsed ? t.inbox.expandList : t.inbox.collapseList}
+            >
+              {listCollapsed ? (
+                <PanelLeftOpen className="h-3.5 w-3.5" />
+              ) : (
+                <PanelLeftClose className="h-3.5 w-3.5" />
+              )}
+            </button>
+
+            {/* Online teammates (who else is handling the inbox) */}
+            {onlineTeammates.length > 0 && (
+              <div className="flex items-center gap-1.5">
+                <div className="flex -space-x-2">
+                  {onlineTeammates.slice(0, 4).map((m) => (
+                    <span key={m.id} className="relative" title={m.name + (m.away ? " · away" : "")}>
+                      <span
+                        className={cn(
+                          "flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br text-[10px] font-semibold text-white ring-2 ring-background",
+                          avatarGradient(m.name)
+                        )}
+                      >
+                        {m.name.charAt(0).toUpperCase()}
+                      </span>
+                      <span
+                        className={cn(
+                          "absolute -bottom-0.5 -end-0.5 h-2 w-2 rounded-full border border-background",
+                          m.away ? "bg-amber-500" : "bg-green-500"
+                        )}
+                      />
+                    </span>
+                  ))}
+                </div>
+                {onlineTeammates.length > 4 && (
+                  <span className="text-[11px] font-medium text-muted-foreground">
+                    +{onlineTeammates.length - 4}
+                  </span>
+                )}
+              </div>
             )}
-          </button>
+          </div>
           {selected && !showContactPanel && (
             <button
               onClick={() => setShowContactPanel(true)}
