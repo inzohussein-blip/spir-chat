@@ -170,6 +170,23 @@ export default async function ReportsPage() {
     }
   }
 
+  // Status distribution for a donut (open / resolved / snoozed, rest = other).
+  const statusSegments = [
+    { label: "Open", value: open ?? 0, color: "#10b981" },
+    { label: "Resolved", value: resolved ?? 0, color: "#3b82f6" },
+    { label: "Snoozed", value: snoozed ?? 0, color: "#f59e0b" },
+  ];
+  const statusKnown = statusSegments.reduce((s, x) => s + x.value, 0);
+  const statusOther = Math.max(0, (total ?? 0) - statusKnown);
+  const statusAll = [
+    ...statusSegments,
+    ...(statusOther > 0
+      ? [{ label: "Other", value: statusOther, color: "#94a3b8" }]
+      : []),
+  ];
+  const statusTotal = Math.max(1, (total ?? 0));
+  let donutOffset = 0;
+
   const cards = [
     { label: "Total conversations", value: total ?? 0, icon: MessageSquare, tone: "text-foreground" },
     { label: "Open", value: open ?? 0, icon: Inbox, tone: "text-emerald-600" },
@@ -204,6 +221,53 @@ export default async function ReportsPage() {
             );
           })}
         </div>
+
+        {(total ?? 0) > 0 && (
+          <div className="mt-8 rounded-xl border border-border bg-card p-5 shadow-card">
+            <h2 className="mb-4 text-sm font-semibold">Conversation status</h2>
+            <div className="flex flex-wrap items-center gap-6">
+              <div className="relative h-32 w-32 shrink-0">
+                <svg viewBox="0 0 40 40" className="h-32 w-32 -rotate-90">
+                  <circle cx="20" cy="20" r="15.9155" fill="none" strokeWidth="5" className="stroke-muted" />
+                  {statusAll.map((s) => {
+                    const len = (s.value / statusTotal) * 100;
+                    const el = (
+                      <circle
+                        key={s.label}
+                        cx="20"
+                        cy="20"
+                        r="15.9155"
+                        fill="none"
+                        stroke={s.color}
+                        strokeWidth="5"
+                        strokeDasharray={`${len} ${100 - len}`}
+                        strokeDashoffset={-donutOffset}
+                      />
+                    );
+                    donutOffset += len;
+                    return el;
+                  })}
+                </svg>
+                <span className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-2xl font-bold">{total ?? 0}</span>
+                  <span className="text-[10px] text-muted-foreground">total</span>
+                </span>
+              </div>
+              <ul className="space-y-2">
+                {statusAll.map((s) => (
+                  <li key={s.label} className="flex items-center gap-2 text-sm">
+                    <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: s.color }} />
+                    <span className="min-w-20 text-muted-foreground">{s.label}</span>
+                    <span className="font-semibold">{s.value}</span>
+                    <span className="text-xs text-muted-foreground">
+                      ({Math.round((s.value / statusTotal) * 100)}%)
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
 
         {csat.sent > 0 && (
           <div className="mt-8">
