@@ -330,6 +330,20 @@ export function ConversationList({
     setConversations(initialConversations);
   }, [initialConversations]);
 
+  // Reflect the total unread count in the browser tab title (Tidio-style), so a
+  // new message is noticeable even when the tab is in the background.
+  useEffect(() => {
+    const unread = conversations.reduce(
+      (sum, c) => sum + (c.unread_count > 0 ? c.unread_count : 0),
+      0
+    );
+    const base = "Inbox · SpirChat";
+    document.title = unread > 0 ? `(${unread}) ${base}` : base;
+    return () => {
+      document.title = base;
+    };
+  }, [conversations]);
+
   // Subscribe to conversation updates via Realtime, with connection-health
   // tracking + auto-reconnect. A dropped socket (expired token, sleep/wake,
   // network blip) previously went silent — now it's detected, retried with
