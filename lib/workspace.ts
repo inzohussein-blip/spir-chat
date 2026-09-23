@@ -27,11 +27,11 @@ export const getWorkspace = cache(async () => {
       .select("workspace_id, role, is_active, workspaces(*)")
       .eq("user_id", user.id)
       .eq("workspace_id", selectedId)
-      .single();
+      .maybeSingle();
 
-    if (membership?.workspaces) {
-      // A closed (deactivated) member is blocked from the workspace.
-      if (membership.is_active === false) redirect("/suspended");
+    // A closed (deactivated) membership falls through to the user's other
+    // workspaces; RLS hides the workspace row from it anyway.
+    if (membership?.is_active !== false && membership?.workspaces) {
       return {
         user,
         workspace: membership.workspaces,
@@ -41,16 +41,20 @@ export const getWorkspace = cache(async () => {
     }
   }
 
-  // Fallback to first workspace
+  // Fallback to the first workspace, preferring one the user is still active in
   const { data: membership } = await supabase
     .from("workspace_members")
     .select("workspace_id, role, is_active, workspaces(*)")
     .eq("user_id", user.id)
+    .order("is_active", { ascending: false })
+    .order("created_at", { ascending: true })
     .limit(1)
-    .single();
+    .maybeSingle();
 
-  if (!membership?.workspaces) redirect("/login");
+  if (!membership) redirect("/login");
+  // Every membership is closed: the member is blocked until reactivated.
   if (membership.is_active === false) redirect("/suspended");
+  if (!membership.workspaces) redirect("/login");
 
   return {
     user,
