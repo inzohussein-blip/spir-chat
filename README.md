@@ -191,7 +191,7 @@ npm run dev          # http://localhost:3000
 ### اختيارية (حسب الميزة)
 | الميزة | المتغيّرات |
 |---|---|
-| واتساب Cloud API | `META_APP_ID`, `META_APP_SECRET`, `META_WHATSAPP_TOKEN`, `META_PHONE_NUMBER_ID`, `META_WEBHOOK_VERIFY_TOKEN`, `META_TOKEN_KEY` (64 hex لتشفير التوكنات), `META_GRAPH_VERSION`, `META_WORKSPACE_ID` |
+| واتساب Cloud API | `META_APP_ID`, `META_APP_SECRET`, `META_WHATSAPP_TOKEN`, `META_PHONE_NUMBER_ID`, `META_WEBHOOK_VERIFY_TOKEN`, `META_TOKEN_KEY` (64 hex لتشفير الأسرار، يُنصح به: `openssl rand -hex 32`), `META_GRAPH_VERSION`, `META_WORKSPACE_ID` |
 | التسجيل المضمَّن لواتساب | `NEXT_PUBLIC_FACEBOOK_APP_ID`, `NEXT_PUBLIC_META_CONFIG_ID` |
 | البريد (Resend) | `RESEND_API_KEY`, `CAMPAIGN_FROM_EMAIL` |
 | Twilio | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_SMS_FROM`, `TWILIO_WHATSAPP_FROM` |
@@ -199,6 +199,8 @@ npm run dev          # http://localhost:3000
 | Web Push | `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` |
 | الذكاء الاصطناعي | `AI_GATEWAY_API_KEY` |
 | تتبّع النقرات | `CLICK_HASH_SALT` |
+
+> **مهم:** بدون `META_APP_SECRET` تُرفض كل رسائل واتساب وإنستغرام الواردة (لا نقبل طلبات غير موقَّعة).
 
 > مزوّدو الحملات وواتساب يمكن إدخالهم **من داخل التطبيق لكل مساحة عمل** (الإعدادات، وصفحة واتساب). قيم مساحة العمل لها الأولوية على متغيّرات البيئة.
 
@@ -340,8 +342,8 @@ spir-chat/
   - `createClient()` بجلسة المستخدم، وتُطبَّق عليه RLS.
   - `createServiceClient()` بمفتاح الخدمة، ويُستخدم فقط في الـ Webhooks والـ Cron ونقاط الودجت والـ API العامة، مع تقييد يدوي بـ `workspace_id`.
 - دوال `SECURITY DEFINER` المستدعاة عبر RPC تتحقّق من العضوية بنفسها، والدوال الداخلية غير متاحة لـ `anon` و`authenticated` (الهجرات `00076` و`00077`).
-- أسرار المزوّدين المخزّنة في القاعدة مشفّرة بـ AES-256-GCM (`encryptToken` / `decryptToken` في `lib/meta/oauth.ts`).
-- الـ Webhooks الواردة تتحقّق من التوقيع أو رمز التحقّق، وأحداث Zernio لها سجلّ منع تكرار (`webhook_events`).
+- أسرار المزوّدين المخزّنة في القاعدة مشفّرة بـ AES-256-GCM (`encryptToken` / `decryptToken` في `lib/meta/oauth.ts`). المفتاح `META_TOKEN_KEY`، أو مشتقّ من `SUPABASE_SERVICE_ROLE_KEY`، ولا يوجد مفتاح ثابت في الكود. تغيير المفتاح لاحقاً آمن لأن فكّ التشفير يجرّب كل المفاتيح المضبوطة.
+- الـ Webhooks الواردة تتحقّق من التوقيع أو رمز التحقّق، وواتساب وإنستغرام **يرفضان أي طلب** إذا لم يُضبط `META_APP_SECRET`. أحداث Zernio لها سجلّ منع تكرار (`webhook_events`).
 - مفاتيح API تُخزَّن كـ hash فقط، والـ Webhooks الصادرة موقَّعة بـ HMAC.
 
 ---

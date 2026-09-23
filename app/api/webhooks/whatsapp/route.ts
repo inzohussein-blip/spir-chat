@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse, after } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
-import {
-  workspaceForPhoneNumberId,
-  verifyMetaSignature,
-} from "@/lib/whatsapp-cloud";
+import { workspaceForPhoneNumberId } from "@/lib/whatsapp-cloud";
+import { verifyWebhookSignature } from "@/lib/meta/webhook";
 import { autoAssignConversation } from "@/lib/routing";
 import { applyLabelRules } from "@/lib/auto-label";
 import { sendPushToWorkspace } from "@/lib/push";
@@ -11,7 +9,8 @@ import { sendPushToWorkspace } from "@/lib/push";
 // Official Meta WhatsApp Cloud API webhook. Inbound customer messages land in
 // the unified inbox (stored locally, like the website widget). Public endpoint —
 // authenticity is enforced by the verify token (GET) and the app-secret
-// signature (POST).
+// signature (POST). Without META_APP_SECRET every POST is rejected, since an
+// unsigned endpoint would let anyone inject messages into a workspace's inbox.
 
 /** Webhook verification handshake (Meta calls this when you subscribe). */
 export async function GET(request: NextRequest) {
@@ -41,7 +40,7 @@ type WaMessage = {
 
 export async function POST(request: NextRequest) {
   const raw = await request.text();
-  if (!verifyMetaSignature(raw, request.headers.get("x-hub-signature-256"))) {
+  if (!verifyWebhookSignature(raw, request.headers.get("x-hub-signature-256"))) {
     return new NextResponse("Invalid signature", { status: 401 });
   }
 

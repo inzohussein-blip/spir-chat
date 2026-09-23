@@ -39,11 +39,13 @@ export function WhatsAppPageView({
   templates,
   callbackUrl,
   verifyTokenSet,
+  appSecretSet,
 }: {
   connection: { displayNumber: string | null; verifiedName: string | null; hasWaba: boolean } | null;
   templates: Tpl[];
   callbackUrl: string;
   verifyTokenSet: boolean;
+  appSecretSet: boolean;
 }) {
   const router = useRouter();
   const { t } = useI18n();
@@ -321,27 +323,8 @@ export function WhatsAppPageView({
                   </button>
                 </div>
               </div>
-              <div>
-                <label className="text-[11px] font-medium text-muted-foreground">
-                  {wp.verifyTokenLabel}
-                </label>
-                <p
-                  className={cn(
-                    "mt-1 rounded-lg border px-3 py-2 text-xs",
-                    verifyTokenSet
-                      ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-300"
-                      : "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-300"
-                  )}
-                >
-                  {verifyTokenSet ? (
-                    <span className="inline-flex items-center gap-1">
-                      <Check className="h-3.5 w-3.5" /> {wa.connected}
-                    </span>
-                  ) : (
-                    wp.verifyTokenUnset
-                  )}
-                </p>
-              </div>
+              <EnvStatus label={wp.verifyTokenLabel} ok={verifyTokenSet} okText={wa.connected} unsetText={wp.verifyTokenUnset} />
+              <EnvStatus label={wp.appSecretLabel} ok={appSecretSet} okText={wa.connected} unsetText={wp.appSecretUnset} />
             </div>
           </section>
 
@@ -431,6 +414,41 @@ export function WhatsAppPageView({
           </section>
         </div>
       </div>
+    </div>
+  );
+}
+
+/** One webhook setting's status: green when configured, amber with a hint when not. */
+function EnvStatus({
+  label,
+  ok,
+  okText,
+  unsetText,
+}: {
+  label: string;
+  ok: boolean;
+  okText: string;
+  unsetText: string;
+}) {
+  return (
+    <div>
+      <label className="text-[11px] font-medium text-muted-foreground">{label}</label>
+      <p
+        className={cn(
+          "mt-1 rounded-lg border px-3 py-2 text-xs",
+          ok
+            ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-300"
+            : "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-300"
+        )}
+      >
+        {ok ? (
+          <span className="inline-flex items-center gap-1">
+            <Check className="h-3.5 w-3.5" /> {okText}
+          </span>
+        ) : (
+          unsetText
+        )}
+      </p>
     </div>
   );
 }

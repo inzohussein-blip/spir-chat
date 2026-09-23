@@ -25,7 +25,12 @@ const SCOPES = [
 ].join(",");
 
 function stateSecret(): string {
-  return process.env.META_APP_SECRET ?? process.env.CRON_SECRET ?? "spirchat-meta-state";
+  const secret =
+    process.env.META_APP_SECRET ??
+    process.env.CRON_SECRET ??
+    process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!secret) throw new Error("No secret configured to sign the OAuth state");
+  return secret;
 }
 
 /** Whether the Meta app credentials are configured. */
@@ -101,30 +106,60 @@ export async function exchangeCodeForToken(
 }
 
 // ── Token encryption (AES-256-GCM) ──────────────────────────────────────────
-// Key: META_TOKEN_KEY (64 hex chars = 32 bytes). Falls back to a hash of
-// META_APP_SECRET so encryption still works if the dedicated key isn't set.
+// Encrypts provider secrets stored in the DB (Meta/WhatsApp tokens, Resend,
+// Twilio, Telegram). Key, in order of preference:
+//   1. META_TOKEN_KEY (64 hex chars = 32 bytes) — recommended, set explicitly.
+//   2. Derived from SUPABASE_SERVICE_ROLE_KEY — secret and always present, so
+//      encryption works with no extra setup.
+// Never a constant baked into the source: anyone reading the repo could then
+// decrypt every stored secret (workspace members can read the ciphertext).
+// Decryption tries every configured key (plus the legacy META_APP_SECRET
+// derivation), so adding META_TOKEN_KEY later doesn't strand stored secrets.
 
-function encryptionKey(): Buffer {
-  const hex = process.env.META_TOKEN_KEY;
-  if (hex && /^[0-9a-f]{64}$/i.test(hex)) return Buffer.from(hex, "hex");
-  return createHash("sha256")
-    .update(process.env.META_APP_SECRET ?? "spirchat-meta-key")
-    .digest();
+/** Candidate keys, the first one being the one new values are encrypted with. */
+export function tokenKeys(env: NodeJS.ProcessEnv = process.env): Buffer[] {
+  const keys: Buffer[] = [];
+  const hex = env.META_TOKEN_KEY;
+  if (hex && /^[0-9a-f]{64}$/i.test(hex)) keys.push(Buffer.from(hex, "hex"));
+  if (env.SUPABASE_SERVICE_ROLE_KEY) {
+    keys.push(
+      createHash("sha256")
+        .update(`spirchat-token-key:${env.SUPABASE_SERVICE_ROLE_KEY}`)
+        .digest()
+    );
+  }
+  if (env.META_APP_SECRET) {
+    keys.push(createHash("sha256").update(env.META_APP_SECRET).digest());
+  }
+  return keys;
 }
 
-export function encryptToken(plaintext: string): string {
+export function encryptToken(plaintext: string, env: NodeJS.ProcessEnv = process.env): string {
+  const [key] = tokenKeys(env);
+  if (!key) {
+    throw new Error("Token encryption key not configured: set META_TOKEN_KEY");
+  }
   const iv = randomBytes(IV_LEN);
-  const cipher = createCipheriv(ALGO, encryptionKey(), iv);
+  const cipher = createCipheriv(ALGO, key, iv);
   const enc = Buffer.concat([cipher.update(plaintext, "utf8"), cipher.final()]);
   return Buffer.concat([iv, cipher.getAuthTag(), enc]).toString("base64");
 }
 
-export function decryptToken(encryptedBase64: string): string {
+export function decryptToken(encryptedBase64: string, env: NodeJS.ProcessEnv = process.env): string {
   const combined = Buffer.from(encryptedBase64, "base64");
   const iv = combined.subarray(0, IV_LEN);
   const tag = combined.subarray(IV_LEN, IV_LEN + TAG_LEN);
   const ciphertext = combined.subarray(IV_LEN + TAG_LEN);
-  const decipher = createDecipheriv(ALGO, encryptionKey(), iv);
-  decipher.setAuthTag(tag);
-  return Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString("utf8");
+  let lastError: unknown = new Error("Token encryption key not configured");
+  // GCM's auth tag rejects a wrong key, so the first key that verifies wins.
+  for (const key of tokenKeys(env)) {
+    try {
+      const decipher = createDecipheriv(ALGO, key, iv);
+      decipher.setAuthTag(tag);
+      return Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString("utf8");
+    } catch (e) {
+      lastError = e;
+    }
+  }
+  throw lastError;
 }

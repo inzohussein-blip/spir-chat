@@ -19,7 +19,8 @@ npx vitest run
 ## Code conventions
 - **UI numbers are Latin digits**: always `toLocale*("en-US")`.
 - **i18n**: `lib/i18n/dictionaries.ts`. `en` is the source; `ar` is typed as `Dictionary`, so it must match the shape exactly or `tsc` fails.
-- **Provider secrets** stored in the DB are encrypted with `encryptToken` / `decryptToken` from `lib/meta/oauth.ts` (AES-256-GCM).
+- **Provider secrets** stored in the DB are encrypted with `encryptToken` / `decryptToken` from `lib/meta/oauth.ts` (AES-256-GCM). Key = `META_TOKEN_KEY`, else derived from `SUPABASE_SERVICE_ROLE_KEY`; decrypt tries every configured key. Never add a hardcoded fallback key or secret.
+- **Webhooks fail closed**: a missing secret means reject, never "skip verification". Meta/WhatsApp use `verifyWebhookSignature` in `lib/meta/webhook.ts`.
 - **Message bubbles**: customer shows the platform icon; agent uses the primary color.
 
 ## Database changes (always all of these)

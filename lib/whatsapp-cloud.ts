@@ -1,5 +1,4 @@
 import "server-only";
-import crypto from "crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/types/database";
 import { decryptToken } from "@/lib/meta/oauth";
@@ -245,16 +244,4 @@ export async function listMessageTemplates(
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "list failed" };
   }
-}
-
-/** Constant-time verification of Meta's X-Hub-Signature-256 over the raw body. */
-export function verifyMetaSignature(rawBody: string, signature: string | null): boolean {
-  const secret = process.env.META_APP_SECRET;
-  if (!secret) return true; // not configured → skip (test mode)
-  if (!signature || !signature.startsWith("sha256=")) return false;
-  const expected =
-    "sha256=" + crypto.createHmac("sha256", secret).update(rawBody, "utf8").digest("hex");
-  const a = Buffer.from(signature);
-  const b = Buffer.from(expected);
-  return a.length === b.length && crypto.timingSafeEqual(a, b);
 }

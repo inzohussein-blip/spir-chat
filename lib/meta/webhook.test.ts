@@ -1,5 +1,6 @@
-import { describe, it, expect } from "vitest";
-import { extractComments } from "./webhook";
+import { createHmac } from "node:crypto";
+import { describe, it, expect, vi, afterEach } from "vitest";
+import { extractComments, verifyWebhookSignature } from "./webhook";
 
 describe("extractComments", () => {
   it("pulls comment changes out of a Meta webhook body", () => {
@@ -38,5 +39,25 @@ describe("extractComments", () => {
     expect(extractComments({ entry: [{ id: "x", changes: [{ field: "messages" }] }] })).toEqual([]);
     expect(extractComments(null)).toEqual([]);
     expect(extractComments({})).toEqual([]);
+  });
+});
+
+describe("verifyWebhookSignature", () => {
+  afterEach(() => vi.unstubAllEnvs());
+  const body = '{"object":"whatsapp_business_account"}';
+  const sign = (secret: string) =>
+    "sha256=" + createHmac("sha256", secret).update(body).digest("hex");
+
+  it("rejects every request when META_APP_SECRET is not set", () => {
+    vi.stubEnv("META_APP_SECRET", "");
+    expect(verifyWebhookSignature(body, sign("anything"))).toBe(false);
+    expect(verifyWebhookSignature(body, null)).toBe(false);
+  });
+
+  it("accepts a correct signature and rejects a wrong or missing one", () => {
+    vi.stubEnv("META_APP_SECRET", "app-secret");
+    expect(verifyWebhookSignature(body, sign("app-secret"))).toBe(true);
+    expect(verifyWebhookSignature(body, sign("other"))).toBe(false);
+    expect(verifyWebhookSignature(body, null)).toBe(false);
   });
 });

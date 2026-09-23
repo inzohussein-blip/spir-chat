@@ -124,7 +124,7 @@ META_WHATSAPP_TOKEN=<permanent access token>
 META_PHONE_NUMBER_ID=<sending number's phone_number_id>
 META_WORKSPACE_ID=<workspace UUID that owns this number>
 META_VERIFY_TOKEN=<any secret you choose, entered in the Meta webhook setup>
-META_APP_SECRET=<Meta app secret, verifies inbound signatures>
+META_APP_SECRET=<Meta app secret — required: without it inbound webhooks are rejected>
 
 # Optional: one-click Embedded Signup (Facebook JS SDK) in Settings
 META_APP_ID=<Meta app id>              # server: also used for the code exchange
@@ -178,7 +178,7 @@ app with Instagram added, then set:
 META_APP_ID=...                 # Instagram app ID
 META_APP_SECRET=...             # Instagram app secret
 META_WEBHOOK_VERIFY_TOKEN=...   # any random string; match it in the Meta webhook config
-META_TOKEN_KEY=...              # optional: 64 hex chars (32 bytes) to encrypt tokens at rest
+META_TOKEN_KEY=...              # recommended: 64 hex chars (openssl rand -hex 32); else derived from SUPABASE_SERVICE_ROLE_KEY
 ```
 
 In the Meta app:

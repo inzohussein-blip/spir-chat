@@ -338,6 +338,9 @@ const en = {
       callbackUrl: "Callback URL",
       verifyTokenLabel: "Verify token",
       verifyTokenUnset: "Not set — add META_WEBHOOK_VERIFY_TOKEN to the environment.",
+      appSecretLabel: "App secret (message signature)",
+      appSecretUnset:
+        "Not set — inbound WhatsApp messages are rejected until META_APP_SECRET is added to the environment.",
       copy: "Copy",
       copied: "Copied",
       templatesTitle: "Approved templates",
@@ -861,6 +864,9 @@ const ar: Dictionary = {
       callbackUrl: "رابط الاستدعاء (Callback URL)",
       verifyTokenLabel: "رمز التحقق (Verify token)",
       verifyTokenUnset: "غير مضبوط — أضف META_WEBHOOK_VERIFY_TOKEN إلى البيئة.",
+      appSecretLabel: "سرّ التطبيق (توقيع الرسائل)",
+      appSecretUnset:
+        "غير مضبوط — تُرفض رسائل واتساب الواردة حتى تُضيف META_APP_SECRET إلى البيئة.",
       copy: "نسخ",
       copied: "تم النسخ",
       templatesTitle: "القوالب المعتمدة",
