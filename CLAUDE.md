@@ -30,6 +30,7 @@ npx vitest run
 4. Apply it to the live Supabase project **spirchat** (`yxwnrrgnufmetderlcio`) and confirm.
 
 - Never touch the **spirmargin** Supabase project; it's a separate product.
+- New RLS policies: one `FOR ALL` policy per table (no extra `FOR SELECT` copy), wrap `auth.uid()` as `(select auth.uid())`, never query the policy's own table inside it (infinite recursion). Index every new foreign key.
 - `scheduled_jobs` has no RLS policies (server-only): enqueue with `createServiceClient()` after verifying ownership.
 - A `SECURITY DEFINER` function called over RPC must check `is_workspace_member(...)` itself (it bypasses RLS),
   and internal-only functions must not be executable by `anon` / `authenticated` (see `00076`, `00077`).
@@ -42,7 +43,7 @@ npx vitest run
 | `app/` | Next.js App Router: pages, API routes, public surfaces |
 | `components/` | Client/server UI shared across pages (inbox, flow builder, settings…) |
 | `lib/` | All business logic. `lib/actions/*` = server actions (`"use server"`) called by pages |
-| `supabase/migrations/` | Ordered SQL (`00001`→`00079`); `supabase/schema.sql` = all of them concatenated |
+| `supabase/migrations/` | Ordered SQL (`00001`→`00081`); `supabase/schema.sql` = all of them concatenated |
 | `public/widget.js` | Embeddable website-chat loader; `public/sw.js` = Web Push service worker |
 | `services/telegram-gateway/` | Separate Node service (GramJS) for Telegram outreach; not deployed with the app |
 | `scripts/smoke-test.mjs` | End-to-end smoke test: creates a test flow and runs it through the webhook |
@@ -118,8 +119,48 @@ npx vitest run
 - `/api/cron/sequences` — `lib/sequence-processor.ts`.
 - `/api/cron/meta` — refresh Meta tokens, drain `dm_jobs`, purge old jobs.
 
+### Database tables (54) — purpose · access · main code
+Access: **M** = members full CRUD via `is_workspace_member` · **R** = members read-only, writes go through `createServiceClient()` · **S** = server-only (RLS on, no policies) · **O** = owner-only writes.
+
+| Domain | Table | Purpose | Access | Main code |
+|---|---|---|---|---|
+| Tenancy | `workspaces` | Settings (business hours, routing, SLA, AI, CSAT, follow-up, auto-close) + encrypted provider secrets, `late_api_key_encrypted`, `webhook_secret` | SELECT/UPDATE members | `lib/workspace.ts`, `lib/actions/workspace.ts`, settings sections |
+| | `workspace_members` | role, `is_active`/`deactivated_by`, presence (`last_seen_at`, `is_away`) | own rows; **O** writes | `lib/actions/team.ts`, `presence.ts` |
+| | `workspace_invites` | Pending invites (member/admin) | **O**; accept via service | `lib/actions/team.ts`, `app/invite/` |
+| | `audit_log` | Consequential actions | **R** | `lib/audit-server.ts` (`recordAudit`) |
+| Channels | `channels` | One row per connected account/widget (`platform`, `widget_config`, `late_*`) | M | `api/v1/channels/*`, `lib/actions/widgets.ts` |
+| | `meta_credentials` | Instagram Graph tokens (encrypted) | **S** | `api/meta/callback`, `api/cron/meta` |
+| | `whatsapp_credentials` / `whatsapp_templates` | WhatsApp Cloud number (encrypted token) / synced templates | **R** / M | `lib/actions/whatsapp-connect.ts`, `lib/whatsapp-cloud.ts` |
+| | `webhook_events` | Zernio delivery idempotency ledger | **S** | `api/webhooks/late`, pruned by `api/cron/jobs` |
+| CRM | `contacts` | People (`phone`, `email`, `company`, `is_subscribed`) | M | `lib/actions/contacts.ts`, webhooks |
+| | `contact_channels` | Contact ↔ channel sender ids | M | webhooks, `lib/widget-server.ts` |
+| | `tags` · `contact_tags` | Tags (insert fires `enroll_on_tag`) | M | `components/inbox/tag-editor.tsx`, `lib/actions/contacts.ts` |
+| | `custom_field_definitions` · `contact_custom_fields` | Custom fields | M | `lib/actions/custom-fields.ts`, `contact-panel.tsx` |
+| | `contact_notes` · `segments` | Contact notes · saved audience rules | M | `lib/actions/contact-notes.ts`, `lib/segments.ts` |
+| Inbox | `conversations` | One per channel+contact: status, priority, assignee, snooze, SLA, visitor presence/typing | M | `lib/actions/conversations.ts`, `conversation-list.tsx` |
+| | `messages` | Local threads only (widget, WhatsApp); Zernio threads live in Zernio | INSERT/SELECT | widget/WhatsApp routes, `api/v1/messages` |
+| | `conversation_notes` · `labels` · `conversation_labels` · `label_rules` | Internal notes · labels · auto-label rules | M | `message-thread.tsx`, `label-picker.tsx`, `lib/auto-label.ts` |
+| | `canned_responses` · `macros` · `inbox_views` | Saved replies · macros · saved filters | M | `lib/actions/canned.ts`, `macros.ts`, `inbox-views.ts` |
+| | `csat_surveys` | One survey per conversation, public token | M | `lib/actions/csat.ts`, `app/csat/` |
+| Automation | `flows` · `flow_versions` · `triggers` | Flow graphs · published snapshots (INSERT/SELECT) · triggers | M | `api/v1/flows/*`, `lib/flow-engine/trigger-matcher.ts` |
+| | `flow_sessions` | Running flow state per contact | **R** | `lib/flow-engine/engine.ts` |
+| | `sequences` · `sequence_enrollments` | Drip sequences · enrollments | M | `lib/actions/sequences.ts`, `lib/sequence-processor.ts` |
+| | `scheduled_jobs` | Delayed work: `resume_flow`, `send_broadcast`, `scheduled_message` | **S** | `lib/scheduler.ts`, `api/cron/jobs` |
+| | `comment_logs` · `dm_jobs` | Comment automation log · Meta DM retry queue | **R** | `lib/comment-processor.ts`, `lib/meta/process-comment.ts` |
+| | `analytics_events` | Flow/automation events | INSERT/SELECT | `lib/flow-engine/engine.ts`, `dash/analytics` |
+| Marketing | `broadcasts` · `broadcast_recipients` | Social broadcasts | M · INSERT/SELECT/UPDATE | `api/v1/broadcasts/*`, `api/cron/jobs` |
+| | `campaigns` · `campaign_recipients` | Email/SMS/WA campaigns + per-recipient log | M | `lib/campaigns/send.ts` |
+| | `outreach_batches` · `outreach_recipients` · `outreach_templates` | Direct campaigns | M | `lib/actions/outreach.ts`, `lib/outreach-process.ts` |
+| | `tracked_links` · `link_clicks` · `report_shares` | Short links · clicks (**R**) · public reports | M | `lib/tracking.ts`, `app/r/[slug]`, `app/reports/[slug]` |
+| Self-service | `forms` · `form_responses` | Conversational forms · answers (**R**, widget writes via service) | M | `lib/actions/forms.ts`, `api/widget/[channelId]/form` |
+| | `kb_articles` | Help Center articles | M | `lib/actions/kb.ts`, `app/help/` |
+| Developers | `api_keys` · `webhook_endpoints` · `integrations` | Hashed API keys · outgoing webhooks · Shopify/Woo config | M | `lib/api-keys.ts`, `lib/actions/developers.ts`, `integrations.ts` |
+| | `push_subscriptions` | Web Push endpoints (own rows only) | own + member | `lib/push.ts`, `api/push/subscribe` |
+
+DB functions: `is_workspace_member` (RLS core), `merge_contacts` / `erase_contact` (RPC, membership-guarded), `increment_unread` / `increment_broadcast_*` (service role only), trigger `enroll_on_tag`, `handle_new_user` (auth signup → workspace).
+
 ### Database — where each feature's schema lives
-`00001` core tables · `00002` RLS · `00003` RPC counters · `00004` comment automation · `00005` sequences · `00006` invites · `00007-08` AI key/provider · `00010` flow versions · `00012` webhook idempotency · `00014-15` job claims · `00016` security hardening · `00017` website channel · `00018` saved replies · `00019` widget config · `00020` conversation notes · `00021` labels · `00022-23` visitor presence/typing · `00024` business hours · `00025` API keys + webhooks · `00026` push · `00027` help center · `00028` routing/SLA · `00029` rich messages · `00030` forms · `00031` campaigns · `00032` integrations · `00034` tracked links · `00036` Meta credentials + `dm_jobs` · `00037` report shares · `00039` segments · `00040/44` CSAT · `00041` macros · `00042-43` campaign schedule/recipients · `00045/48` tag→sequence trigger · `00046` A/B · `00047` weekly reports · `00049` label rules · `00050` snooze · `00051` SLA escalation · `00052` merge contacts · `00053` inbox views · `00054` AI replies · `00055` agent cap · `00056` visitor follow-up · `00057` erase contact · `00058` audit log · `00059` priority · `00060-61` contact notes/company · `00062-64` agent presence/away/typing · `00065` auto-close · `00066-69, 73` outreach · `00070-71` WhatsApp credentials/templates · `00072` read receipts · `00074` campaign providers · `00075` member open/close · `00076-79` security (RPC guards, internal RPCs, active-member RLS, server-only `scheduled_jobs`, owner-only invite updates).
+`00001` core tables · `00002` RLS · `00003` RPC counters · `00004` comment automation · `00005` sequences · `00006` invites · `00007-08` AI key/provider · `00010` flow versions · `00012` webhook idempotency · `00014-15` job claims · `00016` security hardening · `00017` website channel · `00018` saved replies · `00019` widget config · `00020` conversation notes · `00021` labels · `00022-23` visitor presence/typing · `00024` business hours · `00025` API keys + webhooks · `00026` push · `00027` help center · `00028` routing/SLA · `00029` rich messages · `00030` forms · `00031` campaigns · `00032` integrations · `00034` tracked links · `00036` Meta credentials + `dm_jobs` · `00037` report shares · `00039` segments · `00040/44` CSAT · `00041` macros · `00042-43` campaign schedule/recipients · `00045/48` tag→sequence trigger · `00046` A/B · `00047` weekly reports · `00049` label rules · `00050` snooze · `00051` SLA escalation · `00052` merge contacts · `00053` inbox views · `00054` AI replies · `00055` agent cap · `00056` visitor follow-up · `00057` erase contact · `00058` audit log · `00059` priority · `00060-61` contact notes/company · `00062-64` agent presence/away/typing · `00065` auto-close · `00066-69, 73` outreach · `00070-71` WhatsApp credentials/templates · `00072` read receipts · `00074` campaign providers · `00075` member open/close · `00076-79` security (RPC guards, internal RPCs, active-member RLS, server-only `scheduled_jobs`, owner-only invite updates) · `00080-81` performance (FK indexes, `(select auth.uid())` in policies, no duplicate SELECT policies).
 
 ### Tests
 `lib/*.test.ts` (vitest) — pure helpers only (csv, segments, merge, business-hours, outreach parsing, widget, tracking, comment-processor, meta webhook…). Put new pure logic in `lib/` with a test next to it.
