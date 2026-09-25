@@ -291,7 +291,7 @@ spir-chat/
 │   ├── workspace.ts             # getWorkspace(): المستخدم + مساحة العمل الحالية
 │   └── *.ts                     # منطق نقي مع اختبارات *.test.ts
 ├── supabase/
-│   ├── migrations/              # 00001 → 00078
+│   ├── migrations/              # 00001 → 00079
 │   └── schema.sql               # كل الهجرات مجمّعة
 ├── public/                      # widget.js, sw.js, أيقونات
 ├── services/telegram-gateway/   # خدمة Node منفصلة لإرسال تيليجرام

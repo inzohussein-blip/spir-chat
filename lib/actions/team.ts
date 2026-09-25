@@ -257,6 +257,12 @@ export async function acceptInvite(inviteId: string) {
     return { error: "This invite was sent to a different email address" };
   }
 
+  // Invites only ever grant member/admin (inviteTeamMember enforces it); never
+  // trust the stored row to hand out ownership.
+  if (invite.role !== "member" && invite.role !== "admin") {
+    return { error: "This invite is not valid" };
+  }
+
   // Check if user is already a member
   const { data: existingMembership } = await serviceClient
     .from("workspace_members")

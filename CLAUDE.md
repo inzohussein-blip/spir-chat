@@ -30,6 +30,7 @@ npx vitest run
 4. Apply it to the live Supabase project **spirchat** (`yxwnrrgnufmetderlcio`) and confirm.
 
 - Never touch the **spirmargin** Supabase project; it's a separate product.
+- `scheduled_jobs` has no RLS policies (server-only): enqueue with `createServiceClient()` after verifying ownership.
 - A `SECURITY DEFINER` function called over RPC must check `is_workspace_member(...)` itself (it bypasses RLS),
   and internal-only functions must not be executable by `anon` / `authenticated` (see `00076`, `00077`).
 
@@ -41,7 +42,7 @@ npx vitest run
 | `app/` | Next.js App Router: pages, API routes, public surfaces |
 | `components/` | Client/server UI shared across pages (inbox, flow builder, settings…) |
 | `lib/` | All business logic. `lib/actions/*` = server actions (`"use server"`) called by pages |
-| `supabase/migrations/` | Ordered SQL (`00001`→`00078`); `supabase/schema.sql` = all of them concatenated |
+| `supabase/migrations/` | Ordered SQL (`00001`→`00079`); `supabase/schema.sql` = all of them concatenated |
 | `public/widget.js` | Embeddable website-chat loader; `public/sw.js` = Web Push service worker |
 | `services/telegram-gateway/` | Separate Node service (GramJS) for Telegram outreach; not deployed with the app |
 | `scripts/smoke-test.mjs` | End-to-end smoke test: creates a test flow and runs it through the webhook |
@@ -118,7 +119,7 @@ npx vitest run
 - `/api/cron/meta` — refresh Meta tokens, drain `dm_jobs`, purge old jobs.
 
 ### Database — where each feature's schema lives
-`00001` core tables · `00002` RLS · `00003` RPC counters · `00004` comment automation · `00005` sequences · `00006` invites · `00007-08` AI key/provider · `00010` flow versions · `00012` webhook idempotency · `00014-15` job claims · `00016` security hardening · `00017` website channel · `00018` saved replies · `00019` widget config · `00020` conversation notes · `00021` labels · `00022-23` visitor presence/typing · `00024` business hours · `00025` API keys + webhooks · `00026` push · `00027` help center · `00028` routing/SLA · `00029` rich messages · `00030` forms · `00031` campaigns · `00032` integrations · `00034` tracked links · `00036` Meta credentials + `dm_jobs` · `00037` report shares · `00039` segments · `00040/44` CSAT · `00041` macros · `00042-43` campaign schedule/recipients · `00045/48` tag→sequence trigger · `00046` A/B · `00047` weekly reports · `00049` label rules · `00050` snooze · `00051` SLA escalation · `00052` merge contacts · `00053` inbox views · `00054` AI replies · `00055` agent cap · `00056` visitor follow-up · `00057` erase contact · `00058` audit log · `00059` priority · `00060-61` contact notes/company · `00062-64` agent presence/away/typing · `00065` auto-close · `00066-69, 73` outreach · `00070-71` WhatsApp credentials/templates · `00072` read receipts · `00074` campaign providers · `00075` member open/close · `00076-78` security (RPC guards, internal RPCs, active-member RLS).
+`00001` core tables · `00002` RLS · `00003` RPC counters · `00004` comment automation · `00005` sequences · `00006` invites · `00007-08` AI key/provider · `00010` flow versions · `00012` webhook idempotency · `00014-15` job claims · `00016` security hardening · `00017` website channel · `00018` saved replies · `00019` widget config · `00020` conversation notes · `00021` labels · `00022-23` visitor presence/typing · `00024` business hours · `00025` API keys + webhooks · `00026` push · `00027` help center · `00028` routing/SLA · `00029` rich messages · `00030` forms · `00031` campaigns · `00032` integrations · `00034` tracked links · `00036` Meta credentials + `dm_jobs` · `00037` report shares · `00039` segments · `00040/44` CSAT · `00041` macros · `00042-43` campaign schedule/recipients · `00045/48` tag→sequence trigger · `00046` A/B · `00047` weekly reports · `00049` label rules · `00050` snooze · `00051` SLA escalation · `00052` merge contacts · `00053` inbox views · `00054` AI replies · `00055` agent cap · `00056` visitor follow-up · `00057` erase contact · `00058` audit log · `00059` priority · `00060-61` contact notes/company · `00062-64` agent presence/away/typing · `00065` auto-close · `00066-69, 73` outreach · `00070-71` WhatsApp credentials/templates · `00072` read receipts · `00074` campaign providers · `00075` member open/close · `00076-79` security (RPC guards, internal RPCs, active-member RLS, server-only `scheduled_jobs`, owner-only invite updates).
 
 ### Tests
 `lib/*.test.ts` (vitest) — pure helpers only (csv, segments, merge, business-hours, outreach parsing, widget, tracking, comment-processor, meta webhook…). Put new pure logic in `lib/` with a test next to it.

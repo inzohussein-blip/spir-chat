@@ -1,6 +1,7 @@
 "use server";
 
 import { getWorkspace } from "@/lib/workspace";
+import { createServiceClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { sendPushToUsers } from "@/lib/push";
 
@@ -22,7 +23,10 @@ export async function scheduleMessage(conversationId: string, text: string, atIs
     .maybeSingle();
   if (!conv) return { error: "Conversation not found" };
 
-  const { error } = await supabase.from("scheduled_jobs").insert({
+  // scheduled_jobs is server-only (no RLS policies): the conversation was just
+  // verified to belong to this workspace, so enqueue with the service role.
+  const service = await createServiceClient();
+  const { error } = await service.from("scheduled_jobs").insert({
     type: "scheduled_message",
     payload: { conversationId, text: body.slice(0, 2000) },
     run_at: at.toISOString(),

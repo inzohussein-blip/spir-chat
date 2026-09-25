@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { scheduleBroadcastDelivery } from "@/lib/scheduler";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json } from "@/lib/types/database";
@@ -172,8 +172,9 @@ export async function POST(
     );
   }
 
-  // Schedule delivery
-  await scheduleBroadcastDelivery(supabase, broadcastId, recipientIds);
+  // Schedule delivery. scheduled_jobs is server-only (no RLS policies), and the
+  // broadcast was verified above to belong to the caller's workspace.
+  await scheduleBroadcastDelivery(await createServiceClient(), broadcastId, recipientIds);
 
   return NextResponse.json({
     broadcastId,
