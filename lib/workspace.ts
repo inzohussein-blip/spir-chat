@@ -6,16 +6,17 @@ import { redirect } from "next/navigation";
 export const WORKSPACE_COOKIE = "spirchat_workspace_id";
 
 /**
- * Cached per-request: deduplicates across layout + page in the same render.
- * Reads workspace ID from cookie if set; falls back to first workspace.
+ * Resolve the caller's current workspace. Cached per request. Reads the
+ * workspace ID from the cookie if set (and that membership is still active);
+ * otherwise falls back to the first workspace, preferring an active one.
  */
-export const getWorkspace = cache(async () => {
+const resolve = cache(async () => {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) redirect("/login");
+  if (!user) return { status: "signed_out" as const };
 
   const cookieStore = await cookies();
   const selectedId = cookieStore.get(WORKSPACE_COOKIE)?.value;
@@ -33,6 +34,7 @@ export const getWorkspace = cache(async () => {
     // workspaces; RLS hides the workspace row from it anyway.
     if (membership?.is_active !== false && membership?.workspaces) {
       return {
+        status: "ok" as const,
         user,
         workspace: membership.workspaces,
         role: membership.role,
@@ -51,15 +53,38 @@ export const getWorkspace = cache(async () => {
     .limit(1)
     .maybeSingle();
 
-  if (!membership) redirect("/login");
+  if (!membership) return { status: "no_workspace" as const };
   // Every membership is closed: the member is blocked until reactivated.
-  if (membership.is_active === false) redirect("/suspended");
-  if (!membership.workspaces) redirect("/login");
+  if (membership.is_active === false) return { status: "suspended" as const };
+  if (!membership.workspaces) return { status: "no_workspace" as const };
 
   return {
+    status: "ok" as const,
     user,
     workspace: membership.workspaces,
     role: membership.role,
     supabase,
   };
 });
+
+/** For pages and server actions: redirects when there is no usable workspace. */
+export const getWorkspace = cache(async () => {
+  const ctx = await resolve();
+  if (ctx.status === "suspended") redirect("/suspended");
+  if (ctx.status !== "ok") redirect("/login");
+  const { user, workspace, role, supabase } = ctx;
+  return { user, workspace, role, supabase };
+});
+
+/**
+ * For API route handlers: the same workspace the dashboard shows (cookie +
+ * active membership), or null when signed out / no active workspace. Never use
+ * "the user's first membership" instead — it ignores the workspace switcher and
+ * closed memberships.
+ */
+export async function resolveWorkspace() {
+  const ctx = await resolve();
+  if (ctx.status !== "ok") return null;
+  const { user, workspace, role, supabase } = ctx;
+  return { user, workspace, role, supabase };
+}

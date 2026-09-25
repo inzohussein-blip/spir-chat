@@ -6,6 +6,7 @@ import {
   getOrCreateWorkspaceWebhookSecret,
 } from "@/lib/zernio-webhook";
 import { backfillInboxConversations } from "@/lib/inbox-sync";
+import { resolveWorkspace } from "@/lib/workspace";
 
 async function getWorkspace(supabase: Awaited<ReturnType<typeof createClient>>) {
   const {
@@ -13,15 +14,7 @@ async function getWorkspace(supabase: Awaited<ReturnType<typeof createClient>>) 
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const { data: membership } = await supabase
-    .from("workspace_members")
-    .select("workspace_id, workspaces(*)")
-    .eq("user_id", user.id)
-    .limit(1)
-    .single();
-
-  if (!membership?.workspaces) return null;
-  return membership.workspaces;
+  return (await resolveWorkspace())?.workspace ?? null;
 }
 
 /**

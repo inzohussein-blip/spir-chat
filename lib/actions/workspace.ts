@@ -2,7 +2,7 @@
 
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
-import { WORKSPACE_COOKIE } from "@/lib/workspace";
+import { WORKSPACE_COOKIE, resolveWorkspace } from "@/lib/workspace";
 
 export async function switchWorkspace(workspaceId: string) {
   const supabase = await createClient();
@@ -47,30 +47,8 @@ export async function renameWorkspace(name: string) {
   if (!trimmed) return { error: "Name is required" };
 
   // The workspace the user currently has selected (cookie), falling back to
-  // their first membership — same resolution the app uses elsewhere.
-  const cookieStore = await cookies();
-  const cookieWorkspaceId = cookieStore.get(WORKSPACE_COOKIE)?.value;
-
-  let workspaceId = cookieWorkspaceId;
-  if (workspaceId) {
-    const { data: membership } = await supabase
-      .from("workspace_members")
-      .select("workspace_id")
-      .eq("user_id", user.id)
-      .eq("workspace_id", workspaceId)
-      .maybeSingle();
-    if (!membership) workspaceId = undefined;
-  }
-  if (!workspaceId) {
-    const { data: first } = await supabase
-      .from("workspace_members")
-      .select("workspace_id")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle();
-    workspaceId = first?.workspace_id ?? undefined;
-  }
+  // their first active membership — same resolution the rest of the app uses.
+  const workspaceId = (await resolveWorkspace())?.workspace.id;
   if (!workspaceId) return { error: "No workspace found" };
 
   // slug is NOT NULL UNIQUE — build one from the name and suffix with the

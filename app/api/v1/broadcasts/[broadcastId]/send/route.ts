@@ -3,6 +3,7 @@ import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { scheduleBroadcastDelivery } from "@/lib/scheduler";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json } from "@/lib/types/database";
+import { resolveWorkspace } from "@/lib/workspace";
 
 interface SegmentRule {
   field: string;
@@ -41,12 +42,8 @@ export async function POST(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { data: membership } = await supabase
-    .from("workspace_members")
-    .select("workspace_id")
-    .eq("user_id", user.id)
-    .limit(1)
-    .single();
+  const current = await resolveWorkspace();
+  const membership = current ? { workspace_id: current.workspace.id } : null;
 
   if (!membership) {
     return NextResponse.json({ error: "No workspace" }, { status: 404 });

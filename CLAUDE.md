@@ -56,7 +56,7 @@ npx vitest run
   - `createClient()` — the user's session, **RLS applies**. Default for pages and server actions.
   - `createServiceClient()` — service-role key, **bypasses RLS**. Only for webhooks, cron, the public widget/API, and cross-user writes (e.g. `lib/actions/team.ts`, `lib/audit-server.ts`). Always scope by `workspace_id` yourself.
   - `lib/supabase/client.ts` — browser client (Realtime in the inbox).
-- **Workspace resolution**: `getWorkspace()` in `lib/workspace.ts` → `{ user, workspace, role, supabase }`. Reads the `spirchat_workspace_id` cookie, prefers an active membership, redirects to `/suspended` when every membership is closed. Every dashboard page/action starts with it.
+- **Workspace resolution**: `getWorkspace()` in `lib/workspace.ts` → `{ user, workspace, role, supabase }`. Reads the `spirchat_workspace_id` cookie, prefers an active membership, redirects to `/suspended` when every membership is closed. Every dashboard page/action starts with it. API route handlers use `resolveWorkspace()` (same rules, returns null instead of redirecting). Never pick "the user's first membership" (`.limit(1)`) — it ignores the workspace switcher and closed memberships.
 - **RLS**: nearly every table uses `is_workspace_member(workspace_id)` (requires `is_active`, see `00078`).
 - `app/auth/callback/route.ts` — OAuth/email callback; sends new users with a default-named workspace to `/onboarding`.
 
